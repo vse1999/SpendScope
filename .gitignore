@@ -41,3 +41,23 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# Internal/process markdown files (not for production)
+AGENTS.md
+ARCHITECTURE.md
+TECH_DEBT.md
+PHASE3_ROADMAP.md
+TODO.md
+TODO*.md
+PLAN.md
+PLAN*.md
+DRAFT.md
+DRAFT*.md
+PROMPT.md
+PROMPT*.md
+*.todo.md
+*.draft.md
+*.plan.md
+*.prompt.md
+notes/*.md
+drafts/*.md

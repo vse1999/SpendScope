@@ -1,19 +1,10 @@
 import type { NextAuthConfig } from "next-auth"
-import Google from "next-auth/providers/google"
-import GitHub from "next-auth/providers/github"
+import { UserRole } from "@prisma/client"
 
-// Edge-compatible auth config (used by middleware)
+// Edge-compatible auth config (NO database imports here!)
+// This file is used by middleware.ts which runs in Edge Runtime
 export const authConfig: NextAuthConfig = {
-    providers: [
-        Google({
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        }),
-        GitHub({
-            clientId: process.env.GITHUB_CLIENT_ID!,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-        }),
-    ],
+    providers: [],
     pages: {
         signIn: "/login",
     },
@@ -21,23 +12,22 @@ export const authConfig: NextAuthConfig = {
         async session({ session, token }) {
             if (session.user && token.sub) {
                 session.user.id = token.sub
-                // @ts-ignore - will fix types later
-                session.user.role = token.role
-                // @ts-ignore
-                session.user.companyId = token.companyId
+                if (token.role) {
+                    session.user.role = token.role as UserRole
+                }
+                if (token.companyId !== undefined && typeof token.companyId === 'string') {
+                    session.user.companyId = token.companyId
+                }
             }
             return session
         },
-        async jwt({ token, user }) {
-            if (user) {
-                // @ts-ignore
-                token.role = user.role
-                // @ts-ignore
-                token.companyId = user.companyId
-            }
+        async jwt({ token }) {
+            // Edge-compatible: no database calls here
+            // Database lookups are done in auth.ts which runs in Node.js runtime
             return token
         },
     },
     session: { strategy: "jwt" },
     secret: process.env.NEXTAUTH_SECRET,
+    trustHost: true,
 }

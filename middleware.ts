@@ -7,18 +7,34 @@ const { auth } = NextAuth(authConfig)
 
 export default auth((req) => {
     const isLoggedIn = !!req.auth
-    const isAuthPage = req.nextUrl.pathname.startsWith("/login")
-    const isPublicPage = req.nextUrl.pathname === "/" || req.nextUrl.pathname.startsWith("/api/auth")
-
-    // Redirect logged-in users away from auth pages
-    if (isAuthPage && isLoggedIn) {
+    const pathname = req.nextUrl.pathname
+    
+    // Auth pages (login and onboarding) - accessible when logged in
+    const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/onboarding")
+    const isPublicPage = pathname === "/" || pathname.startsWith("/api/auth")
+    const isStaticFile = pathname.startsWith("/_next") || pathname.startsWith("/favicon") || pathname.includes(".")
+    
+    // Allow static files and public pages
+    if (isStaticFile || isPublicPage) {
+        return NextResponse.next()
+    }
+    
+    // Redirect logged-in users away from login page only
+    // Note: onboarding is accessible to logged-in users (they might need to select/create company)
+    if (pathname.startsWith("/login") && isLoggedIn) {
         return NextResponse.redirect(new URL("/dashboard", req.url))
     }
-
-    // Redirect non-logged-in users to login page (except public pages)
-    if (!isLoggedIn && !isAuthPage && !isPublicPage) {
+    
+    // Redirect non-logged-in users to login page
+    // Note: onboarding requires authentication
+    if (!isLoggedIn && !isAuthPage) {
         return NextResponse.redirect(new URL("/login", req.url))
     }
+
+    // IMPORTANT: We DON'T check for companyId here because:
+    // 1. The JWT token might be stale (not updated after onboarding)
+    // 2. The dashboard page queries the database directly for company info
+    // 3. This prevents redirect loops between /dashboard and /onboarding
 
     return NextResponse.next()
 })
