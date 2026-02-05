@@ -2,7 +2,8 @@ import NextAuth from "next-auth"
 import { NextResponse } from "next/server"
 import { authConfig } from "./auth.config"
 
-// Edge-compatible auth (no database adapter)
+// Node.js runtime proxy (formerly middleware)
+// Next.js 16+: proxy runs on Node.js runtime only (no Edge)
 const { auth } = NextAuth(authConfig)
 
 export default auth((req) => {

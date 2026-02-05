@@ -1,0 +1,104 @@
+import { auth } from "@/auth"
+import { prisma } from "@/lib/prisma"
+import { stripe, isBillingEnabled, PRICE_IDS } from "@/lib/stripe/config"
+import { NextResponse } from "next/server"
+
+export async function POST() {
+  try {
+    // Check if billing is enabled
+    if (!isBillingEnabled()) {
+      return NextResponse.json(
+        { error: "Billing is not enabled in development mode" },
+        { status: 400 }
+      )
+    }
+
+    const session = await auth()
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
+    // Get user's company
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: { company: true },
+    })
+
+    if (!user?.company) {
+      return NextResponse.json(
+        { error: "User not associated with a company" },
+        { status: 400 }
+      )
+    }
+
+    // Check if user is admin
+    if (user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Only admins can manage billing" },
+        { status: 403 }
+      )
+    }
+
+    // Get or create Stripe customer
+    let subscription = await prisma.subscription.findUnique({
+      where: { companyId: user.company.id },
+    })
+
+    let customerId = subscription?.stripeCustomerId
+
+    if (!customerId) {
+      // Create new Stripe customer
+      const customer = await stripe.customers.create({
+        email: session.user.email || undefined,
+        name: user.company.name,
+        metadata: {
+          companyId: user.company.id,
+          userId: session.user.id,
+        },
+      })
+      customerId = customer.id
+
+      // Update subscription record
+      await prisma.subscription.update({
+        where: { companyId: user.company.id },
+        data: { stripeCustomerId: customerId },
+      })
+    }
+
+    // Create checkout session with test-friendly settings
+    const checkoutSession = await stripe.checkout.sessions.create({
+      customer: customerId,
+      line_items: [
+        {
+          price: PRICE_IDS.PRO_MONTHLY,
+          quantity: 1,
+        },
+      ],
+      mode: "subscription",
+      success_url: `${process.env.NEXTAUTH_URL}/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXTAUTH_URL}/billing?canceled=true`,
+      subscription_data: {
+        // Optional: Add trial period for testing
+        // trial_period_days: 14,
+        metadata: {
+          companyId: user.company.id,
+        },
+      },
+      // Collect tax ID if needed
+      // tax_id_collection: {enabled: true},
+      // Allow promotion codes for testing discounts
+      allow_promotion_codes: true,
+      // Billing address collection (optional)
+      billing_address_collection: "auto",
+    })
+
+    return NextResponse.json({ url: checkoutSession.url })
+  } catch (error) {
+    console.error("Checkout error:", error)
+    return NextResponse.json(
+      { error: "Failed to create checkout session" },
+      { status: 500 }
+    )
+  }
+}

@@ -118,9 +118,8 @@ const navigationItems: NavItem[] = [
   },
   {
     title: "Analytics",
-    href: "/dashboard/analytics",
+    href: "/analytics",
     icon: BarChart3,
-    proOnly: true,
   },
   {
     title: "Team",
@@ -138,7 +137,7 @@ const secondaryNavigation: NavItem[] = [
   },
   {
     title: "Billing",
-    href: "/dashboard/billing",
+    href: "/billing",
     icon: CreditCard,
   },
 ]

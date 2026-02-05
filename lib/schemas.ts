@@ -77,42 +77,9 @@ export const createExpenseSchema = expenseSchema;
 
 /**
  * Schema for updating an existing expense
- * All fields optional except id
+ * All fields required (full form edit)
  */
-export const updateExpenseSchema = z.object({
-  id: z
-    .string()
-    .regex(CUID_REGEX, { message: "Érvénytelen azonosító / Invalid ID" }),
-
-  amount: z
-    .string()
-    .optional()
-    .refine((val) => val === undefined || (!isNaN(parseFloat(val)) && parseFloat(val) > 0), {
-      message: "Az összegnek pozitív számnak kell lennie / Amount must be a positive number",
-    })
-    .refine((val) => val === undefined || parseFloat(val) <= 999999.99, {
-      message: "Az összeg maximum 999,999.99 lehet / Amount cannot exceed 999,999.99",
-    })
-    .transform((val) => (val !== undefined ? parseFloat(val) : undefined)),
-
-  description: z
-    .string()
-    .min(1, { message: "A leírás nem lehet üres / Description cannot be empty" })
-    .max(500, { message: "A leírás maximum 500 karakter lehet / Description cannot exceed 500 characters" })
-    .optional(),
-
-  date: z
-    .string()
-    .optional()
-    .refine((val) => val === undefined || !isNaN(Date.parse(val)), {
-      message: "Érvénytelen dátum formátum / Invalid date format",
-    }),
-
-  categoryId: z
-    .string()
-    .regex(CUID_REGEX, { message: "Érvénytelen kategória azonosító / Invalid category ID" })
-    .optional(),
-});
+export const updateExpenseSchema = expenseSchema;
 
 /**
  * Schema for category validation

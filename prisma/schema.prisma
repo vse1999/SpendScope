@@ -130,11 +130,36 @@ model Expense {
   category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  history  ExpenseHistory[]
 
   @@index([companyId])
   @@index([userId])
   @@index([categoryId])
   @@index([date])
+}
+
+// Enterprise Audit Trail: Full history of all expense changes
+model ExpenseHistory {
+  id          String   @id @default(cuid())
+  expenseId   String
+  // Who made the change
+  editedBy    String
+  editedByName String? // Denormalized for display
+  editedAt    DateTime @default(now())
+  // What changed (stored as JSON for flexibility)
+  oldValues   String   @db.Text // JSON string
+  newValues   String   @db.Text // JSON string
+  // Change type
+  changeType  String   // "UPDATE", "DELETE", "CREATE"
+  // Reason (optional, for admin edits)
+  reason      String?
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@index([editedBy])
+  @@index([editedAt])
+  @@map("expense_history")
 }
 
 model Subscription {
