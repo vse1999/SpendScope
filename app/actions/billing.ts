@@ -4,6 +4,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { stripe } from "@/lib/stripe/config"
 import { revalidatePath } from "next/cache"
+import type { StripeSubscriptionWithPeriod } from "@/types/stripe"
 
 /**
  * Reset subscription to FREE (for testing only)
@@ -82,7 +83,7 @@ export async function syncSubscriptionAfterCheckout() {
       return { error: "No active subscription found in Stripe" }
     }
 
-    const stripeSub = subscriptions.data[0] as any
+    const stripeSub = subscriptions.data[0] as StripeSubscriptionWithPeriod
 
     // Update database with Stripe data
     await prisma.subscription.update({
@@ -92,7 +93,7 @@ export async function syncSubscriptionAfterCheckout() {
         status: "ACTIVE",
         stripeSubId: stripeSub.id,
         stripePriceId: stripeSub.items.data[0]?.price.id,
-        currentPeriodEnd: stripeSub.current_period_end 
+        currentPeriodEnd: stripeSub.current_period_end
           ? new Date(stripeSub.current_period_end * 1000) 
           : null,
       }

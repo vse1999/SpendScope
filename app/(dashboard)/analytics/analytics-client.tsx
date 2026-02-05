@@ -15,9 +15,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, TrendingUp, Users, PieChart } from "lucide-react"
 import { formatCurrency } from "@/lib/format-utils"
 import { UserRole } from "@prisma/client"
+import type { AnalyticsData } from "@/types/analytics"
 
 interface AnalyticsClientProps {
-  initialData: any
+  initialData: AnalyticsData | null
   userRole: UserRole
 }
 

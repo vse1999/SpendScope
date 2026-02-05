@@ -9,9 +9,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Download, FileSpreadsheet, Image as ImageIcon, Loader2 } from "lucide-react"
+import type { AnalyticsData, MonthlyTrend, CategoryDistribution } from "@/types/analytics"
 
 interface ExportButtonProps {
-  data: any
+  data: AnalyticsData
   filename?: string
 }
 
@@ -35,7 +36,7 @@ export function ExportButton({ data, filename = "analytics" }: ExportButtonProps
     if (data.monthlyTrend) {
       rows.push([])
       rows.push(["Monthly Breakdown", ""])
-      data.monthlyTrend.forEach((month: any) => {
+      data.monthlyTrend.forEach((month: MonthlyTrend) => {
         rows.push([month.month, month.amount])
       })
     }
@@ -44,7 +45,7 @@ export function ExportButton({ data, filename = "analytics" }: ExportButtonProps
     if (data.categoryDistribution) {
       rows.push([])
       rows.push(["Category Breakdown", ""])
-      data.categoryDistribution.forEach((cat: any) => {
+      data.categoryDistribution.forEach((cat: CategoryDistribution) => {
         rows.push([cat.name, cat.amount])
       })
     }

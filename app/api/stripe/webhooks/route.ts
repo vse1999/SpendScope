@@ -2,6 +2,8 @@ import { stripe } from "@/lib/stripe/config"
 import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 import Stripe from "stripe"
+import type { StripeSubscriptionWithPeriod } from "@/types/stripe"
+import { getSubscriptionIdFromInvoice } from "@/types/stripe"
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ""
 
@@ -14,10 +16,11 @@ export async function POST(request: Request) {
 
     try {
       event = stripe.webhooks.constructEvent(payload, signature, webhookSecret)
-    } catch (err: any) {
-      console.error(`Webhook signature verification failed:`, err.message)
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error"
+      console.error(`Webhook signature verification failed:`, errorMessage)
       return NextResponse.json(
-        { error: `Webhook Error: ${err.message}` },
+        { error: `Webhook Error: ${errorMessage}` },
         { status: 400 }
       )
     }
@@ -33,13 +36,13 @@ export async function POST(request: Request) {
       }
 
       case "invoice.paid": {
-        const invoice = event.data.object as any
+        const invoice = event.data.object as Stripe.Invoice
         await handleInvoicePaid(invoice)
         break
       }
 
       case "invoice.payment_failed": {
-        const invoice = event.data.object as any
+        const invoice = event.data.object as Stripe.Invoice
         await handlePaymentFailed(invoice)
         break
       }
@@ -74,7 +77,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Get subscription details from Stripe
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId) as StripeSubscriptionWithPeriod
 
   // Update database
   await prisma.subscription.update({
@@ -84,8 +87,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       status: "ACTIVE",
       stripeSubId: subscriptionId,
       stripePriceId: subscription.items.data[0]?.price.id,
-      currentPeriodEnd: (subscription as any).current_period_end 
-        ? new Date((subscription as any).current_period_end * 1000) 
+      currentPeriodEnd: subscription.current_period_end 
+        ? new Date(subscription.current_period_end * 1000) 
         : null,
     },
   })
@@ -93,8 +96,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(`[STRIPE] Upgraded company ${companyId} to PRO`)
 }
 
-async function handleInvoicePaid(invoice: any) {
-  const subscriptionId = invoice.subscription as string
+async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  const subscriptionId = getSubscriptionIdFromInvoice(invoice)
   
   if (!subscriptionId) return
 
@@ -106,8 +109,8 @@ async function handleInvoicePaid(invoice: any) {
   console.log(`[STRIPE] Subscription ${subscriptionId} payment confirmed`)
 }
 
-async function handlePaymentFailed(invoice: any) {
-  const subscriptionId = invoice.subscription as string
+async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  const subscriptionId = getSubscriptionIdFromInvoice(invoice)
   
   if (!subscriptionId) return
 

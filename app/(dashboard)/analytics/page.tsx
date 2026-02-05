@@ -28,7 +28,7 @@ export default async function AnalyticsPage() {
 
   return (
     <AnalyticsClient 
-      initialData={result.data} 
+      initialData={result.data ?? null} 
       userRole={session.user.role}
     />
   )

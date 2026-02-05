@@ -12,12 +12,9 @@ import {
 } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
+import type { MonthlyTrend } from "@/types/analytics"
 
-interface TrendData {
-  month: string
-  amount: number
-  monthKey: string
-}
+interface TrendData extends MonthlyTrend {}
 
 interface MonthlyTrendChartProps {
   data: TrendData[]
@@ -43,9 +40,11 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={data}
-              onClick={(e: any) => {
-                if (e && e.activePayload && onMonthClick) {
-                  onMonthClick(e.activePayload[0].payload.monthKey)
+              onClick={(nextState) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const state = nextState as any
+                if (state?.activePayload?.[0] && onMonthClick) {
+                  onMonthClick((state.activePayload[0].payload as MonthlyTrend).monthKey)
                 }
               }}
             >

@@ -1,15 +1,11 @@
 "use client"
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, type BarRectangleItem } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
+import type { UserSpending } from "@/types/analytics"
 
-interface UserData {
-  name: string
-  email: string
-  amount: number
-  count: number
-}
+interface UserData extends UserSpending {}
 
 interface UserSpendingChartProps {
   data: UserData[]
@@ -89,7 +85,10 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
                 dataKey="amount"
                 radius={[0, 4, 4, 0]}
                 cursor={onUserClick ? "pointer" : "default"}
-                onClick={(data: any) => onUserClick?.(data.email)}
+                onClick={(data: BarRectangleItem) => {
+                  const userData = data.payload as UserData
+                  onUserClick?.(userData.email)
+                }}
               >
                 {sortedData.map((entry, index) => (
                   <Cell
