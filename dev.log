@@ -1,0 +1,17 @@
+
+> spendscope@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.5.0.2:3000
+- Environments: .env.local, .env
+
+✓ Starting...
+✓ Ready in 694ms
+ GET /dashboard 200 in 2.7s (compile: 1745ms, proxy.ts: 90ms, render: 912ms)
+ GET /dashboard 200 in 512ms (compile: 56ms, proxy.ts: 7ms, render: 449ms)
+ POST /dashboard 200 in 73ms (compile: 2ms, proxy.ts: 5ms, render: 66ms)
+ POST /dashboard 200 in 57ms (compile: 3ms, proxy.ts: 6ms, render: 49ms)
+
+C:\Users\KomPhone\Desktop\ProjectFolder\SpendScope project\spendscope>

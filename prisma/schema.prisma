@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // NextAuth.js Models
@@ -76,13 +77,21 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  company  Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  accounts Account[]
-  sessions Session[]
-  expenses Expense[]
+  company      Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  accounts     Account[]
+  sessions     Session[]
+  expenses     Expense[]
+  invitationsSent Invitation[] @relation("invitedByUser")
 
   @@index([companyId])
   @@index([email])
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
 }
 
 model Company {
@@ -96,6 +105,8 @@ model Company {
   categories   Category[]
   expenses     Expense[]
   subscription Subscription?
+  usage        CompanyUsage?
+  invitations  Invitation[]
 
   @@index([slug])
 }
@@ -178,4 +189,43 @@ model Subscription {
 
   @@index([companyId])
   @@index([stripeCustomerId])
+}
+
+model CompanyUsage {
+  id                String   @id @default(cuid())
+  companyId         String   @unique
+  monthlyExpenses   Int      @default(0)
+  currentMonth      Int      // YYYYMM format
+  maxExpenses       Int      @default(100)
+  maxUsers          Int      @default(3)
+  maxCategories     Int      @default(5)
+  version           Int      @default(0)  // Optimistic locking
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, currentMonth])
+  @@map("company_usage")
+}
+
+// Team Invitations: Track pending invitations to join a company
+model Invitation {
+  id         String           @id @default(cuid())
+  email      String
+  role       UserRole         @default(MEMBER)
+  status     InvitationStatus @default(PENDING)
+  companyId  String
+  invitedBy  String
+  invitedAt  DateTime         @default(now())
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  
+  company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  invitedByUser User    @relation("invitedByUser", fields: [invitedBy], references: [id], onDelete: Cascade)
+  
+  @@index([companyId, status])
+  @@index([email, companyId])
+  @@index([expiresAt])
+  @@map("invitations")
 }

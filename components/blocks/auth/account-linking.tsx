@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Check, Github, Loader2, Unlink, ArrowRight } from "lucide-react"
@@ -59,27 +59,27 @@ export function AccountLinking({
     const [linking, setLinking] = useState<string | null>(null)
     const [unlinking, setUnlinking] = useState<string | null>(null)
     const [stepUpProvider, setStepUpProvider] = useState<"github" | "google" | null>(null)
-    const [verifiedProvider, setVerifiedProvider] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
 
-    // Handle step-up verified state from URL
-    useEffect(() => {
+    // Derive verified provider from props using useMemo to avoid setState during render
+    const verifiedProvider = useMemo<string | null>(() => {
         if (stepUpVerified && linkTarget && !linkedProviders.includes(linkTarget)) {
-            setVerifiedProvider(linkedProviders[0]) // Mark as verified (can be any)
+            return linkedProviders[0] ?? null
         }
+        return null
     }, [stepUpVerified, linkTarget, linkedProviders])
 
-    const handleLinkRequest = (providerId: string) => {
+    const handleLinkRequest = (providerId: string): void => {
         // If already verified via step-up, proceed directly to link
         if (verifiedProvider && linkTarget === providerId) {
-            handleDirectLink(providerId)
+            void handleDirectLink(providerId)
             return
         }
         // Otherwise show step-up dialog
         setStepUpProvider(providerId as "github" | "google")
     }
 
-    const handleUnlink = async (providerId: string) => {
+    const handleUnlink = async (providerId: string): Promise<void> => {
         setUnlinking(providerId)
         setError(null)
         
@@ -92,7 +92,7 @@ export function AccountLinking({
         setUnlinking(null)
     }
 
-    const handleDirectLink = async (providerId: string) => {
+    const handleDirectLink = async (providerId: string): Promise<void> => {
         setLinking(providerId)
         try {
             await signIn(providerId, {

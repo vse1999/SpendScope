@@ -1,5 +1,8 @@
 import type { NextAuthConfig } from "next-auth"
-import { UserRole } from "@prisma/client"
+
+// Define role type locally for Edge compatibility
+// Must match Prisma schema: enum UserRole { ADMIN MEMBER }
+type UserRole = "ADMIN" | "MEMBER"
 
 // Edge-compatible auth config (NO database imports here!)
 // This file is used by middleware.ts which runs in Edge Runtime

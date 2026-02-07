@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatCurrency } from "@/lib/format-utils"
 import type { UserSpending } from "@/types/analytics"
 
-interface UserData extends UserSpending {}
+type UserData = UserSpending
 
 interface UserSpendingChartProps {
   data: UserData[]

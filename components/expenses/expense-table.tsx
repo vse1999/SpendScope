@@ -90,7 +90,7 @@ export function ExpenseTable({
     return expense.userId === currentUserId || isAdmin
   }
 
-  const canDelete = (expense: Expense) => {
+  const canDelete = (): boolean => {
     // Only admins can delete (for safety)
     return isAdmin
   }
@@ -167,7 +167,7 @@ export function ExpenseTable({
                               <Pencil className="h-4 w-4" />
                             </Button>
                           )}
-                          {canDelete(expense) && (
+                          {canDelete() && (
                             <Button
                               variant="ghost"
                               size="icon"

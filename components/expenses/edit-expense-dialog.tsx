@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -26,6 +26,7 @@ import { CalendarIcon, Loader2, History } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { updateExpense, getExpenseHistory } from "@/app/actions/expenses"
 import { toast } from "sonner"
+import type { ExpenseHistoryItem } from "@/types/expense-history"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface Category {
@@ -52,6 +53,24 @@ interface EditExpenseDialogProps {
   isAdmin: boolean
 }
 
+// Helper to create initial form data from expense
+function createInitialFormData(expense: Expense | null) {
+  if (!expense) {
+    return {
+      amount: "",
+      description: "",
+      date: new Date(),
+      categoryId: "",
+    }
+  }
+  return {
+    amount: expense.amount,
+    description: expense.description,
+    date: expense.date instanceof Date ? expense.date : new Date(expense.date),
+    categoryId: expense.categoryId,
+  }
+}
+
 export function EditExpenseDialog({
   expense,
   categories,
@@ -59,46 +78,37 @@ export function EditExpenseDialog({
   onClose,
   onSuccess,
   canEdit,
-  isAdmin,
-}: EditExpenseDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showHistory, setShowHistory] = useState(false)
-  const [history, setHistory] = useState<any[]>([])
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+}: EditExpenseDialogProps): React.ReactElement | null {
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const [showHistory, setShowHistory] = useState<boolean>(false)
+  const [history, setHistory] = useState<ExpenseHistoryItem[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false)
   
-  const [formData, setFormData] = useState({
-    amount: "",
-    description: "",
-    date: new Date(),
-    categoryId: "",
-  })
+  // Use useMemo to create stable initial form data based on expense
+  const initialFormData = useMemo(() => createInitialFormData(expense), [expense])
+  const [formData, setFormData] = useState(initialFormData)
 
-  // Load expense data when dialog opens
-  useEffect(() => {
-    if (expense && isOpen) {
-      setFormData({
-        amount: expense.amount,
-        description: expense.description,
-        date: expense.date instanceof Date ? expense.date : new Date(expense.date),
-        categoryId: expense.categoryId,
-      })
+  // Handle dialog close with state reset
+  const handleOpenChange = useCallback((open: boolean): void => {
+    if (!open) {
       setShowHistory(false)
       setHistory([])
+      onClose()
     }
-  }, [expense, isOpen])
+  }, [onClose])
 
   // Load audit history
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async (): Promise<void> => {
     if (!expense) return
     setIsLoadingHistory(true)
     const result = await getExpenseHistory(expense.id)
     if (result.success && result.history) {
-      setHistory(result.history)
+      setHistory(result.history as ExpenseHistoryItem[])
     }
     setIsLoadingHistory(false)
-  }
+  }, [expense])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     if (!expense) return
 
@@ -121,12 +131,12 @@ export function EditExpenseDialog({
     }
 
     setIsSubmitting(false)
-  }
+  }, [expense, formData, onSuccess, onClose])
 
   if (!expense) return null
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit Expense</DialogTitle>
@@ -226,7 +236,7 @@ export function EditExpenseDialog({
             </div>
 
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
@@ -250,7 +260,7 @@ export function EditExpenseDialog({
             variant="ghost"
             size="sm"
             onClick={() => {
-              if (!showHistory) loadHistory()
+              if (!showHistory) void loadHistory()
               setShowHistory(!showHistory)
             }}
             disabled={isLoadingHistory}
@@ -270,7 +280,7 @@ export function EditExpenseDialog({
                   No edits yet. This expense has not been modified.
                 </p>
               ) : (
-                history.map((h, idx) => (
+                history.map((h) => (
                   <div key={h.id} className="text-sm border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium">

@@ -21,14 +21,17 @@ export default async function OnboardingPage() {
         <FeatureHighlights />
 
         <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Not {session.user.email}?{" "}
-            <form action="/api/auth/signout" method="POST" className="inline">
-              <button type="submit" className="text-primary hover:underline">
+          <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+            <span>Not {session.user.email}?</span>
+            <form action="/api/auth/signout" method="POST">
+              <button
+                type="submit"
+                className="text-primary hover:underline p-0 m-0 bg-transparent border-0"
+              >
                 Sign out
               </button>
             </form>
-          </p>
+          </div>
         </div>
       </div>
     </div>

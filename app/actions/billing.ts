@@ -4,7 +4,15 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { stripe } from "@/lib/stripe/config"
 import { revalidatePath } from "next/cache"
+import { syncUsageLimits as syncUsageLimitsService } from "@/lib/subscription/feature-gate-service"
 import type { StripeSubscriptionWithPeriod } from "@/types/stripe"
+
+/**
+ * Result type for sync usage limits action
+ */
+type SyncUsageLimitsResult = 
+  | { success: true; message: string }
+  | { success: false; error: string; code?: "UNAUTHORIZED" | "NOT_FOUND" | "RATE_LIMITED" };
 
 /**
  * Reset subscription to FREE (for testing only)
@@ -105,5 +113,66 @@ export async function syncSubscriptionAfterCheckout() {
   } catch (error) {
     console.error("Sync error:", error)
     return { error: "Failed to sync subscription" }
+  }
+}
+
+/**
+ * Sync usage limits when subscription changes
+ * Should be called after subscription upgrade/downgrade to update CompanyUsage limits
+ */
+export async function syncUsageLimits(): Promise<SyncUsageLimitsResult> {
+  // Apply rate limiting at the start
+  try {
+    // Check API rate limit
+    const apiLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit("sync-api", { tier: "api" }));
+    if (!apiLimit.allowed) {
+      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" }
+    }
+
+    // Check user rate limit
+    const headersList = await import("next/headers").then(m => m.headers());
+    const userId = headersList.get("x-user-id") ?? "anonymous";
+    const userLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit(userId, { tier: "api" }));
+    if (!userLimit.allowed) {
+      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" }
+    }
+  } catch {
+    // Continue if rate limiting fails
+  }
+
+  try {
+    const session = await auth()
+
+    if (!session?.user) {
+      return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" }
+    }
+
+    // Only admins can sync usage limits
+    if (session.user.role !== "ADMIN") {
+      return { success: false, error: "Only admins can sync usage limits", code: "UNAUTHORIZED" }
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { companyId: true }
+    })
+
+    if (!user?.companyId) {
+      return { success: false, error: "No company found", code: "NOT_FOUND" }
+    }
+
+    // Call the service function to sync limits
+    await syncUsageLimitsService(user.companyId)
+
+    revalidatePath("/billing")
+    revalidatePath("/settings")
+
+    return { success: true, message: "Usage limits synced successfully" }
+  } catch (error) {
+    console.error("Sync usage limits error:", error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to sync usage limits" 
+    }
   }
 }

@@ -33,14 +33,13 @@ export function CreateCompanyForm() {
     try {
       const result = await createCompany(formData)
 
-      if (result.error) {
+      if (!result.success) {
         setError(result.error)
         return
       }
 
       if (result.success) {
-        // Force a full page navigation to /dashboard
-        // This ensures the session is refreshed and data is fetched fresh
+        // Navigate to dashboard - getUserCompany() will fetch fresh data from DB
         window.location.href = "/dashboard"
       }
     } catch {

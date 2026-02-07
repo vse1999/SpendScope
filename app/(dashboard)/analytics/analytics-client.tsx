@@ -10,9 +10,9 @@ import {
   ExportButton,
 } from "@/components/analytics"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, TrendingUp, Users, PieChart } from "lucide-react"
+import { TrendingUp, Users, PieChart } from "lucide-react"
 import { formatCurrency } from "@/lib/format-utils"
 import { UserRole } from "@prisma/client"
 import type { AnalyticsData } from "@/types/analytics"
@@ -25,7 +25,7 @@ interface AnalyticsClientProps {
 export function AnalyticsClient({ initialData, userRole }: AnalyticsClientProps) {
   const router = useRouter()
   const [days, setDays] = useState(90)
-  const [data, setData] = useState(initialData)
+  const [data] = useState(initialData)
 
   const handleMonthClick = (monthKey: string) => {
     router.push(`/dashboard?month=${monthKey}`)

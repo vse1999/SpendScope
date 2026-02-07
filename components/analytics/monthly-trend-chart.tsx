@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+
 import {
   AreaChart,
   Area,
@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatCurrency } from "@/lib/format-utils"
 import type { MonthlyTrend } from "@/types/analytics"
 
-interface TrendData extends MonthlyTrend {}
+type TrendData = MonthlyTrend
 
 interface MonthlyTrendChartProps {
   data: TrendData[]
@@ -22,7 +22,6 @@ interface MonthlyTrendChartProps {
 }
 
 export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps) {
-  const [hoveredMonth, setHoveredMonth] = useState<string | null>(null)
 
   const totalAmount = data.reduce((sum, d) => sum + d.amount, 0)
   const averageAmount = data.length > 0 ? totalAmount / data.length : 0

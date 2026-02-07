@@ -1,11 +1,27 @@
-"use server";
+﻿"use server";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { createExpenseSchema, updateExpenseSchema } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
-import { startOfDay, subDays, format, startOfMonth, endOfMonth } from "date-fns";
+import { subDays, format, startOfMonth } from "date-fns";
+import { 
+  checkFeatureLimit, 
+  consumeResource,
+  type FeatureCheckResult 
+} from "@/lib/subscription/feature-gate-service";
+import { 
+  decodeCursor,
+  encodeCursor,
+  buildPrismaCursorWhere,
+  buildPrismaOrderBy,
+  type PaginatedResult 
+} from "@/lib/pagination/cursor-pagination";
+import { FeatureGateError } from "@/lib/errors";
+import type { ExpenseChangeValues } from "@/types/expense-history";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { Decimal } from "@prisma/client/runtime/library";
 
 /**
  * Helper to get the current user's company ID from database
@@ -53,10 +69,54 @@ function serializeExpense(expense: ExpenseWithRelations) {
 }
 
 /**
- * Get all expenses for the current user's company
- * Includes category and user details
+ * Default pagination limit
  */
-export async function getExpensesByCompany() {
+const DEFAULT_PAGE_LIMIT = 20;
+const MAX_PAGE_LIMIT = 100;
+
+/**
+ * Result type for create expense action
+ */
+type CreateExpenseResult = 
+  | { success: true; expense: SerializedExpense }
+  | { success: false; error: string; code?: "LIMIT_EXCEEDED" | "UNAUTHORIZED" | "VALIDATION_ERROR" | "RATE_LIMITED" };
+
+/**
+ * Result type for paginated expenses
+ */
+type GetPaginatedExpensesResult = 
+  | PaginatedResult<SerializedExpense>
+  | { error: string; code?: "UNAUTHORIZED" };
+
+/**
+ * Result type for all expenses (backward compatible)
+ */
+type GetExpensesResult = 
+  | SerializedExpense[]
+  | { error: string };
+
+/**
+ * Serialized expense type for client components
+ */
+export interface SerializedExpense {
+  id: string;
+  amount: string;
+  description: string;
+  date: Date;
+  categoryId: string;
+  userId: string;
+  companyId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  category?: { name: string; color: string };
+  user?: { name: string | null; email: string | null };
+}
+
+/**
+ * Get all expenses for the current user's company
+ * Backward compatible - returns array of expenses
+ */
+export async function getExpensesByCompany(): Promise<GetExpensesResult> {
   try {
     const companyId = await getCurrentUserCompanyId();
 
@@ -82,6 +142,84 @@ export async function getExpensesByCompany() {
     const serializedExpenses = expenses.map(serializeExpense);
 
     return serializedExpenses;
+  } catch (error) {
+    console.error("Failed to fetch expenses:", error);
+    return {
+      error: error instanceof Error ? error.message : "Failed to fetch expenses",
+    };
+  }
+}
+
+/**
+ * Get paginated expenses using cursor-based pagination
+ * @param params - Pagination parameters (cursor, limit)
+ * @returns Paginated result with page info
+ */
+export async function getPaginatedExpenses(
+  params: { cursor?: string | null; limit?: number } = {}
+): Promise<GetPaginatedExpensesResult> {
+  try {
+    const companyId = await getCurrentUserCompanyId();
+
+    if (!companyId) {
+      return { error: "User not assigned to company", code: "UNAUTHORIZED" };
+    }
+
+    // Validate and normalize limit
+    let limit = params.limit ?? DEFAULT_PAGE_LIMIT;
+    if (limit < 1) limit = DEFAULT_PAGE_LIMIT;
+    if (limit > MAX_PAGE_LIMIT) limit = MAX_PAGE_LIMIT;
+
+    // Decode cursor if provided
+    const cursor = decodeCursor(params.cursor);
+
+    // Build Prisma query
+    const whereClause = {
+      companyId,
+      ...(buildPrismaCursorWhere(cursor, "forward") ?? {}),
+    };
+
+    // Fetch one extra item to determine if there's a next page
+    const expenses = await prisma.expense.findMany({
+      where: whereClause,
+      include: {
+        category: true,
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: buildPrismaOrderBy(),
+      take: limit + 1, // Fetch one extra to check for next page
+    });
+
+    // Check if there's a next page
+    const hasNextPage = expenses.length > limit;
+    const items = hasNextPage ? expenses.slice(0, limit) : expenses;
+
+    // Serialize expenses to convert Decimal to plain strings
+    const serializedItems = items.map(serializeExpense);
+
+    // Build page info using cursor encoding
+    const startCursor = serializedItems.length > 0 
+      ? encodeCursor({ v: "v1", id: serializedItems[0].id, d: serializedItems[0].createdAt.toISOString() })
+      : null;
+    const endCursor = serializedItems.length > 0 
+      ? encodeCursor({ v: "v1", id: serializedItems[serializedItems.length - 1].id, d: serializedItems[serializedItems.length - 1].createdAt.toISOString() })
+      : null;
+
+    return {
+      items: serializedItems,
+      pageInfo: {
+        hasNextPage,
+        hasPreviousPage: cursor !== null,
+        startCursor,
+        endCursor,
+        totalCount: undefined, // Not efficient to count in cursor pagination
+      },
+    };
   } catch (error) {
     console.error("Failed to fetch expenses:", error);
     return {
@@ -161,21 +299,40 @@ export async function getExpenseStats() {
 }
 
 /**
- * Create a new expense
+ * Create a new expense with feature limit enforcement and rate limiting
  * Validates input data and creates expense for current user's company
  */
-export async function createExpense(formData: FormData) {
+export async function createExpense(formData: FormData): Promise<CreateExpenseResult> {
+  // Apply rate limiting at the start
+  try {
+    // Check action rate limit
+    const actionLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit("expense-action", { tier: "action" }));
+    if (!actionLimit.allowed) {
+      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
+    }
+
+    // Check user rate limit
+    const headersList = await import("next/headers").then(m => m.headers());
+    const userId = headersList.get("x-user-id") ?? "anonymous";
+    const userLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit(userId, { tier: "action" }));
+    if (!userLimit.allowed) {
+      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
+    }
+  } catch {
+    // Continue if rate limiting fails
+  }
+
   try {
     const session = await auth();
 
     if (!session?.user) {
-      return { error: "Not authenticated" };
+      return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
     }
 
     const companyId = await getCurrentUserCompanyId();
 
     if (!companyId) {
-      return { error: "User not assigned to company" };
+      return { success: false, error: "User not assigned to company", code: "UNAUTHORIZED" };
     }
 
     // Parse form data into object
@@ -191,32 +348,84 @@ export async function createExpense(formData: FormData) {
 
     if (!result.success) {
       return {
-        error: "Invalid data",
-        details: result.error.issues,
+        success: false,
+        error: "Invalid data: " + result.error.issues.map(i => i.message).join(", "),
+        code: "VALIDATION_ERROR",
       };
     }
 
     const validated = result.data;
 
-    // Create expense
-    const expense = await prisma.expense.create({
-      data: {
-        amount: validated.amount,
-        description: validated.description,
-        date: new Date(validated.date),
-        categoryId: validated.categoryId,
-        userId: session.user.id,
-        companyId: companyId,
-      },
+    // Check feature limit before creating
+    let limitCheck: FeatureCheckResult;
+    try {
+      limitCheck = await checkFeatureLimit(companyId, "expense", 1);
+    } catch (error) {
+      console.error("Failed to check feature limit:", error);
+      // Gracefully handle limit check failure - allow creation
+      limitCheck = { allowed: true, remaining: Infinity };
+    }
+
+    if (!limitCheck.allowed) {
+      return {
+        success: false,
+        error: limitCheck.reason ?? "Monthly expense limit exceeded",
+        code: "LIMIT_EXCEEDED",
+      };
+    }
+
+    // Use transaction: consume resource + create expense atomically
+    const expense = await prisma.$transaction(async (tx) => {
+      // Consume the resource
+      try {
+        await consumeResource(companyId, "expense", 1);
+      } catch (error) {
+        // If limit was exceeded during transaction, abort
+        if (error instanceof FeatureGateError) {
+          throw error;
+        }
+        // For other errors, log but continue (graceful degradation)
+        console.error("Failed to consume resource:", error);
+      }
+
+      // Create the expense
+      const newExpense = await tx.expense.create({
+        data: {
+          amount: validated.amount,
+          description: validated.description,
+          date: new Date(validated.date),
+          categoryId: validated.categoryId,
+          userId: session.user.id,
+          companyId: companyId,
+        },
+      });
+
+      return newExpense;
+    }).catch((error: Error) => {
+      if (error instanceof FeatureGateError) {
+        throw error;
+      }
+      throw new Error(`Transaction failed: ${error.message}`);
     });
 
     revalidatePath("/dashboard");
+    revalidatePath("/expenses");
 
     // Return serialized expense (Decimal -> string)
     return { success: true, expense: serializeExpense(expense) };
   } catch (error) {
     console.error("Failed to create expense:", error);
+    
+    if (error instanceof FeatureGateError) {
+      return {
+        success: false,
+        error: error.message,
+        code: "LIMIT_EXCEEDED",
+      };
+    }
+
     return {
+      success: false,
       error: error instanceof Error ? error.message : "Failed to create expense",
     };
   }
@@ -406,8 +615,8 @@ export async function getExpenseHistory(id: string) {
     // Parse JSON values for display
     const parsedHistory = history.map(h => ({
       ...h,
-      oldValues: JSON.parse(h.oldValues),
-      newValues: JSON.parse(h.newValues),
+      oldValues: JSON.parse(h.oldValues) as ExpenseChangeValues,
+      newValues: JSON.parse(h.newValues) as ExpenseChangeValues,
     }));
 
     return { success: true, history: parsedHistory };
@@ -485,6 +694,516 @@ export async function getCategories() {
     console.error("Failed to fetch categories:", error);
     return {
       error: error instanceof Error ? error.message : "Failed to fetch categories",
+    };
+  }
+}
+
+/**
+ * Filter parameters for expense queries
+ */
+export interface ExpenseFilters {
+  dateFrom?: Date | null;
+  dateTo?: Date | null;
+  categoryIds?: string[];
+  amountMin?: number | null;
+  amountMax?: number | null;
+  search?: string;
+}
+
+/**
+ * Get expenses with advanced filters using cursor-based pagination
+ */
+export async function getExpensesWithFilters(
+  filters: ExpenseFilters,
+  params: { cursor?: string | null; limit?: number } = {}
+): Promise<GetPaginatedExpensesResult> {
+  try {
+    const companyId = await getCurrentUserCompanyId();
+
+    if (!companyId) {
+      return { error: "User not assigned to company", code: "UNAUTHORIZED" };
+    }
+
+    // Validate and normalize limit
+    let limit = params.limit ?? DEFAULT_PAGE_LIMIT;
+    if (limit < 1) limit = DEFAULT_PAGE_LIMIT;
+    if (limit > MAX_PAGE_LIMIT) limit = MAX_PAGE_LIMIT;
+
+    // Decode cursor if provided
+    const cursor = decodeCursor(params.cursor);
+
+    // Build where clause with filters
+    const whereClause: Record<string, unknown> = {
+      companyId,
+      ...(buildPrismaCursorWhere(cursor, "forward") ?? {}),
+    };
+
+    // Apply date filters
+    if (filters.dateFrom || filters.dateTo) {
+      whereClause.date = {};
+      if (filters.dateFrom) {
+        (whereClause.date as Record<string, Date>).gte = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        (whereClause.date as Record<string, Date>).lte = filters.dateTo;
+      }
+    }
+
+    // Apply category filter
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      whereClause.categoryId = { in: filters.categoryIds };
+    }
+
+    // Apply amount filters
+    if (filters.amountMin !== null && filters.amountMin !== undefined) {
+      whereClause.amount = {
+        ...(whereClause.amount as Record<string, unknown> ?? {}),
+        gte: filters.amountMin,
+      };
+    }
+    if (filters.amountMax !== null && filters.amountMax !== undefined) {
+      whereClause.amount = {
+        ...(whereClause.amount as Record<string, unknown> ?? {}),
+        lte: filters.amountMax,
+      };
+    }
+
+    // Apply search filter (description)
+    if (filters.search && filters.search.trim()) {
+      whereClause.description = {
+        contains: filters.search.trim(),
+        mode: "insensitive",
+      };
+    }
+
+    // Fetch one extra item to determine if there's a next page
+    const expenses = await prisma.expense.findMany({
+      where: whereClause,
+      include: {
+        category: true,
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: buildPrismaOrderBy(),
+      take: limit + 1, // Fetch one extra to check for next page
+    });
+
+    // Check if there's a next page
+    const hasNextPage = expenses.length > limit;
+    const items = hasNextPage ? expenses.slice(0, limit) : expenses;
+
+    // Serialize expenses to convert Decimal to plain strings
+    const serializedItems = items.map(serializeExpense);
+
+    // Build page info using cursor encoding
+    const startCursor = serializedItems.length > 0
+      ? encodeCursor({ v: "v1", id: serializedItems[0].id, d: serializedItems[0].createdAt.toISOString() })
+      : null;
+    const endCursor = serializedItems.length > 0
+      ? encodeCursor({ v: "v1", id: serializedItems[serializedItems.length - 1].id, d: serializedItems[serializedItems.length - 1].createdAt.toISOString() })
+      : null;
+
+    return {
+      items: serializedItems,
+      pageInfo: {
+        hasNextPage,
+        hasPreviousPage: cursor !== null,
+        startCursor,
+        endCursor,
+        totalCount: undefined,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to fetch expenses with filters:", error);
+    return {
+      error: error instanceof Error ? error.message : "Failed to fetch expenses",
+    };
+  }
+}
+
+/**
+ * Get total count and sum of expenses with filters (for summary stats)
+ */
+export async function getExpensesSummary(filters: ExpenseFilters = {}): Promise<
+  | { count: number; totalAmount: number }
+  | { error: string }
+> {
+  try {
+    const companyId = await getCurrentUserCompanyId();
+
+    if (!companyId) {
+      return { error: "User not assigned to company" };
+    }
+
+    // Build where clause with filters
+    const whereClause: Record<string, unknown> = {
+      companyId,
+    };
+
+    // Apply date filters
+    if (filters.dateFrom || filters.dateTo) {
+      whereClause.date = {};
+      if (filters.dateFrom) {
+        (whereClause.date as Record<string, Date>).gte = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        (whereClause.date as Record<string, Date>).lte = filters.dateTo;
+      }
+    }
+
+    // Apply category filter
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      whereClause.categoryId = { in: filters.categoryIds };
+    }
+
+    // Apply amount filters
+    if (filters.amountMin !== null && filters.amountMin !== undefined) {
+      whereClause.amount = {
+        ...(whereClause.amount as Record<string, unknown> ?? {}),
+        gte: filters.amountMin,
+      };
+    }
+    if (filters.amountMax !== null && filters.amountMax !== undefined) {
+      whereClause.amount = {
+        ...(whereClause.amount as Record<string, unknown> ?? {}),
+        lte: filters.amountMax,
+      };
+    }
+
+    // Apply search filter (description)
+    if (filters.search && filters.search.trim()) {
+      whereClause.description = {
+        contains: filters.search.trim(),
+        mode: "insensitive",
+      };
+    }
+
+    // Aggregate count and sum using Prisma's type-safe queries
+    const [count, aggregateResult] = await Promise.all([
+      prisma.expense.count({ where: whereClause }),
+      prisma.expense.aggregate({
+        where: whereClause,
+        _sum: { amount: true },
+      }),
+    ]);
+
+    return {
+      count,
+      totalAmount: Number(aggregateResult._sum.amount ?? 0),
+    };
+  } catch (error) {
+    console.error("Failed to get expenses summary:", error);
+    return {
+      error: error instanceof Error ? error.message : "Failed to get expenses summary",
+    };
+  }
+}
+
+/**
+ * Bulk delete multiple expenses
+ * Only admins can bulk delete, members can only delete their own
+ */
+export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
+  | { success: true; deletedCount: number }
+  | { success: false; error: string }
+> {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
+    const isAdmin = session.user.role === UserRole.ADMIN;
+
+    // Get current user's company
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+
+    if (!user?.companyId) {
+      return { success: false, error: "User not assigned to company" };
+    }
+
+    // Verify all expenses belong to the user's company and check permissions
+    const expenses = await prisma.expense.findMany({
+      where: {
+        id: { in: expenseIds },
+        companyId: user.companyId,
+      },
+      select: {
+        id: true,
+        userId: true,
+      },
+    });
+
+    if (expenses.length === 0) {
+      return { success: false, error: "No expenses found" };
+    }
+
+    // Filter expenses that can be deleted
+    const deletableIds = expenses
+      .filter((expense) => isAdmin || expense.userId === userId)
+      .map((expense) => expense.id);
+
+    if (deletableIds.length === 0) {
+      return { success: false, error: "Not authorized to delete these expenses" };
+    }
+
+    // Delete the expenses
+    const result = await prisma.expense.deleteMany({
+      where: {
+        id: { in: deletableIds },
+      },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/expenses");
+
+    return {
+      success: true,
+      deletedCount: result.count,
+    };
+  } catch (error) {
+    console.error("Failed to bulk delete expenses:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to delete expenses",
+    };
+  }
+}
+
+/**
+ * Bulk update category for multiple expenses
+ */
+export async function bulkUpdateCategory(
+  expenseIds: string[],
+  categoryId: string
+): Promise<
+  | { success: true; updatedCount: number }
+  | { success: false; error: string }
+> {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const userId = session.user.id;
+    const userName = session.user.name || session.user.email;
+    const isAdmin = session.user.role === UserRole.ADMIN;
+
+    // Get current user's company
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+
+    if (!user?.companyId) {
+      return { success: false, error: "User not assigned to company" };
+    }
+
+    // Verify the category belongs to the company
+    const category = await prisma.category.findFirst({
+      where: {
+        id: categoryId,
+        companyId: user.companyId,
+      },
+    });
+
+    if (!category) {
+      return { success: false, error: "Category not found" };
+    }
+
+    // Verify all expenses belong to the user's company and check permissions
+    const expenses = await prisma.expense.findMany({
+      where: {
+        id: { in: expenseIds },
+        companyId: user.companyId,
+      },
+      select: {
+        id: true,
+        userId: true,
+      },
+    });
+
+    if (expenses.length === 0) {
+      return { success: false, error: "No expenses found" };
+    }
+
+    // Filter expenses that can be updated
+    const updatableIds = expenses
+      .filter((expense) => isAdmin || expense.userId === userId)
+      .map((expense) => expense.id);
+
+    if (updatableIds.length === 0) {
+      return { success: false, error: "Not authorized to update these expenses" };
+    }
+
+    // Update the expenses
+    const result = await prisma.expense.updateMany({
+      where: {
+        id: { in: updatableIds },
+      },
+      data: {
+        categoryId,
+      },
+    });
+
+    // Create audit history entries for bulk update
+    await prisma.expenseHistory.createMany({
+      data: updatableIds.map((expenseId) => ({
+        expenseId,
+        editedBy: userId,
+        editedByName: userName || undefined,
+        editedAt: new Date(),
+        oldValues: JSON.stringify({ categoryId: "previous" }),
+        newValues: JSON.stringify({ categoryId, categoryName: category.name }),
+        changeType: "UPDATE",
+        reason: "Bulk category update",
+      })),
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/expenses");
+
+    return {
+      success: true,
+      updatedCount: result.count,
+    };
+  } catch (error) {
+    console.error("Failed to bulk update categories:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update categories",
+    };
+  }
+}
+
+/**
+ * Export expenses to CSV format
+ * Returns CSV content as string
+ */
+export async function exportExpensesCSV(filters: ExpenseFilters = {}): Promise<
+  | { success: true; csvContent: string; filename: string }
+  | { success: false; error: string }
+> {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const companyId = await getCurrentUserCompanyId();
+
+    if (!companyId) {
+      return { success: false, error: "User not assigned to company" };
+    }
+
+    // Get company name for filename
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { name: true },
+    });
+
+    // Build where clause with filters
+    const whereClause: Record<string, unknown> = {
+      companyId,
+    };
+
+    // Apply date filters
+    if (filters.dateFrom || filters.dateTo) {
+      whereClause.date = {};
+      if (filters.dateFrom) {
+        (whereClause.date as Record<string, Date>).gte = filters.dateFrom;
+      }
+      if (filters.dateTo) {
+        (whereClause.date as Record<string, Date>).lte = filters.dateTo;
+      }
+    }
+
+    // Apply category filter
+    if (filters.categoryIds && filters.categoryIds.length > 0) {
+      whereClause.categoryId = { in: filters.categoryIds };
+    }
+
+    // Apply amount filters
+    if (filters.amountMin !== null && filters.amountMin !== undefined) {
+      whereClause.amount = {
+        ...(whereClause.amount as Record<string, unknown> ?? {}),
+        gte: filters.amountMin,
+      };
+    }
+    if (filters.amountMax !== null && filters.amountMax !== undefined) {
+      whereClause.amount = {
+        ...(whereClause.amount as Record<string, unknown> ?? {}),
+        lte: filters.amountMax,
+      };
+    }
+
+    // Apply search filter (description)
+    if (filters.search && filters.search.trim()) {
+      whereClause.description = {
+        contains: filters.search.trim(),
+        mode: "insensitive",
+      };
+    }
+
+    // Fetch all matching expenses (limit to 10,000 for performance)
+    const expenses = await prisma.expense.findMany({
+      where: whereClause,
+      include: {
+        category: true,
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { date: "desc" },
+      take: 10000,
+    });
+
+    // CSV headers
+    const headers = ["Date", "Description", "Category", "Amount", "User", "Created At"];
+
+    // CSV rows
+    const rows = expenses.map((expense) => [
+      format(expense.date, "yyyy-MM-dd"),
+      `"${expense.description.replace(/"/g, '""')}"`, // Escape quotes
+      expense.category?.name || "Uncategorized",
+      expense.amount.toString(),
+      expense.user?.name || expense.user?.email || "Unknown",
+      format(expense.createdAt, "yyyy-MM-dd HH:mm:ss"),
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
+
+    // Generate filename
+    const dateStr = format(new Date(), "yyyy-MM-dd");
+    const companySlug = company?.name?.replace(/\s+/g, "_").toLowerCase() || "expenses";
+    const filename = `${companySlug}_expenses_${dateStr}.csv`;
+
+    return {
+      success: true,
+      csvContent,
+      filename,
+    };
+  } catch (error) {
+    console.error("Failed to export expenses:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to export expenses",
     };
   }
 }

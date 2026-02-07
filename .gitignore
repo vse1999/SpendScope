@@ -61,3 +61,6 @@ PROMPT*.md
 *.prompt.md
 notes/*.md
 drafts/*.md
+
+# Sentry Config File
+.env.sentry-build-plugin

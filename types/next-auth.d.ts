@@ -1,5 +1,8 @@
 import { DefaultSession } from "next-auth"
-import { UserRole } from "@prisma/client"
+
+// Define role type locally for Edge compatibility
+// Must match Prisma schema: enum UserRole { ADMIN MEMBER }
+type UserRole = "ADMIN" | "MEMBER"
 
 declare module "next-auth" {
   interface Session {

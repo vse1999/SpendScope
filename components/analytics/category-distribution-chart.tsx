@@ -53,7 +53,7 @@ export function CategoryDistributionChart({
                 outerRadius={100}
                 paddingAngle={2}
                 dataKey="amount"
-                onClick={(entry, index) => {
+                onClick={(entry) => {
                   if (onCategoryClick && entry.name !== "Other") {
                     onCategoryClick(entry.name)
                   }

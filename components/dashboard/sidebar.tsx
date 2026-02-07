@@ -6,7 +6,6 @@ import type { LucideIcon } from "lucide-react"
 import {
   LayoutDashboard,
   Receipt,
-  Tags,
   BarChart3,
   Settings,
   CreditCard,
@@ -110,12 +109,12 @@ const navigationItems: NavItem[] = [
     href: "/dashboard/expenses",
     icon: Receipt,
   },
-  {
-    title: "Categories",
-    href: "/dashboard/categories",
-    icon: Tags,
-    adminOnly: true,
-  },
+  // {
+  //   title: "Categories",
+  //   href: "/dashboard/categories",
+  //   icon: Tags,
+  //   adminOnly: true,
+  // },
   {
     title: "Analytics",
     href: "/analytics",
@@ -137,7 +136,7 @@ const secondaryNavigation: NavItem[] = [
   },
   {
     title: "Billing",
-    href: "/billing",
+    href: "/dashboard/billing",
     icon: CreditCard,
   },
 ]
@@ -154,7 +153,7 @@ function SidebarLogo() {
       href="/dashboard"
       className="flex items-center gap-2 px-2 transition-opacity hover:opacity-80"
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shrink-0">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-gradient-to-br from-indigo-500 to-purple-600 text-white shrink-0">
         <Wallet className="h-5 w-5" />
       </div>
       <span
@@ -196,7 +195,7 @@ function NavItemButton({
           {item.proOnly && (
             <Badge
               variant="secondary"
-              className="ml-auto shrink-0 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 border-0 text-[10px] font-medium hidden group-data-[state=expanded]:inline-flex"
+              className="ml-auto shrink-0 bg-linear-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 border-0 text-[10px] font-medium hidden group-data-[state=expanded]:inline-flex"
             >
               <Sparkles className="h-3 w-3 mr-1" />
               PRO
@@ -534,7 +533,7 @@ export function MobileSidebar({ user }: MobileSidebarProps) {
           className="flex items-center gap-2"
           onClick={() => setOpenMobile(false)}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-gradient-to-br from-indigo-500 to-purple-600 text-white">
             <Wallet className="h-5 w-5" />
           </div>
           <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
@@ -570,7 +569,7 @@ export function MobileSidebar({ user }: MobileSidebarProps) {
                   {item.proOnly && (
                     <Badge
                       variant="secondary"
-                      className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 border-0 text-[10px] font-medium"
+                      className="bg-linear-to-r from-amber-500/20 to-orange-500/20 text-amber-600 border-0 text-[10px] font-medium"
                     >
                       <Sparkles className="h-3 w-3 mr-1" />
                       PRO
