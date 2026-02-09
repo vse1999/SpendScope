@@ -151,14 +151,14 @@ function SidebarLogo() {
   return (
     <Link
       href="/dashboard"
-      className="flex items-center gap-2 px-2 transition-opacity hover:opacity-80"
+      className="flex items-center gap-2.5 px-2 transition-opacity hover:opacity-80"
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-gradient-to-br from-indigo-500 to-purple-600 text-white shrink-0">
-        <Wallet className="h-5 w-5" />
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shrink-0">
+        <Wallet className="h-4 w-4" />
       </div>
       <span
         className={cn(
-          "text-lg font-semibold tracking-tight transition-opacity duration-200",
+          "text-base font-semibold tracking-tight text-sidebar-foreground transition-opacity duration-200",
           state === "collapsed" && "opacity-0"
         )}
       >
@@ -195,7 +195,7 @@ function NavItemButton({
           {item.proOnly && (
             <Badge
               variant="secondary"
-              className="ml-auto shrink-0 bg-linear-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-600 border-0 text-[10px] font-medium hidden group-data-[state=expanded]:inline-flex"
+              className="ml-auto shrink-0 bg-warning/10 text-warning border-0 text-[10px] font-medium hidden group-data-[state=expanded]:inline-flex"
             >
               <Sparkles className="h-3 w-3 mr-1" />
               PRO
@@ -286,14 +286,14 @@ function CompanySection({ company }: { company?: { name: string } | null }) {
   if (!company) return null
 
   return (
-    <div className="px-3 py-2">
+      <div className="px-3 py-2">
       <div
         className={cn(
-          "flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/50 px-3 py-2",
+          "flex items-center gap-2 rounded-lg border border-sidebar-border bg-sidebar-accent/50 px-3 py-2",
           state === "collapsed" && "justify-center px-2"
         )}
       >
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
           <Building2 className="h-4 w-4" />
         </div>
         <div
@@ -359,7 +359,7 @@ function UserMenu({
                     alt={user.name || "User avatar"}
                     className="rounded-lg"
                   />
-                  <AvatarFallback className="rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300 text-xs font-medium">
+                  <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs font-medium">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -476,11 +476,11 @@ export function DashboardSidebar({
         </Sidebar>
 
         {/* Main Content Area */}
-        <SidebarInset className="flex-1 bg-slate-50 dark:bg-slate-950">
+        <SidebarInset className="flex-1 bg-background">
           {/* Mobile Header */}
-          <div className="flex h-16 items-center border-b bg-white dark:bg-slate-950 px-4 lg:hidden">
+          <div className="flex h-14 items-center border-b border-border bg-background px-4 lg:hidden">
             <SidebarTrigger className="-ml-1" />
-            <span className="ml-3 font-semibold">SpendScope</span>
+            <span className="ml-3 font-semibold text-foreground">SpendScope</span>
           </div>
           {children}
         </SidebarInset>
@@ -533,8 +533,8 @@ export function MobileSidebar({ user }: MobileSidebarProps) {
           className="flex items-center gap-2"
           onClick={() => setOpenMobile(false)}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-gradient-to-br from-indigo-500 to-purple-600 text-white">
-            <Wallet className="h-5 w-5" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Wallet className="h-4 w-4" />
           </div>
           <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
             SpendScope
@@ -569,7 +569,7 @@ export function MobileSidebar({ user }: MobileSidebarProps) {
                   {item.proOnly && (
                     <Badge
                       variant="secondary"
-                      className="bg-linear-to-r from-amber-500/20 to-orange-500/20 text-amber-600 border-0 text-[10px] font-medium"
+                      className="bg-warning/10 text-warning border-0 text-[10px] font-medium"
                     >
                       <Sparkles className="h-3 w-3 mr-1" />
                       PRO
@@ -621,7 +621,7 @@ export function MobileSidebar({ user }: MobileSidebarProps) {
       <div className="border-t border-sidebar-border p-4">
         {company && (
           <div className="mb-3 flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/50 px-3 py-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10 text-primary">
               <Building2 className="h-3 w-3" />
             </div>
             <span className="text-xs font-medium text-sidebar-foreground/70 truncate">
@@ -633,7 +633,7 @@ export function MobileSidebar({ user }: MobileSidebarProps) {
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 rounded-lg">
             <AvatarImage src={user.image || undefined} alt={user.name || "User"} className="rounded-lg" />
-            <AvatarFallback className="rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300 text-xs font-medium">
+            <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs font-medium">
               {initials}
             </AvatarFallback>
           </Avatar>

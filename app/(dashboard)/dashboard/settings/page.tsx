@@ -52,17 +52,17 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">Settings</h1>
+                <p className="text-sm text-muted-foreground leading-relaxed">
                     Manage your account settings and preferences.
                 </p>
             </div>
 
             {showLinkedSuccess && (
-                <Alert className="bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <AlertTitle className="text-green-800 dark:text-green-200">Account Connected</AlertTitle>
-                    <AlertDescription className="text-green-700 dark:text-green-300">
+                <Alert className="bg-success/10 border-success/20">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                    <AlertTitle className="text-foreground">Account Connected</AlertTitle>
+                    <AlertDescription className="text-muted-foreground">
                         Your account has been successfully linked with enhanced security verification.
                         You can now sign in using either provider.
                     </AlertDescription>

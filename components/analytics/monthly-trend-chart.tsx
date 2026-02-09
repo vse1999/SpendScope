@@ -49,11 +49,11 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
             >
               <defs>
                 <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.25}/>
+                  <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis
                 dataKey="month"
                 tick={{ fontSize: 12 }}
@@ -68,9 +68,9 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
                 content={({ active, payload }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="bg-background border rounded-lg p-3 shadow-lg">
-                        <p className="font-medium">{payload[0].payload.month}</p>
-                        <p className="text-blue-600">
+                      <div className="bg-popover border border-border rounded-lg p-3 shadow-xl">
+                        <p className="font-medium text-popover-foreground text-sm">{payload[0].payload.month}</p>
+                        <p className="text-primary font-mono font-semibold">
                           {formatCurrency(payload[0].value as number)}
                         </p>
                       </div>
@@ -82,7 +82,7 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
               <Area
                 type="monotone"
                 dataKey="amount"
-                stroke="#3b82f6"
+                stroke="var(--chart-1)"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorAmount)"

@@ -501,7 +501,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps): React.JSX.Eleme
   const breadcrumbs = generateBreadcrumbs(pathname)
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-950 lg:gap-4 lg:px-8">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 backdrop-blur-xl px-4 lg:gap-4 lg:px-8">
       {/* Left Section: Search + Breadcrumbs */}
       <div className="flex flex-1 items-center gap-3 lg:gap-4">
         {/* Search Button - Hidden on smallest screens */}

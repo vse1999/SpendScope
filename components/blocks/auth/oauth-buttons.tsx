@@ -47,7 +47,7 @@ export function GoogleSignInButton({ redirectTo = "/dashboard" }: OAuthButtonPro
       <Button
         type="submit"
         variant="outline"
-        className="w-full h-12 text-base font-medium"
+        className="w-full h-12 text-sm font-medium rounded-xl border-border/60 bg-card hover:bg-accent transition-all duration-200 hover:shadow-sm"
       >
         <GoogleIcon className="w-5 h-5 mr-3" />
         Continue with Google
@@ -66,8 +66,7 @@ export function GitHubSignInButton({ redirectTo = "/dashboard" }: OAuthButtonPro
     >
       <Button
         type="submit"
-        variant="outline"
-        className="w-full h-12 text-base font-medium"
+        className="w-full h-12 text-sm font-medium rounded-xl bg-foreground text-background hover:bg-foreground/90 transition-all duration-200 hover:shadow-sm"
       >
         <GitHubIcon className="w-5 h-5 mr-3" />
         Continue with GitHub

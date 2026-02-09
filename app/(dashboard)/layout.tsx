@@ -48,7 +48,7 @@ export default async function DashboardLayout({
 
   return (
     <NotificationProvider>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen bg-background">
         <DashboardSidebar user={user} defaultOpen={sidebarOpen}>
           <div className="flex flex-col min-h-screen w-full">
             {/* Header with breadcrumbs - Desktop only (mobile handled by sidebar) */}

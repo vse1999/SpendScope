@@ -14,7 +14,7 @@ export default async function OnboardingPage() {
   const companyList = "error" in companies ? [] : companies
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 md:p-8">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
         <CompanyWelcome userName={session.user.name} />
         <CompanySelector companies={companyList} />

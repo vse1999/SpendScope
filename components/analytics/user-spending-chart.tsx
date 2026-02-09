@@ -54,8 +54,8 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
                   if (active && payload && payload.length) {
                     const data = payload[0].payload
                     return (
-                      <div className="bg-background border rounded-lg p-3 shadow-lg">
-                        <p className="font-medium">{data.name}</p>
+                      <div className="bg-popover border border-border rounded-lg p-3 shadow-xl">
+                        <p className="font-medium text-popover-foreground">{data.name}</p>
                         <p className="text-muted-foreground text-sm">{data.email}</p>
                         <div className="mt-2 space-y-1">
                           <div className="flex justify-between gap-4">
@@ -93,7 +93,8 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
                 {sortedData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={index === 0 ? "#3b82f6" : index === 1 ? "#60a5fa" : "#93c5fd"}
+                    fill={index === 0 ? "var(--chart-1)" : index === 1 ? "var(--chart-2)" : "var(--chart-3)"}
+                    opacity={1 - index * 0.08}
                   />
                 ))}
               </Bar>

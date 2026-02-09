@@ -77,12 +77,12 @@ export function CategoryDistributionChart({
                     const data = payload[0].payload
                     const percentage = total > 0 ? ((data.amount / total) * 100).toFixed(1) : "0"
                     return (
-                      <div className="bg-background border rounded-lg p-3 shadow-lg">
-                        <p className="font-medium" style={{ color: data.color }}>
+                      <div className="bg-popover border border-border rounded-lg p-3 shadow-xl">
+                        <p className="font-medium text-sm" style={{ color: data.color }}>
                           {data.name}
                         </p>
-                        <p>{formatCurrency(data.amount)}</p>
-                        <p className="text-muted-foreground text-sm">{percentage}%</p>
+                        <p className="font-mono font-semibold text-popover-foreground">{formatCurrency(data.amount)}</p>
+                        <p className="text-muted-foreground text-xs">{percentage}%</p>
                       </div>
                     )
                   }

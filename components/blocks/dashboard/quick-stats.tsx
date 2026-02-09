@@ -38,21 +38,23 @@ export function QuickStats({ expenses, totalExpenses, categoryCount }: QuickStat
         <CardDescription>Monthly insights</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between py-1">
           <span className="text-sm text-muted-foreground">Average Expense</span>
-          <span className="font-medium">
+          <span className="font-medium font-mono text-foreground">
             {hasExpenses ? formatCurrency(averageExpense) : "-$"}
           </span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="h-px bg-border" />
+        <div className="flex items-center justify-between py-1">
           <span className="text-sm text-muted-foreground">Largest Expense</span>
-          <span className="font-medium">
+          <span className="font-medium font-mono text-foreground">
             {hasExpenses ? formatCurrency(largestExpense) : "-$"}
           </span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="h-px bg-border" />
+        <div className="flex items-center justify-between py-1">
           <span className="text-sm text-muted-foreground">Categories Used</span>
-          <span className="font-medium">{categoryCount}</span>
+          <span className="font-medium font-mono text-foreground">{categoryCount}</span>
         </div>
       </CardContent>
     </Card>

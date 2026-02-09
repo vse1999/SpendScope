@@ -158,9 +158,9 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
 
       {/* Development Mode Banner */}
       {!billingEnabled && (
-        <Alert className="bg-amber-50 border-amber-200">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800">
+        <Alert className="bg-warning/10 border-warning/20">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning-foreground">
             Billing is in test mode. All features are available during development.
             Set NEXT_PUBLIC_ENABLE_BILLING=true to enable real payments.
           </AlertDescription>
@@ -247,7 +247,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
               {Object.entries(usage.features).map(([feature, enabled]) => (
                 <div key={feature} className="flex items-center gap-2 text-sm">
                   {enabled ? (
-                    <Check className="h-4 w-4 text-green-600" />
+                    <Check className="h-4 w-4 text-success" />
                   ) : (
                     <X className="h-4 w-4 text-muted-foreground" />
                   )}

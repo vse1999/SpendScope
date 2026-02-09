@@ -30,19 +30,19 @@ export function CategoryBreakdown({ categories, totalExpenses }: CategoryBreakdo
             {categories.map((category) => (
               <div key={category.name} className="flex items-center gap-3">
                 <div
-                  className="w-3 h-3 rounded-full shrink-0"
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: category.color }}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium truncate">{category.name}</span>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm font-medium truncate text-foreground">{category.name}</span>
+                    <span className="text-sm font-mono text-muted-foreground">
                       {formatCurrency(category.amount)}
                     </span>
                   </div>
-                  <div className="mt-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div className="mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all"
+                      className="h-full rounded-full transition-all duration-500"
                       style={{
                         backgroundColor: category.color,
                         width: `${Math.min((category.amount / safeTotal) * 100, 100)}%`,

@@ -5,7 +5,7 @@ import { TableSkeleton } from "@/components/dashboard/table-skeleton"
 
 export default function DashboardLoading() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-8">
+    <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Skeleton */}
         <div className="flex items-center justify-between">

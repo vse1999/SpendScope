@@ -9,11 +9,11 @@ export function CompanyWelcome({ userName }: CompanyWelcomeProps) {
 
   return (
     <section className="text-center space-y-4">
-      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-        <Building2 className="w-8 h-8 text-primary" />
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-4">
+        <Building2 className="w-7 h-7 text-primary" />
       </div>
-      <h1 className="text-4xl font-bold tracking-tight">Welcome to SpendScope!</h1>
-      <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+      <h1 className="text-3xl font-semibold tracking-tight text-foreground text-balance">Welcome to SpendScope</h1>
+      <p className="text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
         Hi {firstName}! To get started with expense tracking, you need to join or create a company workspace.
       </p>
     </section>

@@ -53,8 +53,8 @@ export function AnalyticsClient({ initialData, userRole }: AnalyticsClientProps)
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Analytics</h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">
             Insights into your company&apos;s spending patterns
           </p>
         </div>
@@ -70,19 +70,19 @@ export function AnalyticsClient({ initialData, userRole }: AnalyticsClientProps)
           title="Total Spent"
           value={formatCurrency(data.summary.totalAmount)}
           subtitle={`${data.summary.totalCount} expenses`}
-          icon={<TrendingUp className="h-4 w-4 text-blue-600" />}
+          icon={<TrendingUp className="h-4 w-4 text-primary" />}
         />
         <SummaryCard
           title="Average Expense"
           value={formatCurrency(data.summary.averageExpense)}
           subtitle="Per transaction"
-          icon={<PieChart className="h-4 w-4 text-green-600" />}
+          icon={<PieChart className="h-4 w-4 text-success" />}
         />
         <SummaryCard
           title="Active Members"
           value={data.userSpending.length.toString()}
           subtitle="Contributing expenses"
-          icon={<Users className="h-4 w-4 text-purple-600" />}
+          icon={<Users className="h-4 w-4 text-chart-4" />}
         />
       </div>
 
@@ -119,14 +119,14 @@ function SummaryCard({
   icon: React.ReactNode
 }) {
   return (
-    <Card>
+    <Card className="card-hover">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         {icon}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
+        <div className="text-2xl font-bold font-mono tracking-tight text-foreground">{value}</div>
+        <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
       </CardContent>
     </Card>
   )
