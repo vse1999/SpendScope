@@ -1,9 +1,11 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 import { UserRole } from "@prisma/client"
 import { getUserCompany } from "@/app/actions/companies"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
+import { NotificationProvider } from "@/components/notifications/notification-provider"
 
 export default async function DashboardLayout({
   children,
@@ -39,21 +41,28 @@ export default async function DashboardLayout({
     company,
   }
 
+  // Read sidebar state cookie for consistent server/client rendering
+  const cookieStore = await cookies()
+  const sidebarState = cookieStore.get("sidebar_state")
+  const sidebarOpen = sidebarState?.value !== "false"
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <DashboardSidebar user={user}>
-        <div className="flex flex-col min-h-screen">
-          {/* Header with breadcrumbs - Desktop only (mobile handled by sidebar) */}
-          <DashboardHeader 
-            user={user}
-          />
-          
-          {/* Page Content */}
-          <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-            {children}
+    <NotificationProvider>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <DashboardSidebar user={user} defaultOpen={sidebarOpen}>
+          <div className="flex flex-col min-h-screen w-full">
+            {/* Header with breadcrumbs - Desktop only (mobile handled by sidebar) */}
+            <DashboardHeader 
+              user={user}
+            />
+            
+            {/* Page Content */}
+            <div className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+              {children}
+            </div>
           </div>
-        </div>
-      </DashboardSidebar>
-    </div>
+        </DashboardSidebar>
+      </div>
+    </NotificationProvider>
   )
 }
