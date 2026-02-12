@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { stripe, isBillingEnabled } from "@/lib/stripe/config"
 import { NextResponse } from "next/server"
 
-export async function POST() {
+export async function POST(): Promise<NextResponse> {
   try {
     if (!isBillingEnabled()) {
       return NextResponse.json(
@@ -14,7 +14,7 @@ export async function POST() {
 
     const session = await auth()
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
@@ -23,7 +23,18 @@ export async function POST() {
       include: { company: { include: { subscription: true } } },
     })
 
-    if (!user?.company?.subscription?.stripeCustomerId) {
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    if (user.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "Only admins can manage billing" },
+        { status: 403 }
+      )
+    }
+
+    if (!user.company?.subscription?.stripeCustomerId) {
       return NextResponse.json(
         { error: "No subscription found" },
         { status: 400 }

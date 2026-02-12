@@ -210,6 +210,20 @@ model CompanyUsage {
   @@map("company_usage")
 }
 
+
+// Webhook event ledger for idempotent processing
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String
+  eventId     String
+  eventType   String
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@index([provider, processedAt])
+  @@map("webhook_events")
+}
 // Team Invitations: Track pending invitations to join a company
 model Invitation {
   id         String           @id @default(cuid())
