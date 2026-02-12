@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import {
   checkFeatureLimit,
   consumeResource,
+  decrementResource,
   type FeatureCheckResult
 } from "@/lib/subscription/feature-gate-service";
 import {
@@ -668,6 +669,23 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
 
     const validated = result.data;
 
+    // Ensure category belongs to the current company
+    const category = await prisma.category.findFirst({
+      where: {
+        id: validated.categoryId,
+        companyId,
+      },
+      select: { id: true },
+    });
+
+    if (!category) {
+      return {
+        success: false,
+        error: "Invalid category for your company",
+        code: "VALIDATION_ERROR",
+      };
+    }
+
     // Check feature limit before creating
     let limitCheck: FeatureCheckResult;
     try {
@@ -859,10 +877,17 @@ export async function updateExpense(id: string, formData: FormData) {
     };
 
     // Get new category name for audit
-    const newCategory = await prisma.category.findUnique({
-      where: { id: validated.categoryId },
-      select: { name: true }
+    const newCategory = await prisma.category.findFirst({
+      where: {
+        id: validated.categoryId,
+        companyId: existingExpense.companyId,
+      },
+      select: { name: true },
     });
+
+    if (!newCategory) {
+      return { error: "Invalid category for this company" };
+    }
 
     // Perform update and create audit trail in transaction
     const updatedExpense = await prisma.$transaction(async (tx) => {
@@ -958,6 +983,11 @@ export async function getExpenseHistory(id: string) {
       return { error: "Expense not found" };
     }
 
+    const currentCompanyId = await getCurrentUserCompanyId();
+    if (!currentCompanyId || currentCompanyId !== expense.companyId) {
+      return { error: "Not authorized" };
+    }
+
     // Check permissions
     const isOwner = expense.userId === userId;
     const isAdmin = userRole === UserRole.ADMIN;
@@ -1009,6 +1039,11 @@ export async function deleteExpense(id: string) {
       return { error: "Expense not found" };
     }
 
+    const currentCompanyId = await getCurrentUserCompanyId();
+    if (!currentCompanyId || currentCompanyId !== expense.companyId) {
+      return { error: "Not authorized" };
+    }
+
     // Check if user owns the expense or is an admin
     const isOwner = expense.userId === session.user.id;
     const isAdmin = session.user.role === "ADMIN";
@@ -1027,6 +1062,12 @@ export async function deleteExpense(id: string) {
     await prisma.expense.delete({
       where: { id },
     });
+
+    try {
+      await decrementResource(expense.companyId, 1);
+    } catch (usageError) {
+      console.error("Failed to decrement usage after expense deletion:", usageError);
+    }
 
     revalidatePath("/dashboard");
 
@@ -1388,6 +1429,14 @@ export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
         id: { in: deletableIds },
       },
     });
+
+    if (result.count > 0) {
+      try {
+        await decrementResource(user.companyId, result.count);
+      } catch (usageError) {
+        console.error("Failed to decrement usage after bulk deletion:", usageError);
+      }
+    }
 
     revalidatePath("/dashboard/expenses");
 

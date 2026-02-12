@@ -179,7 +179,11 @@ export async function removeTeamMember(userId: string): Promise<RemoveTeamMember
 
     await prisma.user.update({
       where: { id: userId },
-      data: { companyId: null },
+      data: {
+        companyId: null,
+        // Prevent role carry-over into a future company.
+        role: UserRole.MEMBER,
+      },
     });
 
     revalidatePath("/dashboard/team");

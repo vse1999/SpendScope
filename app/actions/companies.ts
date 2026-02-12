@@ -5,35 +5,45 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { FeatureGateError } from "@/lib/errors";
-import { SubscriptionPlan } from "@prisma/client";
+import { InvitationStatus, SubscriptionPlan, UserRole } from "@prisma/client";
 import { createNotification } from "@/app/actions/notifications";
 
 /**
- * Get all companies (for selection)
+ * Get all companies the user can join.
+ * Invitation-only onboarding: only pending invitations for the current email are listed.
  */
 export async function getAllCompanies() {
   try {
     const session = await auth();
 
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return { error: "Not authenticated" };
     }
 
-    const companies = await prisma.company.findMany({
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        _count: {
+    const invitations = await prisma.invitation.findMany({
+      where: {
+        email: session.user.email.toLowerCase(),
+        status: InvitationStatus.PENDING,
+        expiresAt: { gte: new Date() },
+      },
+      include: {
+        company: {
           select: {
-            users: true,
+            id: true,
+            name: true,
+            slug: true,
+            _count: {
+              select: {
+                users: true,
+              },
+            },
           },
         },
       },
-      orderBy: { name: "asc" },
+      orderBy: { invitedAt: "desc" },
     });
 
-    return companies;
+    return invitations.map((invitation) => invitation.company);
   } catch (error) {
     console.error("Failed to fetch companies:", error);
     return {
@@ -45,16 +55,26 @@ export async function getAllCompanies() {
 /**
  * Result type for create company action
  */
-type CreateCompanyResult = 
+type CreateCompanyResult =
   | { success: true; company: { id: string; name: string; slug: string } }
   | { success: false; error: string; code?: "VALIDATION_ERROR" | "UNAUTHORIZED" | "RATE_LIMITED" };
 
 /**
  * Result type for join company action
  */
-type JoinCompanyResult = 
+type JoinCompanyResult =
   | { success: true; company: { id: string; name: string; slug: string } }
-  | { success: false; error: string; code?: "LIMIT_EXCEEDED" | "NOT_FOUND" | "UNAUTHORIZED" | "RATE_LIMITED" };
+  | {
+      success: false;
+      error: string;
+      code?:
+        | "LIMIT_EXCEEDED"
+        | "NOT_FOUND"
+        | "UNAUTHORIZED"
+        | "RATE_LIMITED"
+        | "INVITATION_REQUIRED"
+        | "ALREADY_IN_ANOTHER_COMPANY";
+    };
 
 /**
  * Create a new company and assign the current user as admin
@@ -64,15 +84,15 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
   // Apply rate limiting at the start
   try {
     // Check action rate limit
-    const actionLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit("company-action", { tier: "action" }));
+    const actionLimit = await import("@/lib/rate-limit").then((m) => m.checkRateLimit("company-action", { tier: "action" }));
     if (!actionLimit.allowed) {
       return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
 
     // Check user rate limit
-    const headersList = await import("next/headers").then(m => m.headers());
+    const headersList = await import("next/headers").then((m) => m.headers());
     const userId = headersList.get("x-user-id") ?? "anonymous";
-    const userLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit(userId, { tier: "action" }));
+    const userLimit = await import("@/lib/rate-limit").then((m) => m.checkRateLimit(userId, { tier: "action" }));
     if (!userLimit.allowed) {
       return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
@@ -94,7 +114,7 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
       return { success: false, error: "Company name and slug are required", code: "VALIDATION_ERROR" };
     }
 
-    // Validate slug format (alphanumeric, hyphens, underscores)
+    // Validate slug format (alphanumeric, hyphens)
     const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
     if (!slugRegex.test(slug.toLowerCase())) {
       return { success: false, error: "Slug must contain only lowercase letters, numbers, and hyphens", code: "VALIDATION_ERROR" };
@@ -147,15 +167,15 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
       // Create CompanyUsage record with default limits
       const now = new Date();
       const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
-      
+
       await tx.companyUsage.create({
         data: {
           companyId: company.id,
           currentMonth,
           monthlyExpenses: 0,
-          maxExpenses: 100, // FREE plan limit
-          maxUsers: 3,      // FREE plan limit
-          maxCategories: 5, // FREE plan limit
+          maxExpenses: 100,
+          maxUsers: 3,
+          maxCategories: 5,
           version: 0,
         },
       });
@@ -165,7 +185,7 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
         where: { id: session.user.id },
         data: {
           companyId: company.id,
-          role: "ADMIN",
+          role: UserRole.ADMIN,
         },
       });
 
@@ -186,21 +206,21 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
 }
 
 /**
- * Join an existing company with user limit enforcement
+ * Join an existing company with invitation and user limit enforcement
  */
 export async function joinCompany(companyId: string): Promise<JoinCompanyResult> {
   // Apply rate limiting at the start
   try {
     // Check action rate limit
-    const actionLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit("join-action", { tier: "action" }));
+    const actionLimit = await import("@/lib/rate-limit").then((m) => m.checkRateLimit("join-action", { tier: "action" }));
     if (!actionLimit.allowed) {
       return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
 
     // Check user rate limit
-    const headersList = await import("next/headers").then(m => m.headers());
+    const headersList = await import("next/headers").then((m) => m.headers());
     const userId = headersList.get("x-user-id") ?? "anonymous";
-    const userLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit(userId, { tier: "action" }));
+    const userLimit = await import("@/lib/rate-limit").then((m) => m.checkRateLimit(userId, { tier: "action" }));
     if (!userLimit.allowed) {
       return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
@@ -211,8 +231,34 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
   try {
     const session = await auth();
 
-    if (!session?.user) {
+    if (!session?.user?.id || !session.user.email) {
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { companyId: true },
+    });
+
+    if (currentUser?.companyId && currentUser.companyId !== companyId) {
+      return {
+        success: false,
+        error: "Leave your current company before joining another one",
+        code: "ALREADY_IN_ANOTHER_COMPANY",
+      };
+    }
+
+    if (currentUser?.companyId === companyId) {
+      const existingCompany = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { id: true, name: true, slug: true },
+      });
+
+      if (!existingCompany) {
+        return { success: false, error: "Company not found", code: "NOT_FOUND" };
+      }
+
+      return { success: true, company: existingCompany };
     }
 
     // Verify company exists
@@ -230,9 +276,31 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
       return { success: false, error: "Company not found", code: "NOT_FOUND" };
     }
 
+    // Invitation check is mandatory for joining
+    const invitation = await prisma.invitation.findFirst({
+      where: {
+        companyId,
+        email: session.user.email.toLowerCase(),
+        status: InvitationStatus.PENDING,
+        expiresAt: { gte: new Date() },
+      },
+      select: {
+        id: true,
+        role: true,
+      },
+    });
+
+    if (!invitation) {
+      return {
+        success: false,
+        error: "A valid invitation is required to join this company",
+        code: "INVITATION_REQUIRED",
+      };
+    }
+
     // Check user limit before allowing join
     const plan = company.subscription?.plan ?? SubscriptionPlan.FREE;
-    const userLimit = plan === SubscriptionPlan.PRO ? Infinity : 3; // FREE plan limit
+    const userLimit = plan === SubscriptionPlan.PRO ? Infinity : 3;
 
     if (company._count.users >= userLimit) {
       return {
@@ -257,10 +325,23 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
       console.error("Feature limit check failed:", error);
     }
 
-    // Update user with company
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { companyId },
+    await prisma.$transaction(async (tx) => {
+      await tx.invitation.update({
+        where: { id: invitation.id },
+        data: {
+          status: InvitationStatus.ACCEPTED,
+          acceptedAt: new Date(),
+        },
+      });
+
+      await tx.user.update({
+        where: { id: session.user!.id! },
+        data: {
+          companyId,
+          // Never carry roles across tenants.
+          role: invitation.role,
+        },
+      });
     });
 
     revalidatePath("/dashboard");
@@ -286,10 +367,9 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
         }
       }
 
-      // Also notify the joiner
       await createNotification(session.user.id, {
         type: "SUCCESS",
-        title: "Welcome to the Team! 🎉",
+        title: "Welcome to the Team!",
         message: `You've successfully joined "${company.name}"`,
         actionUrl: "/dashboard",
       });
@@ -297,10 +377,17 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
       console.error("Failed to send notifications:", notifyError);
     }
 
-    return { success: true, company };
+    return {
+      success: true,
+      company: {
+        id: company.id,
+        name: company.name,
+        slug: company.slug,
+      },
+    };
   } catch (error) {
     console.error("Failed to join company:", error);
-    
+
     if (error instanceof FeatureGateError) {
       return {
         success: false,
@@ -318,7 +405,7 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
 
 /**
  * Check if user has a company
- * 
+ *
  * CRITICAL: Always queries database for fresh data, bypassing session cache.
  * This prevents redirect loops after onboarding when JWT token is stale.
  */
@@ -376,7 +463,11 @@ export async function leaveCompany() {
 
     await prisma.user.update({
       where: { id: session.user.id },
-      data: { companyId: null },
+      data: {
+        companyId: null,
+        // Prevent role carry-over into a future company.
+        role: UserRole.MEMBER,
+      },
     });
 
     revalidatePath("/dashboard");
