@@ -39,3 +39,36 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/lib/generated/prisma
+
+# Internal/process markdown files (not for production)
+AGENTS.md
+ARCHITECTURE.md
+ARCHITECTURE_PATTERNS.md
+GIT_ALIAS_SETUP.md
+IMPLEMENTATION_PLAN.md
+IMPLEMENTATION_STATUS.md
+TECH_DEBT.md
+PHASE3_ROADMAP.md
+TODO.md
+TODO*.md
+PLAN.md
+PLAN*.md
+IMPLEMENTATION_*.md
+DRAFT.md
+DRAFT*.md
+PROMPT.md
+PROMPT*.md
+*.todo.md
+*.draft.md
+*.plan.md
+*.prompt.md
+notes/*.md
+drafts/*.md
+
+# Local helper scripts (not for production)
+.git-commit-ai.ps1
+
+# Sentry Config File
+.env.sentry-build-plugin
