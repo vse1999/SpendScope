@@ -11,9 +11,15 @@ const DEFAULT_COMPANY_SLUG = "e2e-spendscope"
 const DEFAULT_COMPANY_NAME = "SpendScope E2E"
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
+function areTestEndpointsEnabled(): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.ENABLE_TEST_ENDPOINTS === "true"
+  )
+}
 function ensureBypassEnabled(): void {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("test-login is disabled in production")
+  if (!areTestEndpointsEnabled()) {
+    throw new Error("test-login is disabled; set ENABLE_TEST_ENDPOINTS=true in non-production environments")
   }
 
   if (process.env.E2E_LOGIN_BYPASS !== "true") {
