@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { trackEvent } from "@/lib/monitoring";
+import { areTestEndpointsEnabled } from "@/lib/runtime/test-endpoints";
 
 export const dynamic = "force-dynamic";
-
-function areTestEndpointsEnabled(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.ENABLE_TEST_ENDPOINTS === "true"
-  );
-}
 
 /**
  * Test endpoint to verify Sentry is working

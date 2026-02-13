@@ -21,6 +21,7 @@ import {
   isRedisConfigured,
 } from "@/lib/rate-limit";
 import { RATE_LIMITS } from "@/lib/rate-limit/config";
+import { areTestEndpointsEnabled } from "@/lib/runtime/test-endpoints";
 
 /**
  * Extract client identifier from request
@@ -39,6 +40,10 @@ function getClientIdentifier(request: NextRequest): string {
  * GET handler for rate limit testing
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  if (!areTestEndpointsEnabled()) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const identifier = getClientIdentifier(request);
 
   // Check rate limit
@@ -99,6 +104,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Returns only headers without body
  */
 export async function HEAD(request: NextRequest): Promise<NextResponse> {
+  if (!areTestEndpointsEnabled()) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   const identifier = getClientIdentifier(request);
   const result = await checkRateLimit(identifier, { tier: "api" });
   const status = await getRateLimitStatus(identifier, { tier: "api" });

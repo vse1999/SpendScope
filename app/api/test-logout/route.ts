@@ -1,11 +1,5 @@
 import { NextResponse } from "next/server"
-
-function areTestEndpointsEnabled(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.ENABLE_TEST_ENDPOINTS === "true"
-  )
-}
+import { areTestEndpointsEnabled } from "@/lib/runtime/test-endpoints"
 
 function getAuthCookieName(requestUrl: URL): string {
   return requestUrl.protocol === "https:"

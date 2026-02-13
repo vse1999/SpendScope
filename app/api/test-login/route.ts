@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { encode } from "next-auth/jwt"
 import { UserRole } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
+import { areTestEndpointsEnabled } from "@/lib/runtime/test-endpoints"
 
 const DEFAULT_E2E_EMAIL = "e2e-admin@spendscope.local"
 const DEFAULT_E2E_NAME = "E2E Admin"
@@ -11,12 +12,6 @@ const DEFAULT_COMPANY_SLUG = "e2e-spendscope"
 const DEFAULT_COMPANY_NAME = "SpendScope E2E"
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
-function areTestEndpointsEnabled(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.ENABLE_TEST_ENDPOINTS === "true"
-  )
-}
 function ensureBypassEnabled(): void {
   if (!areTestEndpointsEnabled()) {
     throw new Error("test-login is disabled; set ENABLE_TEST_ENDPOINTS=true in non-production environments")
