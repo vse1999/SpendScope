@@ -9,10 +9,13 @@ import type {
   Invitation,
   InvitationPreview,
   InviteTeamMemberInput,
+  TeamRoleAuditEntry,
   TeamMember,
 } from "@/lib/invitations/types";
 
 const INVITATION_EXPIRY_DAYS = 7;
+const ROLE_AUDIT_TITLE = "Team Role Changed";
+const ROLE_AUDIT_PREFIX = "ROLE_AUDIT_V1|";
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
@@ -56,6 +59,45 @@ function getDisplayName(user: { name: string | null; email: string }): string {
   return user.name?.trim() ? user.name : user.email;
 }
 
+function isSupportedUserRole(role: UserRole): boolean {
+  return role === UserRole.ADMIN || role === UserRole.MEMBER;
+}
+
+function parseAuditRoleChangeMessage(
+  message: string
+): { actorUserId: string; targetUserId: string; fromRole: UserRole; toRole: UserRole } | null {
+  if (!message.startsWith(ROLE_AUDIT_PREFIX)) {
+    return null;
+  }
+
+  const payload = message.slice(ROLE_AUDIT_PREFIX.length);
+  const parts = payload.split("|");
+
+  if (parts.length !== 4) {
+    return null;
+  }
+
+  const [actorUserId, targetUserId, fromRoleRaw, toRoleRaw] = parts;
+
+  if (!actorUserId || !targetUserId) {
+    return null;
+  }
+
+  if (
+    (fromRoleRaw !== UserRole.ADMIN && fromRoleRaw !== UserRole.MEMBER) ||
+    (toRoleRaw !== UserRole.ADMIN && toRoleRaw !== UserRole.MEMBER)
+  ) {
+    return null;
+  }
+
+  return {
+    actorUserId,
+    targetUserId,
+    fromRole: fromRoleRaw,
+    toRole: toRoleRaw,
+  };
+}
+
 export async function getCurrentUserContext(userId: string): Promise<CurrentUserContext | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -95,6 +137,194 @@ export async function getTeamMembersForCompany(currentUser: CurrentUserContext):
       { createdAt: "desc" },
     ],
   });
+}
+
+export async function updateCompanyMemberRole(
+  currentUser: CurrentUserContext,
+  targetUserId: string,
+  nextRole: UserRole
+): Promise<{ ok: true; message: string } | { ok: false; code: string; error: string }> {
+  if (!currentUser.companyId) {
+    return { ok: false, code: "UNAUTHORIZED", error: "User is not assigned to a company" };
+  }
+
+  if (currentUser.role !== UserRole.ADMIN) {
+    return { ok: false, code: "UNAUTHORIZED", error: "Only admins can update team member roles" };
+  }
+
+  if (!isSupportedUserRole(nextRole)) {
+    return { ok: false, code: "VALIDATION_ERROR", error: "Invalid role specified" };
+  }
+
+  const targetMember = await prisma.user.findFirst({
+    where: {
+      id: targetUserId,
+      companyId: currentUser.companyId,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+    },
+  });
+
+  if (!targetMember) {
+    return { ok: false, code: "NOT_FOUND", error: "Team member not found" };
+  }
+
+  if (targetMember.id === currentUser.id) {
+    return { ok: false, code: "SELF_UPDATE", error: "You cannot change your own role" };
+  }
+
+  if (targetMember.role === nextRole) {
+    return {
+      ok: false,
+      code: "ALREADY_SET",
+      error: `${getDisplayName(targetMember)} is already ${nextRole.toLowerCase()}`,
+    };
+  }
+
+  if (targetMember.role === UserRole.ADMIN && nextRole === UserRole.MEMBER) {
+    const adminCount = await prisma.user.count({
+      where: {
+        companyId: currentUser.companyId,
+        role: UserRole.ADMIN,
+      },
+    });
+
+    if (adminCount <= 1) {
+      return {
+        ok: false,
+        code: "LAST_ADMIN",
+        error: "Cannot demote the last admin in the company",
+      };
+    }
+  }
+
+  const updatedMember = await prisma.user.update({
+    where: { id: targetMember.id },
+    data: { role: nextRole },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+
+  const actorDisplayName = getDisplayName(currentUser);
+  const targetDisplayName = getDisplayName(updatedMember);
+
+  try {
+    await createNotification(targetMember.id, {
+      type: "INFO",
+      title: "Role Updated",
+      message: `${actorDisplayName} changed your role from ${targetMember.role} to ${nextRole}.`,
+      actionUrl: "/dashboard/team",
+    });
+  } catch (error) {
+    console.error("Failed to create target role-change notification:", error);
+  }
+
+  try {
+    await createNotification(currentUser.id, {
+      type: "SUCCESS",
+      title: ROLE_AUDIT_TITLE,
+      message: `${ROLE_AUDIT_PREFIX}${currentUser.id}|${targetMember.id}|${targetMember.role}|${nextRole}`,
+      actionUrl: "/dashboard/team",
+    });
+  } catch (error) {
+    console.error("Failed to create actor role-change audit notification:", error);
+  }
+
+  return {
+    ok: true,
+    message: `${targetDisplayName} is now ${nextRole.toLowerCase()}`,
+  };
+}
+
+export async function getRecentTeamRoleAudits(
+  currentUser: CurrentUserContext,
+  limit: number = 20
+): Promise<TeamRoleAuditEntry[]> {
+  if (!currentUser.companyId) {
+    return [];
+  }
+
+  const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+  const companyUsers = await prisma.user.findMany({
+    where: {
+      companyId: currentUser.companyId,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+    },
+  });
+
+  const userMap = new Map<string, { name: string | null; email: string }>();
+  for (const companyUser of companyUsers) {
+    userMap.set(companyUser.id, { name: companyUser.name, email: companyUser.email });
+  }
+
+  const adminUserIds = companyUsers
+    .filter((companyUser) => companyUser.role === UserRole.ADMIN)
+    .map((companyUser) => companyUser.id);
+
+  const notifications = await prisma.notification.findMany({
+    where: {
+      userId: { in: adminUserIds },
+      title: ROLE_AUDIT_TITLE,
+      message: {
+        startsWith: ROLE_AUDIT_PREFIX,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: safeLimit * 3,
+    select: {
+      id: true,
+      message: true,
+      createdAt: true,
+    },
+  });
+
+  const events: TeamRoleAuditEntry[] = [];
+
+  for (const notification of notifications) {
+    const parsed = parseAuditRoleChangeMessage(notification.message);
+    if (!parsed) {
+      continue;
+    }
+
+    const actorUser = userMap.get(parsed.actorUserId);
+    const targetUser = userMap.get(parsed.targetUserId);
+
+    if (!actorUser || !targetUser) {
+      continue;
+    }
+
+    events.push({
+      id: notification.id,
+      actorUserId: parsed.actorUserId,
+      actorDisplayName: getDisplayName(actorUser),
+      targetUserId: parsed.targetUserId,
+      targetDisplayName: getDisplayName(targetUser),
+      fromRole: parsed.fromRole,
+      toRole: parsed.toRole,
+      createdAt: notification.createdAt,
+    });
+
+    if (events.length >= safeLimit) {
+      break;
+    }
+  }
+
+  return events;
 }
 
 export async function inviteUserToCompany(

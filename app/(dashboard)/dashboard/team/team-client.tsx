@@ -68,33 +68,47 @@ import {
   removeTeamMember,
   cancelInvitation,
   resendInvitation,
+  updateTeamMemberRole,
 } from "@/app/actions/team";
 import { UserRole } from "@prisma/client";
-import type { Invitation, TeamMember } from "@/lib/invitations/types";
+import type { Invitation, TeamMember, TeamRoleAuditEntry } from "@/lib/invitations/types";
 
 interface TeamClientProps {
   members: TeamMember[];
   pendingInvitations: Invitation[];
+  roleAuditEvents: TeamRoleAuditEntry[];
   isAdmin: boolean;
   currentUserId: string;
+}
+
+type MemberActionType = "PROMOTE" | "DEMOTE" | "REMOVE";
+
+interface PendingMemberAction {
+  userId: string;
+  memberName: string;
+  action: MemberActionType;
 }
 
 export function TeamClient({
   members,
   pendingInvitations,
+  roleAuditEvents,
   isAdmin,
   currentUserId,
-}: TeamClientProps) {
+}: TeamClientProps): React.JSX.Element {
   const router = useRouter();
+  const adminCount = members.filter((member) => member.role === UserRole.ADMIN).length;
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
+  const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState<string | null>(null);
   const [isResending, setIsResending] = useState<string | null>(null);
+  const [pendingMemberAction, setPendingMemberAction] = useState<PendingMemberAction | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<UserRole>(UserRole.MEMBER);
 
-  const handleInvite = async () => {
+  const handleInvite = async (): Promise<void> => {
     if (!inviteEmail.trim()) {
       toast.error("Please enter an email address");
       return;
@@ -121,7 +135,7 @@ export function TeamClient({
     setIsInviting(false);
   };
 
-  const handleRemoveMember = async (userId: string) => {
+  const handleRemoveMember = async (userId: string): Promise<void> => {
     setIsRemoving(userId);
 
     const result = await removeTeamMember(userId);
@@ -136,7 +150,7 @@ export function TeamClient({
     setIsRemoving(null);
   };
 
-  const handleCancelInvitation = async (invitationId: string) => {
+  const handleCancelInvitation = async (invitationId: string): Promise<void> => {
     setIsCancelling(invitationId);
 
     const result = await cancelInvitation(invitationId);
@@ -151,7 +165,7 @@ export function TeamClient({
     setIsCancelling(null);
   };
 
-  const handleResendInvitation = async (invitationId: string) => {
+  const handleResendInvitation = async (invitationId: string): Promise<void> => {
     setIsResending(invitationId);
 
     const result = await resendInvitation(invitationId);
@@ -166,7 +180,52 @@ export function TeamClient({
     setIsResending(null);
   };
 
-  const getInitials = (name: string | null, email: string) => {
+  const handleUpdateMemberRole = async (userId: string, nextRole: UserRole): Promise<void> => {
+    setIsUpdatingRole(userId);
+
+    const result = await updateTeamMemberRole(userId, nextRole);
+
+    if (result.success) {
+      toast.success(result.message);
+      router.refresh();
+    } else {
+      if (result.code === "LAST_ADMIN") {
+        toast.error("Cannot change the last admin", {
+          description: "Promote another member to admin first.",
+        });
+      } else {
+        toast.error(result.error);
+      }
+    }
+
+    setIsUpdatingRole(null);
+  };
+
+  const openMemberActionDialog = (
+    userId: string,
+    memberName: string,
+    action: MemberActionType
+  ): void => {
+    setPendingMemberAction({ userId, memberName, action });
+  };
+
+  const runPendingMemberAction = async (): Promise<void> => {
+    if (!pendingMemberAction) {
+      return;
+    }
+
+    if (pendingMemberAction.action === "REMOVE") {
+      await handleRemoveMember(pendingMemberAction.userId);
+      setPendingMemberAction(null);
+      return;
+    }
+
+    const nextRole = pendingMemberAction.action === "PROMOTE" ? UserRole.ADMIN : UserRole.MEMBER;
+    await handleUpdateMemberRole(pendingMemberAction.userId, nextRole);
+    setPendingMemberAction(null);
+  };
+
+  const getInitials = (name: string | null, email: string): string => {
     if (name) {
       return name
         .split(" ")
@@ -178,7 +237,7 @@ export function TeamClient({
     return email.slice(0, 2).toUpperCase();
   };
 
-  const getRoleBadgeVariant = (role: UserRole) => {
+  const getRoleBadgeVariant = (role: UserRole): "default" | "secondary" | "outline" => {
     switch (role) {
       case UserRole.ADMIN:
         return "default";
@@ -187,6 +246,44 @@ export function TeamClient({
       default:
         return "outline";
     }
+  };
+
+  const getMemberActionTitle = (action: MemberActionType): string => {
+    if (action === "PROMOTE") {
+      return "Promote to Admin";
+    }
+
+    if (action === "DEMOTE") {
+      return "Change to Member";
+    }
+
+    return "Remove Team Member";
+  };
+
+  const getMemberActionDescription = (pendingAction: PendingMemberAction): React.JSX.Element => {
+    if (pendingAction.action === "PROMOTE") {
+      return (
+        <>
+          Promote <strong>{pendingAction.memberName}</strong> to <strong>ADMIN</strong>? This grants full
+          access to team, billing, and company management.
+        </>
+      );
+    }
+
+    if (pendingAction.action === "DEMOTE") {
+      return (
+        <>
+          Change <strong>{pendingAction.memberName}</strong> to <strong>MEMBER</strong>? They will lose admin
+          permissions. This action is blocked if they are the last admin.
+        </>
+      );
+    }
+
+    return (
+      <>
+        Remove <strong>{pendingAction.memberName}</strong> from your company? This action cannot be undone.
+      </>
+    );
   };
 
   return (
@@ -202,6 +299,11 @@ export function TeamClient({
             <CardDescription>
               {members.length} member{members.length !== 1 ? "s" : ""} in your company
             </CardDescription>
+            {isAdmin && adminCount <= 1 && (
+              <p className="text-xs text-muted-foreground">
+                At least one admin is required. Promote another member before demoting the current admin.
+              </p>
+            )}
           </div>
           {isAdmin && (
             <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
@@ -344,54 +446,53 @@ export function TeamClient({
                     {isAdmin && (
                       <TableCell className="text-right">
                         {member.id !== currentUserId ? (
-                          <AlertDialog>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Actions</span>
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem
-                                    variant="destructive"
-                                    className="text-destructive"
-                                  >
-                                    <UserX className="mr-2 h-4 w-4" />
-                                    Remove Member
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to remove{" "}
-                                  <strong>{member.name || member.email}</strong> from your company?
-                                  This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  variant="destructive"
-                                  onClick={() => handleRemoveMember(member.id)}
-                                  disabled={isRemoving === member.id}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Actions</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {member.role === UserRole.MEMBER ? (
+                                <DropdownMenuItem
+                                  disabled={isUpdatingRole !== null || isRemoving !== null}
+                                  onSelect={() =>
+                                    openMemberActionDialog(member.id, member.name || member.email, "PROMOTE")
+                                  }
                                 >
-                                  {isRemoving === member.id ? (
-                                    <>
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      Removing...
-                                    </>
-                                  ) : (
-                                    "Remove Member"
-                                  )}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Promote to Admin
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem
+                                  disabled={adminCount <= 1 || isUpdatingRole !== null || isRemoving !== null}
+                                  onSelect={() =>
+                                    openMemberActionDialog(member.id, member.name || member.email, "DEMOTE")
+                                  }
+                                >
+                                  <User className="mr-2 h-4 w-4" />
+                                  Change to Member
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                variant="destructive"
+                                className="text-destructive"
+                                disabled={isUpdatingRole !== null || isRemoving !== null}
+                                onSelect={() =>
+                                  openMemberActionDialog(member.id, member.name || member.email, "REMOVE")
+                                }
+                              >
+                                <UserX className="mr-2 h-4 w-4" />
+                                Remove Member
+                              </DropdownMenuItem>
+                              {member.role === UserRole.ADMIN && adminCount <= 1 && (
+                                <DropdownMenuItem disabled>
+                                  Last admin cannot be demoted
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         ) : (
                           <span className="text-sm text-muted-foreground">-</span>
                         )}
@@ -404,6 +505,94 @@ export function TeamClient({
           </Table>
         </CardContent>
       </Card>
+
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Role Change Audit Log
+            </CardTitle>
+            <CardDescription>
+              Most recent role changes for your company team.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {roleAuditEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No role changes recorded yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {roleAuditEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <p className="text-sm">
+                      <strong>{event.actorDisplayName}</strong> changed{" "}
+                      <strong>{event.targetDisplayName}</strong> from{" "}
+                      <Badge variant={getRoleBadgeVariant(event.fromRole)} className="mx-1">
+                        {event.fromRole}
+                      </Badge>
+                      to
+                      <Badge variant={getRoleBadgeVariant(event.toRole)} className="mx-1">
+                        {event.toRole}
+                      </Badge>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(event.createdAt).toLocaleString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <AlertDialog
+        open={pendingMemberAction !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingMemberAction(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingMemberAction ? getMemberActionTitle(pendingMemberAction.action) : "Confirm Action"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingMemberAction ? getMemberActionDescription(pendingMemberAction) : "No action selected."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRemoving !== null || isUpdatingRole !== null}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant={pendingMemberAction?.action === "REMOVE" ? "destructive" : "default"}
+              onClick={runPendingMemberAction}
+              disabled={isRemoving !== null || isUpdatingRole !== null}
+            >
+              {isRemoving !== null || isUpdatingRole !== null ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                "Confirm"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Pending Invitations Card */}
       {isAdmin && pendingInvitations.length > 0 && (

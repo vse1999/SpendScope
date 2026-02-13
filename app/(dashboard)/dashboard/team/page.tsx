@@ -1,15 +1,16 @@
 import { auth } from "@/auth";
-import { getTeamMembers, getPendingInvitations } from "@/app/actions/team";
+import { getTeamMembers, getPendingInvitations, getTeamRoleAuditLog } from "@/app/actions/team";
 import { TeamClient } from "./team-client";
 
-export default async function TeamPage() {
+export default async function TeamPage(): Promise<React.JSX.Element> {
   // session.user and company are guaranteed by (dashboard)/layout.tsx guards
   await auth();
 
-  // Fetch team members and pending invitations in parallel
-  const [membersResult, invitationsResult] = await Promise.all([
+  // Fetch team members, pending invitations, and role audit history in parallel
+  const [membersResult, invitationsResult, roleAuditResult] = await Promise.all([
     getTeamMembers(),
     getPendingInvitations(),
+    getTeamRoleAuditLog(),
   ]);
 
   // Extract data or use defaults
@@ -18,6 +19,7 @@ export default async function TeamPage() {
   const currentUserId = membersResult.success ? membersResult.currentUserId : "";
   
   const pendingInvitations = invitationsResult.success ? invitationsResult.invitations : [];
+  const roleAuditEvents = roleAuditResult.success ? roleAuditResult.audits : [];
 
   return (
     <div className="space-y-6">
@@ -33,6 +35,7 @@ export default async function TeamPage() {
         pendingInvitations={pendingInvitations}
         isAdmin={isAdmin}
         currentUserId={currentUserId}
+        roleAuditEvents={roleAuditEvents}
       />
     </div>
   );

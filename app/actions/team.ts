@@ -8,12 +8,14 @@ import {
   cancelPendingInvitation,
   getCurrentUserContext,
   getInvitationPreviewByToken,
+  getRecentTeamRoleAudits,
   getTeamMembersForCompany,
   inviteUserToCompany,
   listPendingInvitations,
   resendPendingInvitation,
+  updateCompanyMemberRole,
 } from "@/lib/invitations/service";
-import type { Invitation, InvitationPreview, TeamMember } from "@/lib/invitations/types";
+import type { Invitation, InvitationPreview, TeamMember, TeamRoleAuditEntry } from "@/lib/invitations/types";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/app/actions/notifications";
 
@@ -35,8 +37,48 @@ export type RemoveTeamMemberResult =
   | { success: true }
   | { success: false; error: string; code?: "UNAUTHORIZED" | "NOT_FOUND" | "SELF_REMOVE" };
 
+export type UpdateTeamMemberRoleResult =
+  | { success: true; message: string }
+  | {
+      success: false;
+      error: string;
+      code?:
+        | "UNAUTHORIZED"
+        | "NOT_FOUND"
+        | "SELF_UPDATE"
+        | "LAST_ADMIN"
+        | "ALREADY_SET"
+        | "VALIDATION_ERROR";
+    };
+
+type ServiceRoleUpdateErrorCode =
+  | "UNAUTHORIZED"
+  | "NOT_FOUND"
+  | "SELF_UPDATE"
+  | "LAST_ADMIN"
+  | "ALREADY_SET"
+  | "VALIDATION_ERROR";
+
+function toRoleUpdateErrorCode(code: string): ServiceRoleUpdateErrorCode | undefined {
+  switch (code) {
+    case "UNAUTHORIZED":
+    case "NOT_FOUND":
+    case "SELF_UPDATE":
+    case "LAST_ADMIN":
+    case "ALREADY_SET":
+    case "VALIDATION_ERROR":
+      return code;
+    default:
+      return undefined;
+  }
+}
+
 export type GetPendingInvitationsResult =
   | { success: true; invitations: Invitation[]; isAdmin: boolean }
+  | { success: false; error: string; code?: UnauthorizedCode };
+
+export type GetTeamRoleAuditResult =
+  | { success: true; audits: TeamRoleAuditEntry[] }
   | { success: false; error: string; code?: UnauthorizedCode };
 
 export type CancelInvitationResult =
@@ -204,6 +246,54 @@ export async function removeTeamMember(userId: string): Promise<RemoveTeamMember
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to remove team member",
+    };
+  }
+}
+
+export async function updateTeamMemberRole(
+  userId: string,
+  role: UserRole
+): Promise<UpdateTeamMemberRoleResult> {
+  try {
+    const currentUserResult = await requireCurrentUserContext();
+    if (!currentUserResult.ok) {
+      return { success: false, error: currentUserResult.error, code: currentUserResult.code };
+    }
+
+    const result = await updateCompanyMemberRole(currentUserResult.user, userId, role);
+    if (!result.ok) {
+      return { success: false, error: result.error, code: toRoleUpdateErrorCode(result.code) };
+    }
+
+    revalidatePath("/dashboard/team");
+    return { success: true, message: result.message };
+  } catch (error) {
+    console.error("Failed to update team member role:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to update team member role",
+    };
+  }
+}
+
+export async function getTeamRoleAuditLog(): Promise<GetTeamRoleAuditResult> {
+  try {
+    const currentUserResult = await requireCurrentUserContext();
+    if (!currentUserResult.ok) {
+      return { success: false, error: currentUserResult.error, code: currentUserResult.code };
+    }
+
+    if (currentUserResult.user.role !== UserRole.ADMIN) {
+      return { success: false, error: "Only admins can view role audit logs", code: "UNAUTHORIZED" };
+    }
+
+    const audits = await getRecentTeamRoleAudits(currentUserResult.user);
+    return { success: true, audits };
+  } catch (error) {
+    console.error("Failed to fetch team role audit log:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch team role audit log",
     };
   }
 }

@@ -45,3 +45,14 @@ export interface InviteTeamMemberInput {
   role: UserRole;
 }
 
+export interface TeamRoleAuditEntry {
+  id: string;
+  actorUserId: string;
+  actorDisplayName: string;
+  targetUserId: string;
+  targetDisplayName: string;
+  fromRole: UserRole;
+  toRole: UserRole;
+  createdAt: Date;
+}
+
