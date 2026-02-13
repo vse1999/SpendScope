@@ -2,20 +2,28 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { stripe, isBillingEnabled } from "@/lib/stripe/config"
 import { NextResponse } from "next/server"
+import { createApiRouteContext, logApiError, logApiInfo, withRequestIdHeader } from "@/lib/monitoring/api-route"
 
-export async function POST(): Promise<NextResponse> {
+const PORTAL_ROUTE = "/api/stripe/portal";
+
+export async function POST(request: Request): Promise<Response> {
+  const routeContext = createApiRouteContext(request, PORTAL_ROUTE);
+
   try {
     if (!isBillingEnabled()) {
-      return NextResponse.json(
+      return withRequestIdHeader(NextResponse.json(
         { error: "Billing is not enabled" },
         { status: 400 }
-      )
+      ), routeContext)
     }
 
     const session = await auth()
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+      return withRequestIdHeader(
+        NextResponse.json({ error: "Not authenticated" }, { status: 401 }),
+        routeContext
+      )
     }
 
     const user = await prisma.user.findUnique({
@@ -24,21 +32,21 @@ export async function POST(): Promise<NextResponse> {
     })
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+      return withRequestIdHeader(NextResponse.json({ error: "User not found" }, { status: 404 }), routeContext)
     }
 
     if (user.role !== "ADMIN") {
-      return NextResponse.json(
+      return withRequestIdHeader(NextResponse.json(
         { error: "Only admins can manage billing" },
         { status: 403 }
-      )
+      ), routeContext)
     }
 
     if (!user.company?.subscription?.stripeCustomerId) {
-      return NextResponse.json(
+      return withRequestIdHeader(NextResponse.json(
         { error: "No subscription found" },
         { status: 400 }
-      )
+      ), routeContext)
     }
 
     // Create customer portal session
@@ -47,12 +55,16 @@ export async function POST(): Promise<NextResponse> {
       return_url: `${process.env.NEXTAUTH_URL}/dashboard/billing`,
     })
 
-    return NextResponse.json({ url: portalSession.url })
+    logApiInfo("Created Stripe billing portal session", routeContext, {
+      companyId: user.company.id,
+      userId: session.user.id,
+    });
+    return withRequestIdHeader(NextResponse.json({ url: portalSession.url }), routeContext)
   } catch (error) {
-    console.error("Portal error:", error)
-    return NextResponse.json(
+    logApiError("Failed to create portal session", error, routeContext);
+    return withRequestIdHeader(NextResponse.json(
       { error: "Failed to create portal session" },
       { status: 500 }
-    )
+    ), routeContext)
   }
 }

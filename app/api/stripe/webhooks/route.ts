@@ -5,9 +5,11 @@ import { Prisma } from "@prisma/client"
 import Stripe from "stripe"
 import type { StripeSubscriptionWithPeriod } from "@/types/stripe"
 import { getSubscriptionIdFromInvoice } from "@/types/stripe"
+import { createApiRouteContext, logApiError, logApiInfo, withRequestIdHeader } from "@/lib/monitoring/api-route"
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ""
 const STRIPE_PROVIDER = "stripe"
+const WEBHOOK_ROUTE = "/api/stripe/webhooks";
 
 type WebhookProcessingResult = "processed" | "duplicate"
 
@@ -54,13 +56,15 @@ async function applyEvent(
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const routeContext = createApiRouteContext(request, WEBHOOK_ROUTE);
+
   try {
     if (!webhookSecret) {
-      console.error("STRIPE_WEBHOOK_SECRET is not configured")
-      return NextResponse.json(
+      logApiError("Missing STRIPE_WEBHOOK_SECRET configuration", new Error("Missing stripe webhook secret"), routeContext);
+      return withRequestIdHeader(NextResponse.json(
         { error: "Webhook secret is not configured" },
         { status: 500 }
-      )
+      ), routeContext)
     }
 
     const payload = await request.text()
@@ -72,11 +76,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       event = stripe.webhooks.constructEvent(payload, signature, webhookSecret)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error"
-      console.error("Webhook signature verification failed:", errorMessage)
-      return NextResponse.json(
+      logApiError("Webhook signature verification failed", err, routeContext);
+      return withRequestIdHeader(NextResponse.json(
         { error: `Webhook Error: ${errorMessage}` },
         { status: 400 }
-      )
+      ), routeContext)
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -101,18 +105,24 @@ export async function POST(request: Request): Promise<NextResponse> {
     })
 
     if (result === "duplicate") {
-      console.log(`[STRIPE WEBHOOK] Duplicate event ignored: ${event.id}`)
-      return NextResponse.json({ received: true, duplicate: true })
+      logApiInfo("Stripe webhook duplicate ignored", routeContext, {
+        eventId: event.id,
+        eventType: event.type,
+      });
+      return withRequestIdHeader(NextResponse.json({ received: true, duplicate: true }), routeContext)
     }
 
-    console.log(`[STRIPE WEBHOOK] Processed event ${event.id} (${event.type})`)
-    return NextResponse.json({ received: true })
+    logApiInfo("Stripe webhook processed", routeContext, {
+      eventId: event.id,
+      eventType: event.type,
+    });
+    return withRequestIdHeader(NextResponse.json({ received: true }), routeContext)
   } catch (error) {
-    console.error("Webhook error:", error)
-    return NextResponse.json(
+    logApiError("Webhook handler failed", error, routeContext);
+    return withRequestIdHeader(NextResponse.json(
       { error: "Webhook handler failed" },
       { status: 500 }
-    )
+    ), routeContext)
   }
 }
 

@@ -2,21 +2,29 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { stripe, isBillingEnabled, PRICE_IDS } from "@/lib/stripe/config"
 import { NextResponse } from "next/server"
+import { createApiRouteContext, logApiError, logApiInfo, withRequestIdHeader } from "@/lib/monitoring/api-route"
 
-export async function POST() {
+const CHECKOUT_ROUTE = "/api/stripe/checkout";
+
+export async function POST(request: Request): Promise<Response> {
+  const routeContext = createApiRouteContext(request, CHECKOUT_ROUTE);
+
   try {
     // Check if billing is enabled
     if (!isBillingEnabled()) {
-      return NextResponse.json(
+      return withRequestIdHeader(NextResponse.json(
         { error: "Billing is not enabled in development mode" },
         { status: 400 }
-      )
+      ), routeContext)
     }
 
     const session = await auth()
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+      return withRequestIdHeader(
+        NextResponse.json({ error: "Not authenticated" }, { status: 401 }),
+        routeContext
+      )
     }
 
     // Get user's company
@@ -26,18 +34,18 @@ export async function POST() {
     })
 
     if (!user?.company) {
-      return NextResponse.json(
+      return withRequestIdHeader(NextResponse.json(
         { error: "User not associated with a company" },
         { status: 400 }
-      )
+      ), routeContext)
     }
 
     // Check if user is admin
     if (user.role !== "ADMIN") {
-      return NextResponse.json(
+      return withRequestIdHeader(NextResponse.json(
         { error: "Only admins can manage billing" },
         { status: 403 }
-      )
+      ), routeContext)
     }
 
     // Get or create Stripe customer
@@ -93,12 +101,16 @@ export async function POST() {
       billing_address_collection: "auto",
     })
 
-    return NextResponse.json({ url: checkoutSession.url })
+    logApiInfo("Created Stripe checkout session", routeContext, {
+      companyId: user.company.id,
+      userId: session.user.id,
+    });
+    return withRequestIdHeader(NextResponse.json({ url: checkoutSession.url }), routeContext)
   } catch (error) {
-    console.error("Checkout error:", error)
-    return NextResponse.json(
+    logApiError("Failed to create checkout session", error, routeContext);
+    return withRequestIdHeader(NextResponse.json(
       { error: "Failed to create checkout session" },
       { status: 500 }
-    )
+    ), routeContext)
   }
 }
