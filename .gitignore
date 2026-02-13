@@ -71,5 +71,10 @@ drafts/*.md
 # Local helper scripts (not for production)
 .git-commit-ai.ps1
 
+# Private AI command/prompt docs (never commit)
+git-commit-prompt.md
+docs/commit-philosophy.md
+docs/commands/
+
 # Sentry Config File
 .env.sentry-build-plugin
