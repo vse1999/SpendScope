@@ -1,0 +1,2 @@
+-- Placeholder migration file to preserve migration history integrity.
+-- This migration was intentionally left with no-op SQL.

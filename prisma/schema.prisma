@@ -108,6 +108,7 @@ model Company {
   subscription Subscription?
   usage        CompanyUsage?
   invitations  Invitation[]
+  budget       CompanyBudget?
 
   @@index([slug])
 }
@@ -253,6 +254,12 @@ enum NotificationType {
   ERROR
 }
 
+enum BudgetExhaustionPolicy {
+  WARN_ONLY
+  BLOCK_NON_ADMIN
+  BLOCK_ALL
+}
+
 model Notification {
   id        String           @id @default(cuid())
   userId    String
@@ -269,4 +276,22 @@ model Notification {
   @@index([userId, read]) // For fetching unread notifications quickly
   @@index([userId, createdAt]) // For sorting by date
   @@map("notifications")
+}
+
+model CompanyBudget {
+  id               String                 @id @default(cuid())
+  companyId        String                 @unique
+  monthlyBudget    Decimal                @db.Decimal(12, 2)
+  currency         String                 @default("USD")
+  exhaustionPolicy BudgetExhaustionPolicy @default(WARN_ONLY)
+  isActive         Boolean                @default(true)
+  createdBy        String?
+  updatedBy        String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, isActive])
+  @@map("company_budgets")
 }
