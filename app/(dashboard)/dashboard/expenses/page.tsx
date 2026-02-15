@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { getCachedUserCompany } from "@/lib/queries/get-user-company";
 import {
   getCategories,
+  getExpenseCopilotAlerts,
+  getExpensePolicyConfigForCompany,
   getExpensesWithFilters,
   getExpensesSummary,
 } from "@/app/actions/expenses";
@@ -26,7 +28,7 @@ interface ExpensesPageProps {
   }>;
 }
 
-export default async function ExpensesPage({ searchParams }: ExpensesPageProps) {
+export default async function ExpensesPage({ searchParams }: ExpensesPageProps): Promise<React.JSX.Element> {
   // session.user and company are guaranteed by (dashboard)/layout.tsx guards
   const session = await auth();
   const user = session!.user!
@@ -53,10 +55,12 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   };
 
   // Fetch data in parallel
-  const [expensesResult, categoriesResult, summaryResult] = await Promise.all([
+  const [expensesResult, categoriesResult, summaryResult, copilotAlertsResult, policyResult] = await Promise.all([
     getExpensesWithFilters(filters, { cursor: params.cursor }),
     getCategories(),
     getExpensesSummary(filters),
+    getExpenseCopilotAlerts(),
+    getExpensePolicyConfigForCompany(),
   ]);
 
   const expenses = "error" in expensesResult ? { items: [], pageInfo: { endCursor: null } } : expensesResult;
@@ -66,6 +70,10 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
     count: summaryRaw.count,
     total: summaryRaw.totalAmount,
   };
+  const copilotAlerts = copilotAlertsResult.success ? copilotAlertsResult.alerts : [];
+  const policyConfig = policyResult.success
+    ? policyResult.config
+    : { globalThresholdUsd: 1000, categoryThresholds: {} };
 
   // Convert amount strings to numbers for client
   const normalizedExpenses = expenses.items.map(item => ({
@@ -83,6 +91,9 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
       initialSortConfig={sortConfig}
       currentUserId={user.id}
       companyId={companyId!}
+      isAdmin={user.role === "ADMIN"}
+      initialCopilotAlerts={copilotAlerts}
+      initialPolicyConfig={policyConfig}
     />
   );
 }

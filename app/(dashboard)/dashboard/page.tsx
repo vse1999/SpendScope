@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { getDashboardStats, getCategories } from "@/app/actions/expenses"
+import { getCompanyBudgetState } from "@/app/actions/budget"
 import { getCachedUserCompany } from "@/lib/queries/get-user-company"
 import {
   PageHeader,
@@ -20,9 +21,10 @@ export default async function DashboardPage() {
   const companyId = userCompanyResult.company!.id
 
   // Fetch data — single efficient call replaces getExpensesByCompany + getExpenseStats
-  const [dashboardResult, categoriesResult] = await Promise.all([
+  const [dashboardResult, categoriesResult, budgetResult] = await Promise.all([
     getDashboardStats(),
     getCategories(),
+    getCompanyBudgetState(),
   ])
 
   // Extract errors
@@ -47,6 +49,20 @@ export default async function DashboardPage() {
     : dashboardResult.data
 
   const categoryList = "error" in categoriesResult ? [] : categoriesResult
+  const budgetSummary = budgetResult.success
+    ? budgetResult.summary
+    : {
+      hasBudget: false,
+      thisMonthSpent: 0,
+      budgetAmount: null,
+      remaining: null,
+      usagePercent: null,
+      health: "HEALTHY" as const,
+      currency: "USD",
+      exhaustionPolicy: "WARN_ONLY" as const,
+      isActive: false,
+    }
+  const budgetSettings = budgetResult.success ? budgetResult.settings : null
 
   return (
     <div className="space-y-8">
@@ -64,6 +80,9 @@ export default async function DashboardPage() {
         expenseCount={data.expenseCount}
         monthlyTrend={data.monthlyTrend}
         monthlyChangePercent={data.monthlyChangePercent}
+        budgetSummary={budgetSummary}
+        budgetSettings={budgetSettings}
+        currentUserRole={user.role}
       />
 
       <div className="grid gap-8 lg:grid-cols-3">
