@@ -70,9 +70,12 @@ drafts/*.md
 
 # Local helper scripts (not for production)
 .git-commit-ai.ps1
+scripts/git-commit-ai.sh
 
 # Private AI command/prompt docs (never commit)
 git-commit-prompt.md
+git\ commit\ prompt.md
+docs/
 docs/commit-philosophy.md
 docs/commands/
 
