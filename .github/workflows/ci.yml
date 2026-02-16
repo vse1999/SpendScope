@@ -29,6 +29,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Deployment policy check
+        env:
+          NEXTAUTH_URL: https://ci.example.com
+          APP_URL: https://ci.example.com
+          NEXTAUTH_SECRET: ci-example-secret
+          NEXT_PUBLIC_ENABLE_BILLING: "false"
+          ALLOW_LIVE_STRIPE_KEYS: "false"
+          ENABLE_TEST_ENDPOINTS: "false"
+          E2E_LOGIN_BYPASS: "false"
+          ALLOW_BILLING_RESET: "false"
+          NEXT_PUBLIC_ALLOW_BILLING_RESET: "false"
+          UPSTASH_REDIS_REST_URL: https://ci.upstash.example
+          UPSTASH_REDIS_REST_TOKEN: ci-token
+          SENTRY_DSN: https://ci@example.ingest.sentry.io/123
+          NEXT_PUBLIC_SENTRY_DSN: https://ci@example.ingest.sentry.io/123
+          SENTRY_SEND_DEFAULT_PII: "false"
+        run: npm run deploy:check
+
       - name: Typecheck
         run: npx tsc --noEmit
 
