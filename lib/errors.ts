@@ -54,7 +54,7 @@ export class FeatureGateError extends AppError {
     feature: string,
     limit: number,
     current: number,
-    upgradeUrl: string = "/settings/billing"
+    upgradeUrl: string = "/dashboard/billing"
   ) {
     super(
       message,

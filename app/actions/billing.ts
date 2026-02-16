@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { checkRateLimit } from "@/lib/rate-limit"
 import { stripe } from "@/lib/stripe/config"
 import { revalidatePath } from "next/cache"
 import { syncUsageLimits as syncUsageLimitsService } from "@/lib/subscription/feature-gate-service"
@@ -20,6 +21,14 @@ type SyncUsageLimitsResult =
  */
 export async function resetToFree() {
   try {
+    const isBillingResetAllowed =
+      process.env.NODE_ENV !== "production" &&
+      process.env.ALLOW_BILLING_RESET === "true";
+
+    if (!isBillingResetAllowed) {
+      return { error: "Reset is disabled in this environment" };
+    }
+
     const session = await auth()
 
     if (!session?.user) {
@@ -51,7 +60,7 @@ export async function resetToFree() {
       }
     })
 
-    revalidatePath("/billing")
+    revalidatePath("/dashboard/billing")
 
     return { success: true }
   } catch (error) {
@@ -108,7 +117,7 @@ export async function syncSubscriptionAfterCheckout() {
       }
     })
 
-    revalidatePath("/billing")
+    revalidatePath("/dashboard/billing")
 
     // Notify all company members about the upgrade
     try {
@@ -122,7 +131,7 @@ export async function syncSubscriptionAfterCheckout() {
       for (const member of companyMembers) {
         await createNotification(member.id, {
           type: "SUCCESS",
-          title: "Upgraded to Pro! 🎉",
+          title: "Upgraded to Pro",
           message: `${upgraderName} upgraded your team to the Pro plan. Enjoy unlimited features!`,
           actionUrl: "/dashboard/billing",
         });
@@ -143,30 +152,20 @@ export async function syncSubscriptionAfterCheckout() {
  * Should be called after subscription upgrade/downgrade to update CompanyUsage limits
  */
 export async function syncUsageLimits(): Promise<SyncUsageLimitsResult> {
-  // Apply rate limiting at the start
-  try {
-    // Check API rate limit
-    const apiLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit("sync-api", { tier: "api" }));
-    if (!apiLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" }
-    }
-
-    // Check user rate limit
-    const headersList = await import("next/headers").then(m => m.headers());
-    const userId = headersList.get("x-user-id") ?? "anonymous";
-    const userLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit(userId, { tier: "api" }));
-    if (!userLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" }
-    }
-  } catch {
-    // Continue if rate limiting fails
-  }
-
   try {
     const session = await auth()
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" }
+    }
+
+    const [apiLimit, userLimit] = await Promise.all([
+      checkRateLimit("sync-api", { tier: "api" }),
+      checkRateLimit(`sync-api-user:${session.user.id}`, { tier: "api" }),
+    ]);
+
+    if (!apiLimit.allowed || !userLimit.allowed) {
+      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" }
     }
 
     // Only admins can sync usage limits
@@ -186,8 +185,8 @@ export async function syncUsageLimits(): Promise<SyncUsageLimitsResult> {
     // Call the service function to sync limits
     await syncUsageLimitsService(user.companyId)
 
-    revalidatePath("/billing")
-    revalidatePath("/settings")
+    revalidatePath("/dashboard/billing")
+    revalidatePath("/dashboard/settings")
 
     return { success: true, message: "Usage limits synced successfully" }
   } catch (error) {

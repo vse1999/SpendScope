@@ -53,6 +53,13 @@ export async function POST(request: Request): Promise<Response> {
       where: { companyId: user.company.id },
     })
 
+    if (subscription?.stripeSubId && subscription.status !== "CANCELED") {
+      return withRequestIdHeader(NextResponse.json(
+        { error: "Company already has an active subscription" },
+        { status: 409 }
+      ), routeContext)
+    }
+
     let customerId = subscription?.stripeCustomerId
 
     if (!customerId) {

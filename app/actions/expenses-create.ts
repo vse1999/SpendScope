@@ -2,6 +2,7 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { createExpenseSchema } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
 import {
@@ -21,30 +22,20 @@ import type { CreateExpenseResult } from "./expenses-types";
  * Validates input data and creates expense for current user's company
  */
 export async function createExpense(formData: FormData): Promise<CreateExpenseResult> {
-  // Apply rate limiting at the start
-  try {
-    // Check action rate limit
-    const actionLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit("expense-action", { tier: "action" }));
-    if (!actionLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
-    }
-
-    // Check user rate limit
-    const headersList = await import("next/headers").then(m => m.headers());
-    const userId = headersList.get("x-user-id") ?? "anonymous";
-    const userLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit(userId, { tier: "action" }));
-    if (!userLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
-    }
-  } catch {
-    // Continue if rate limiting fails
-  }
-
   try {
     const session = await auth();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
+    }
+
+    const [actionLimit, userLimit] = await Promise.all([
+      checkRateLimit("expense-action", { tier: "action" }),
+      checkRateLimit(`expense-user:${session.user.id}`, { tier: "action" }),
+    ]);
+
+    if (!actionLimit.allowed || !userLimit.allowed) {
+      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
 
     const companyId = await getCurrentUserCompanyId();
@@ -158,7 +149,7 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
     });
 
     revalidatePath("/dashboard");
-    revalidatePath("/expenses");
+    revalidatePath("/dashboard/expenses");
 
     // Notify all company members about the new expense
     try {
@@ -208,4 +199,3 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
     };
   }
 }
-

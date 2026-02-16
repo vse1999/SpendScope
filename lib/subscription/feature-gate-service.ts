@@ -315,7 +315,7 @@ export async function checkFeatureLimit(
       allowed: hasFeatureFlag,
       remaining: hasFeatureFlag ? Infinity : 0,
       reason: hasFeatureFlag ? undefined : `${feature} is not available on your current plan`,
-      upgradeUrl: hasFeatureFlag ? undefined : "/settings/billing",
+      upgradeUrl: hasFeatureFlag ? undefined : "/dashboard/billing",
     };
   }
 
@@ -405,7 +405,7 @@ async function checkNumericLimitWithLock(
       allowed: false,
       remaining: Math.max(0, remaining),
       reason: `You have reached your ${limitKey.replace("max", "").toLowerCase()} limit (${maxLimit}). Upgrade to Pro for unlimited access.`,
-      upgradeUrl: "/settings/billing",
+      upgradeUrl: "/dashboard/billing",
     };
   }
 
@@ -495,7 +495,7 @@ async function consumeWithLock(
       "expense",
       limits.maxMonthlyExpenses,
       usage.monthlyExpenses,
-      "/settings/billing"
+      "/dashboard/billing"
     );
   }
 

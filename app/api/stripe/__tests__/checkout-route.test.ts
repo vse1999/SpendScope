@@ -87,5 +87,39 @@ describe("POST /api/stripe/checkout authz", () => {
     expect(body).toEqual({ error: "Only admins can manage billing" });
     expect(mockStripeCheckoutCreate).not.toHaveBeenCalled();
   });
-});
 
+  it("returns 409 when company already has an active subscription", async (): Promise<void> => {
+    mockAuth.mockResolvedValue({
+      user: {
+        id: "admin-1",
+        email: "admin@company.com",
+      },
+    });
+    mockPrismaUserFindUnique.mockResolvedValue({
+      id: "admin-1",
+      role: "ADMIN",
+      company: { id: "company-1", name: "Acme" },
+    });
+    mockPrismaSubscriptionFindUnique.mockResolvedValue({
+      companyId: "company-1",
+      status: "ACTIVE",
+      stripeSubId: "sub_123",
+      stripeCustomerId: "cus_123",
+    });
+
+    const request = new Request("http://localhost:3000/api/stripe/checkout", {
+      method: "POST",
+      headers: {
+        "x-request-id": "req-checkout-active-sub-1",
+      },
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(body).toEqual({ error: "Company already has an active subscription" });
+    expect(response.headers.get("x-request-id")).toBe("req-checkout-active-sub-1");
+    expect(mockStripeCheckoutCreate).not.toHaveBeenCalled();
+  });
+});
