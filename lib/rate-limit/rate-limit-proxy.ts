@@ -1,14 +1,14 @@
 /**
- * Rate Limit Middleware
+ * Rate Limit Proxy Helpers
  *
- * Next.js middleware for applying rate limiting at the edge.
- * Can be used in middleware.ts to protect specific routes.
+ * Next.js proxy helpers for applying rate limiting.
+ * Can be used in proxy.ts to protect specific routes.
  *
- * Usage in middleware.ts:
+ * Usage in proxy.ts:
  * ```typescript
- * import { rateLimitMiddleware } from "@/lib/rate-limit/middleware";
+ * import { rateLimitMiddleware } from "@/lib/rate-limit/rate-limit-proxy";
  *
- * export async function middleware(request: NextRequest) {
+ * export async function proxy(request: NextRequest) {
  *   return rateLimitMiddleware(request, {
  *     tier: "api",
  *     pathMatchers: ["/api/"],
@@ -61,7 +61,7 @@ const DEFAULT_MIDDLEWARE_OPTIONS: Partial<MiddlewareRateLimitOptions> = {
   pathMatchers: ["/api/"],
   skipPaths: ["/api/rate-limit-test", "/api/auth/callback"],
   identifierGenerator: (request: NextRequest): string => {
-    // For Edge runtime, use request headers directly
+    // Use request headers directly to derive client identity
     const forwardedFor = request.headers.get("x-forwarded-for");
     const realIp = request.headers.get("x-real-ip");
     const ip = forwardedFor?.split(",")[0]?.trim() ??
@@ -138,9 +138,9 @@ function defaultRateLimitResponse(
 }
 
 /**
- * Rate limit middleware function
+ * Rate limit proxy helper
  *
- * Apply this in your middleware.ts to rate limit requests.
+ * Apply this in your proxy.ts to rate limit requests.
  *
  * @param request - Next.js request
  * @param options - Rate limiting options
@@ -148,12 +148,12 @@ function defaultRateLimitResponse(
  *
  * @example
  * ```typescript
- * // middleware.ts
+ * // proxy.ts
  * import { NextResponse } from "next/server";
  * import type { NextRequest } from "next/server";
- * import { rateLimitMiddleware } from "@/lib/rate-limit/middleware";
+ * import { rateLimitMiddleware } from "@/lib/rate-limit/rate-limit-proxy";
  *
- * export async function middleware(request: NextRequest) {
+ * export async function proxy(request: NextRequest) {
  *   // Apply rate limiting to API routes
  *   if (request.nextUrl.pathname.startsWith("/api/")) {
  *     return rateLimitMiddleware(request, {
@@ -223,17 +223,17 @@ export async function rateLimitMiddleware(
 }
 
 /**
- * Create a configured rate limit middleware
+ * Create a configured rate limit proxy helper
  *
- * Useful for creating reusable middleware configurations
+ * Useful for creating reusable proxy configurations
  *
  * @param defaultOptions - Default options to apply
  * @returns Configured middleware function
  *
  * @example
  * ```typescript
- * // middleware.ts
- * import { createRateLimitMiddleware } from "@/lib/rate-limit/middleware";
+ * // proxy.ts
+ * import { createRateLimitMiddleware } from "@/lib/rate-limit/rate-limit-proxy";
  *
  * const apiRateLimit = createRateLimitMiddleware({
  *   tier: "api",
@@ -245,7 +245,7 @@ export async function rateLimitMiddleware(
  *   pathMatchers: ["/api/auth/login", "/api/auth/register"],
  * });
  *
- * export async function middleware(request: NextRequest) {
+ * export async function proxy(request: NextRequest) {
  *   // Apply auth rate limiting first
  *   const authResponse = await authRateLimit(request);
  *   if (authResponse.status === 429) return authResponse;
@@ -267,25 +267,25 @@ export function createRateLimitMiddleware(
 }
 
 /**
- * IP blocking middleware
+ * IP blocking proxy helper
  *
  * Blocks requests from specific IP addresses
  *
  * @param blockedIps - Array of blocked IP addresses (supports wildcards)
- * @returns Middleware function
+ * @returns Proxy helper function
  *
  * @example
  * ```typescript
- * // middleware.ts
- * import { ipBlockMiddleware } from "@/lib/rate-limit/middleware";
+ * // proxy.ts
+ * import { ipBlockMiddleware } from "@/lib/rate-limit/rate-limit-proxy";
  *
  * const blockMiddleware = ipBlockMiddleware(["192.168.1.*", "10.0.0.5"]);
  *
- * export async function middleware(request: NextRequest) {
+ * export async function proxy(request: NextRequest) {
  *   const blockResponse = blockMiddleware(request);
  *   if (blockResponse) return blockResponse;
  *
- *   // Continue with other middleware...
+ *   // Continue with other proxy logic...
  * }
  * ```
  */

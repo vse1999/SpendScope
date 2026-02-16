@@ -84,15 +84,15 @@ export function ExpenseForm() {
 }
 ```
 
-### Middleware (Edge Rate Limiting)
+### Proxy (Node.js Runtime Rate Limiting)
 
 ```typescript
-// middleware.ts
+// proxy.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { rateLimitMiddleware } from "@/lib/rate-limit/middleware";
+import { rateLimitMiddleware } from "@/lib/rate-limit/rate-limit-proxy";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Apply rate limiting to API routes
   if (request.nextUrl.pathname.startsWith("/api/")) {
     return rateLimitMiddleware(request, {
