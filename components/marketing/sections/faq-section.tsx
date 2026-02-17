@@ -1,0 +1,121 @@
+"use client";
+
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { displayFont } from "@/lib/fonts";
+import { TextReveal, StaggerContainer, StaggerItem } from "@/components/marketing/animations";
+import { SpotlightCard } from "@/components/marketing/animations";
+
+interface FAQItem {
+  readonly question: string;
+  readonly answer: string;
+}
+
+interface FAQSectionProps {
+  readonly faqItems: readonly FAQItem[];
+}
+
+function FAQAccordion({ 
+  item, 
+  index, 
+  isOpen, 
+  onToggle 
+}: { 
+  readonly item: FAQItem; 
+  readonly index: number;
+  readonly isOpen: boolean;
+  readonly onToggle: () => void;
+}) {
+  return (
+    <SpotlightCard
+      className="w-full"
+      spotlightColor="rgba(99, 102, 241, 0.06)"
+      borderColor="rgba(99, 102, 241, 0.12)"
+    >
+      <div className="rounded-xl border border-border/80 bg-card/80">
+        <button
+          onClick={onToggle}
+          className="flex w-full cursor-pointer items-center justify-between gap-4 p-5 text-left font-medium text-foreground transition-colors hover:text-indigo-600 dark:hover:text-indigo-400"
+          aria-expanded={isOpen}
+          aria-controls={`faq-content-${index}`}
+        >
+          <span className="flex items-center gap-4">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+            >
+              {index + 1}
+            </span>
+            {item.question}
+          </span>
+          <motion.div
+            className="shrink-0"
+            animate={{ rotate: isOpen ? 45 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Plus className="size-5 text-muted-foreground transition-colors duration-300" />
+          </motion.div>
+        </button>
+        
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.div
+              id={`faq-content-${index}`}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="border-t border-border/50 px-5 pb-5 pt-4">
+                <p className="pl-12 text-sm leading-relaxed text-muted-foreground">
+                  {item.answer}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </SpotlightCard>
+  );
+}
+
+export function FAQSection({ faqItems }: FAQSectionProps) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const handleToggle = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
+
+  return (
+    <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-24 py-16">
+      <TextReveal>
+        <div className="mb-10 text-center">
+          <h2
+            id="faq-heading"
+            className={cn(
+              displayFont.className,
+              "text-3xl font-semibold tracking-tight sm:text-4xl"
+            )}
+          >
+            Frequently asked{" "}
+            <span className="text-gradient">questions</span>
+          </h2>
+        </div>
+      </TextReveal>
+
+      <StaggerContainer className="space-y-4" staggerDelay={0.1} delayChildren={0.2}>
+        {faqItems.map((item, index) => (
+          <StaggerItem key={item.question}>
+            <FAQAccordion 
+              item={item} 
+              index={index} 
+              isOpen={openIndex === index}
+              onToggle={() => handleToggle(index)}
+            />
+          </StaggerItem>
+        ))}
+      </StaggerContainer>
+    </section>
+  );
+}
