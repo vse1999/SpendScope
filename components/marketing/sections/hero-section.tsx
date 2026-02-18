@@ -6,12 +6,14 @@ import { ArrowRight, ChevronRight, ShieldCheck, Layers3, LockKeyhole, Users, typ
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { MonthlyTrendChart } from "@/components/analytics";
+import { SummaryCards } from "./summary-cards";
 import { cn } from "@/lib/utils";
 import { displayFont } from "@/lib/fonts";
 import { TextReveal, StaggerContainer, StaggerItem } from "@/components/marketing/animations";
 import { TiltCard } from "@/components/marketing/animations";
 import { MeshGradient, ParticleField } from "@/components/marketing/effects";
-import { AnalyticsPreviewCard } from "./analytics-preview-card";
+import type { AnalyticsData } from "@/types/analytics";
 
 // Icon mapping for serializable data
 const iconMap: Record<string, LucideIcon> = {
@@ -28,9 +30,10 @@ interface TrustItem {
 
 interface HeroSectionProps {
   readonly trustItems: readonly TrustItem[];
+  readonly previewData: Pick<AnalyticsData, "monthlyTrend" | "summary" | "userSpending">;
 }
 
-export function HeroSection({ trustItems }: HeroSectionProps) {
+export function HeroSection({ trustItems, previewData }: HeroSectionProps) {
   const shouldReduceMotion = useReducedMotion();
   
   return (
@@ -104,8 +107,8 @@ export function HeroSection({ trustItems }: HeroSectionProps) {
             
             <StaggerItem>
               <Button asChild size="lg" variant="outline" className="glass-card">
-                <Link href="#pricing">
-                  View Pricing
+                <Link href="#tour">
+                  See Product Tour
                   <ChevronRight className="size-4" />
                 </Link>
               </Button>
@@ -144,7 +147,7 @@ export function HeroSection({ trustItems }: HeroSectionProps) {
           </StaggerContainer>
         </div>
 
-        {/* Right Column - Analytics Preview */}
+        {/* Right Column - Live Product Preview */}
         <TextReveal delay={0.5} type="fade-up" className="flex items-center justify-center"
         >
           <TiltCard 
@@ -153,7 +156,15 @@ export function HeroSection({ trustItems }: HeroSectionProps) {
             showGlow={true}
             glowColor="rgba(99, 102, 241, 0.2)"
           >
-            <AnalyticsPreviewCard />
+            <div className="space-y-3 rounded-2xl border border-indigo-200/60 bg-slate-50/70 p-3 shadow-2xl shadow-indigo-950/10 dark:border-indigo-900/40 dark:bg-slate-950/60">
+              <SummaryCards 
+                totalAmount={previewData.summary.totalAmount}
+                totalCount={previewData.summary.totalCount}
+                userCount={previewData.userSpending.length}
+                monthlyTrend={previewData.monthlyTrend}
+              />
+              <MonthlyTrendChart data={previewData.monthlyTrend} />
+            </div>
           </TiltCard>
         </TextReveal>
       </div>

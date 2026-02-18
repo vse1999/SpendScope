@@ -4,11 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   ArrowRight,
-  BarChart3,
-  BrainCircuit,
   Menu,
-  ReceiptText,
-  type LucideIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,13 +24,7 @@ import {
   FAQSection,
   CTASection,
 } from "@/components/marketing/sections";
-
-// Icon mapping for features
-const featureIconMap: Record<string, LucideIcon> = {
-  ReceiptText,
-  BrainCircuit,
-  BarChart3,
-};
+import { MARKETING_ANALYTICS_DATA } from "@/lib/marketing/demo-data";
 
 // Data definitions - all serializable (no React components)
 const navigationItems = [
@@ -48,27 +38,6 @@ const trustItems = [
   { title: "Audit history for key changes", iconName: "Layers3" },
   { title: "Secure OAuth authentication", iconName: "LockKeyhole" },
   { title: "Team invitations and admin workflows", iconName: "Users" },
-] as const;
-
-const landingFeatures = [
-  {
-    title: "Expense capture that stays clean",
-    description:
-      "Record and categorize expenses quickly so teams stay focused on decisions, not spreadsheet overhead.",
-    iconName: "ReceiptText",
-  },
-  {
-    title: "AI-guided controls",
-    description:
-      "Use copilot alerts and policy checks to flag unusual spend and improve consistency before month-end.",
-    iconName: "BrainCircuit",
-  },
-  {
-    title: "Decision-ready analytics",
-    description:
-      "Track trends, categories, and team behavior in a clear workspace that supports fast reviews.",
-    iconName: "BarChart3",
-  },
 ] as const;
 
 const technologies = [
@@ -234,7 +203,7 @@ function Header() {
                 <Menu className="size-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+            <SheetContent side="right" className="w-75 sm:w-100">
               <div className="flex flex-col gap-6 py-4">
                 {/* Mobile Navigation Links */}
                 <nav className="flex flex-col gap-4">
@@ -288,13 +257,13 @@ function Footer() {
     <footer className="border-t border-border/70 bg-slate-50/50 py-8 dark:bg-slate-950/50">
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-center gap-4 px-4 text-sm text-muted-foreground sm:px-6">
         <div className="flex items-center gap-2">
-          <span className="inline-flex size-6 items-center justify-center rounded-md bg-linear-to-br from-indigo-600 to-violet-600 p-[1px]">
+          <span className="inline-flex size-6 items-center justify-center rounded-md bg-linear-to-br from-indigo-600 to-violet-600 p-px">
             <Image
               src="/favicon.ico"
               alt="SpendScope"
               width={20}
               height={20}
-              className="size-5 rounded-[4px]"
+              className="size-5 rounded-lg"
             />
           </span>
           <span className="font-medium">{currentYear} SpendScope</span>
@@ -311,9 +280,16 @@ export function LandingPage() {
       <Header />
 
       <main className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6">
-        <HeroSection trustItems={trustItems} />
+        <HeroSection
+          trustItems={trustItems}
+          previewData={{
+            monthlyTrend: MARKETING_ANALYTICS_DATA.monthlyTrend,
+            summary: MARKETING_ANALYTICS_DATA.summary,
+            userSpending: MARKETING_ANALYTICS_DATA.userSpending,
+          }}
+        />
         <TechStackSection technologies={technologies} />
-        <FeaturesSection features={landingFeatures} iconMap={featureIconMap} />
+        <FeaturesSection analyticsData={MARKETING_ANALYTICS_DATA} />
         <TourSection tourSteps={tourSteps} />
         <PricingSection plans={plans} />
         <FAQSection faqItems={faqItems} />
