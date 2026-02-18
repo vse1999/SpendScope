@@ -11,13 +11,37 @@ import {
 } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
-import type { MonthlyTrend } from "@/types/analytics"
+import type { MonthlyTrend, RechartsAreaClickEvent } from "@/types/analytics"
 
 type TrendData = MonthlyTrend
 
 interface MonthlyTrendChartProps {
   data: TrendData[]
   onMonthClick?: (monthKey: string) => void
+}
+
+function isRechartsAreaClickEvent(value: unknown): value is RechartsAreaClickEvent {
+  if (!value || typeof value !== "object") {
+    return false
+  }
+
+  const activePayload = (value as { activePayload?: unknown }).activePayload
+  if (!Array.isArray(activePayload) || activePayload.length === 0) {
+    return false
+  }
+
+  const firstEntry = activePayload[0]
+  if (!firstEntry || typeof firstEntry !== "object") {
+    return false
+  }
+
+  const payload = (firstEntry as { payload?: unknown }).payload
+  return Boolean(
+    payload &&
+      typeof payload === "object" &&
+      "monthKey" in payload &&
+      typeof (payload as { monthKey?: unknown }).monthKey === "string"
+  )
 }
 
 export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps) {
@@ -34,15 +58,18 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[350px] text-foreground">
+        <div className="h-87.5 text-foreground">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={data}
               onClick={(nextState) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const state = nextState as any
-                if (state?.activePayload?.[0] && onMonthClick) {
-                  onMonthClick((state.activePayload[0].payload as MonthlyTrend).monthKey)
+                if (!onMonthClick || !isRechartsAreaClickEvent(nextState)) {
+                  return
+                }
+
+                const monthKey = nextState.activePayload?.[0]?.payload?.monthKey
+                if (monthKey) {
+                  onMonthClick(monthKey)
                 }
               }}
             >

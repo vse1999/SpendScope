@@ -28,7 +28,7 @@ function getInitials(name: string): string {
 
 function truncateName(name: string, maxLength: number = 18): string {
   if (name.length <= maxLength) return name
-  return name.slice(0, maxLength - 1) + "…"
+  return name.slice(0, maxLength - 1) + "..."
 }
 
 export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps) {
@@ -101,7 +101,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Spending by Team Member</CardTitle>
         <CardDescription>
-          {data.length} member{data.length !== 1 ? "s" : ""} • {formatCurrency(totalAmount.toString())} total
+          {data.length} member{data.length !== 1 ? "s" : ""} | {formatCurrency(totalAmount.toString())} total
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-2">
@@ -164,7 +164,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
                       <span className="text-[11px] text-muted-foreground/70">
                         {user.count} expense{user.count !== 1 ? "s" : ""}
                       </span>
-                      <span className="text-[11px] text-muted-foreground/50">•</span>
+                      <span className="text-[11px] text-muted-foreground/50">|</span>
                       <span className="text-[11px] text-muted-foreground/70">
                         avg {formatCurrency(user.avgAmount)}
                       </span>
