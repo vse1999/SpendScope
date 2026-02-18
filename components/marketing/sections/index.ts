@@ -1,5 +1,4 @@
 export { HeroSection } from "./hero-section";
-export { AnalyticsPreviewCard } from "./analytics-preview-card";
 export { TechStackSection } from "./tech-stack-section";
 export { FeaturesSection } from "./features-section";
 export { TourSection } from "./tour-section";
