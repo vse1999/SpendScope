@@ -53,8 +53,22 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Security audit (production deps)
+        run: npm run audit:prod
+
+      - name: Check explicit any regressions
+        run: npm run check:any
+
       - name: Test (coverage gate)
         run: npm run test:ci
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+          if-no-files-found: ignore
 
       - name: Build
         run: npm run build
