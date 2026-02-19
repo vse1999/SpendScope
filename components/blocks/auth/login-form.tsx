@@ -10,7 +10,9 @@ export function LoginForm({ className, redirectTo = "/dashboard" }: LoginFormPro
   return (
     <div className={cn("w-full max-w-md space-y-6", className)}>
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">SpendScope</h1>
+        <h1 className="app-page-title">
+          <span className="app-page-title-gradient">SpendScope</span>
+        </h1>
         <p className="text-base text-muted-foreground">
           Enterprise Expense Analytics Platform
         </p>

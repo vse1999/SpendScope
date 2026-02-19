@@ -51,7 +51,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     const errorInfo = error ? getErrorMessage(error) : null
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
+        <div className="min-h-screen app-shell flex flex-col items-center justify-center p-4">
             {errorInfo && (
                 <Alert variant="destructive" className="max-w-md mb-6">
                     <AlertCircle className="h-4 w-4" />
