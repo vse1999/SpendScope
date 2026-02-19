@@ -56,8 +56,7 @@ export function ExpenseSortSummaryCard({
           </Button>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Tip: Clicking a column makes it primary sort (up to {MAX_SORT_LEVELS} levels). Shift+click to
-          sort by a single column.
+          Tip: Click a column to sort by that column only. Shift+click to add secondary sorts (up to {MAX_SORT_LEVELS} levels).
         </p>
       </CardContent>
     </Card>

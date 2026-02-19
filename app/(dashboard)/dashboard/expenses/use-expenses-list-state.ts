@@ -76,6 +76,32 @@ interface UseExpensesListStateResult {
   loadMore: () => Promise<void>;
 }
 
+function getNextSortConfig(
+  current: MultiSortConfig,
+  field: SortField,
+  isShiftClick: boolean
+): MultiSortConfig {
+  if (!isShiftClick) {
+    const existing = current.find((sort) => sort.field === field);
+    const direction = existing ? (existing.direction === "asc" ? "desc" : "asc") : getDefaultDirection(field);
+    return [{ field, direction }];
+  }
+
+  const existingIndex = current.findIndex((sort) => sort.field === field);
+  if (existingIndex >= 0) {
+    const updated = [...current];
+    const currentSort = updated[existingIndex];
+    updated[existingIndex] = {
+      ...currentSort,
+      direction: currentSort.direction === "asc" ? "desc" : "asc",
+    };
+    return updated;
+  }
+
+  const nextSort: SortConfig = { field, direction: getDefaultDirection(field) };
+  return [...current, nextSort].slice(0, MAX_SORT_LEVELS);
+}
+
 export function useExpensesListState({
   initialExpenses,
   initialNextCursor,
@@ -174,42 +200,15 @@ export function useExpensesListState({
     else params.delete("maxAmount");
 
     params.delete("cursor");
-    setExpenses([]);
 
     startTransition(() => {
-      router.push(`/dashboard/expenses?${params.toString()}`);
+      router.replace(`/dashboard/expenses?${params.toString()}`, { scroll: false });
     });
   };
 
   const handleSort = (field: SortField, event?: React.MouseEvent): void => {
     const params = new URLSearchParams(searchParams);
-    const isShiftClick = event?.shiftKey;
-
-    let newSortConfig: MultiSortConfig;
-
-    if (isShiftClick) {
-      const existingSort = sortConfig.find((sort) => sort.field === field);
-      const direction = existingSort
-        ? existingSort.direction === "asc"
-          ? "desc"
-          : "asc"
-        : getDefaultDirection(field);
-      newSortConfig = [{ field, direction }];
-    } else {
-      const existingIndex = sortConfig.findIndex((sort) => sort.field === field);
-
-      if (existingIndex >= 0) {
-        const currentSort = sortConfig[existingIndex];
-        const newDirection = currentSort.direction === "asc" ? "desc" : "asc";
-        const updatedSort: SortConfig = { ...currentSort, direction: newDirection };
-        const withoutCurrent = sortConfig.filter((_, index) => index !== existingIndex);
-        newSortConfig = [updatedSort, ...withoutCurrent];
-      } else {
-        const nextSort: SortConfig = { field, direction: getDefaultDirection(field) };
-        const trimmedExisting = sortConfig.slice(0, Math.max(0, MAX_SORT_LEVELS - 1));
-        newSortConfig = [nextSort, ...trimmedExisting];
-      }
-    }
+    const newSortConfig = getNextSortConfig(sortConfig, field, Boolean(event?.shiftKey));
 
     const sortParam = serializeMultiSort(newSortConfig);
     if (sortParam) {
@@ -220,10 +219,9 @@ export function useExpensesListState({
 
     params.delete("cursor");
     setSortConfig(newSortConfig);
-    setExpenses([]);
 
     startTransition(() => {
-      router.push(`/dashboard/expenses?${params.toString()}`);
+      router.replace(`/dashboard/expenses?${params.toString()}`, { scroll: false });
     });
   };
 
@@ -244,10 +242,9 @@ export function useExpensesListState({
     params.delete("cursor");
 
     setSortConfig(newSortConfig);
-    setExpenses([]);
 
     startTransition(() => {
-      router.push(`/dashboard/expenses?${params.toString()}`);
+      router.replace(`/dashboard/expenses?${params.toString()}`, { scroll: false });
     });
   };
 
@@ -258,10 +255,9 @@ export function useExpensesListState({
     params.delete("sort");
     params.delete("cursor");
     setSortConfig(defaultSort);
-    setExpenses([]);
 
     startTransition(() => {
-      router.push(`/dashboard/expenses?${params.toString()}`);
+      router.replace(`/dashboard/expenses?${params.toString()}`, { scroll: false });
     });
   };
 
@@ -273,10 +269,9 @@ export function useExpensesListState({
     setMinAmount("");
     setMaxAmount("");
     setSortConfig([{ field: "date", direction: "desc" }]);
-    setExpenses([]);
 
     startTransition(() => {
-      router.push("/dashboard/expenses");
+      router.replace("/dashboard/expenses", { scroll: false });
     });
   };
 

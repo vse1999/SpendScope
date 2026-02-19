@@ -22,6 +22,7 @@ interface ExpenseTableSectionProps {
   selectedIds: Set<string>;
   hasFilters: boolean;
   nextCursor: string | null;
+  isRefreshing: boolean;
   isLoadingMore: boolean;
   sortConfig: MultiSortConfig;
   onToggleSelectAll: () => void;
@@ -61,6 +62,7 @@ export function ExpenseTableSection({
   selectedIds,
   hasFilters,
   nextCursor,
+  isRefreshing,
   isLoadingMore,
   sortConfig,
   onToggleSelectAll,
@@ -69,7 +71,13 @@ export function ExpenseTableSection({
   onLoadMore,
 }: ExpenseTableSectionProps): React.JSX.Element {
   return (
-    <Card>
+    <Card className="relative">
+      {isRefreshing && (
+        <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-md border bg-background/95 px-2 py-1 text-xs text-muted-foreground shadow-sm">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Updating...
+        </div>
+      )}
       <CardContent className="p-0">
         <Table>
           <TableHeader>
@@ -81,7 +89,7 @@ export function ExpenseTableSection({
                 />
               </TableHead>
               <TableHead
-                className="cursor-pointer select-none transition-colors hover:bg-muted/50"
+                className={`cursor-pointer select-none transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
                 onClick={(event) => onSort("date", event as unknown as React.MouseEvent)}
               >
                 <div className="flex items-center gap-1">
@@ -89,9 +97,9 @@ export function ExpenseTableSection({
                   {renderSortIcon("date", sortConfig)}
                 </div>
               </TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead>Item</TableHead>
               <TableHead
-                className="cursor-pointer select-none transition-colors hover:bg-muted/50"
+                className={`cursor-pointer select-none transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
                 onClick={(event) => onSort("category", event as unknown as React.MouseEvent)}
               >
                 <div className="flex items-center gap-1">
@@ -100,7 +108,7 @@ export function ExpenseTableSection({
                 </div>
               </TableHead>
               <TableHead
-                className="cursor-pointer select-none transition-colors hover:bg-muted/50"
+                className={`cursor-pointer select-none transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
                 onClick={(event) => onSort("user", event as unknown as React.MouseEvent)}
               >
                 <div className="flex items-center gap-1">
@@ -109,7 +117,7 @@ export function ExpenseTableSection({
                 </div>
               </TableHead>
               <TableHead
-                className="cursor-pointer select-none text-right transition-colors hover:bg-muted/50"
+                className={`cursor-pointer select-none text-right transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
                 onClick={(event) => onSort("amount", event as unknown as React.MouseEvent)}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -173,7 +181,13 @@ export function ExpenseTableSection({
 
         {(nextCursor || isLoadingMore) && (
           <div className="flex items-center justify-center border-t p-4">
-            <Button variant="outline" onClick={() => { void onLoadMore(); }} disabled={isLoadingMore || !nextCursor}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                void onLoadMore();
+              }}
+              disabled={isLoadingMore || isRefreshing || !nextCursor}
+            >
               {isLoadingMore ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
