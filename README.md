@@ -96,6 +96,10 @@ Run policy and secret checks before deployment:
 npm run deploy:check
 ```
 
+`deploy:check` validates required auth env (`NEXTAUTH_URL`, `APP_URL`,
+`NEXTAUTH_SECRET`, Google/GitHub OAuth keys), deploy safety flags, and
+basic Stripe mode consistency when billing is enabled.
+
 Run post-deploy smoke checks:
 
 ```bash

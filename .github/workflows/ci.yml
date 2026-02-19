@@ -34,6 +34,10 @@ jobs:
           NEXTAUTH_URL: https://ci.example.com
           APP_URL: https://ci.example.com
           NEXTAUTH_SECRET: ci-example-secret
+          GOOGLE_CLIENT_ID: ci-google.apps.googleusercontent.com
+          GOOGLE_CLIENT_SECRET: ci-google-secret
+          GITHUB_CLIENT_ID: ci-github-client
+          GITHUB_CLIENT_SECRET: ci-github-secret
           NEXT_PUBLIC_ENABLE_BILLING: "false"
           ALLOW_LIVE_STRIPE_KEYS: "false"
           ENABLE_TEST_ENDPOINTS: "false"

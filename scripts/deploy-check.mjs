@@ -104,6 +104,10 @@ function validateCoreEnv() {
   assertHttpsUrl("NEXTAUTH_URL");
   assertHttpsUrl("APP_URL");
   requireEnv("NEXTAUTH_SECRET");
+  requireEnv("GOOGLE_CLIENT_ID");
+  requireEnv("GOOGLE_CLIENT_SECRET");
+  requireEnv("GITHUB_CLIENT_ID");
+  requireEnv("GITHUB_CLIENT_SECRET");
 
   assertFalse("ENABLE_TEST_ENDPOINTS");
   assertFalse("E2E_LOGIN_BYPASS");
