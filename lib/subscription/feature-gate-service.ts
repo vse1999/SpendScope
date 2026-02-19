@@ -10,6 +10,7 @@
  * NO `any` types allowed - strict TypeScript only
  */
 
+import { createRequire } from "node:module";
 import { prisma } from "@/lib/prisma";
 import { SubscriptionPlan } from "@prisma/client";
 import { 
@@ -170,6 +171,7 @@ const inMemoryCache = new InMemoryCache();
 // Attempt to use Redis if available, otherwise fallback to in-memory
 let cacheProvider: CacheProvider = inMemoryCache;
 let redisAvailable = false;
+const runtimeRequire = createRequire(`${process.cwd()}/package.json`);
 
 // Redis client interface for type safety when dynamically imported
 interface RedisClient {
@@ -178,12 +180,6 @@ interface RedisClient {
   del: (key: string) => Promise<void>;
   connect: () => Promise<void>;
 }
-
-// Redis module type (used with eval require)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type RedisModule = {
-  createClient: (options: { url: string }) => RedisClient;
-};
 
 // Lazy-load Redis to avoid startup failures
 async function getCacheProvider(): Promise<CacheProvider> {
@@ -196,8 +192,9 @@ async function getCacheProvider(): Promise<CacheProvider> {
   
   if (redisUrl) {
     try {
-      // Use eval require to prevent webpack from bundling redis
-      const redis = eval('require')('redis');
+      const redis = runtimeRequire("redis") as {
+        createClient: (options: { url: string }) => RedisClient;
+      };
       const client = redis.createClient({ url: redisUrl });
       await client.connect();
       
