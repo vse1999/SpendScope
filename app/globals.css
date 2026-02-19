@@ -127,6 +127,9 @@
 /* Modern Design System - Nordic Aurora Theme */
 :root {
   /* Primary Gradient Colors */
+  --brand-indigo: #6366f1;
+  --brand-violet: #8b5cf6;
+  --brand-cyan: #06b6d4;
   --gradient-start: #6366f1;
   --gradient-mid: #8b5cf6;
   --gradient-end: #06b6d4;
@@ -149,6 +152,44 @@
 
 /* Animation Utilities */
 @layer utilities {
+  .app-shell {
+    @apply bg-linear-to-b from-indigo-50/55 via-background to-background dark:from-indigo-950/25 dark:via-background dark:to-background;
+  }
+
+  .app-page-title {
+    @apply text-3xl font-bold tracking-tight text-foreground;
+  }
+
+  .app-page-title-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--brand-indigo),
+      var(--brand-violet),
+      var(--brand-cyan)
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .app-card {
+    @apply border-border/70 bg-card shadow-sm;
+  }
+
+  .app-card-strong {
+    @apply border-border/80 bg-card shadow-md;
+  }
+
+  .app-icon-chip {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-md shadow-indigo-500/20;
+    background: linear-gradient(
+      135deg,
+      var(--gradient-start),
+      var(--gradient-mid),
+      var(--gradient-end)
+    );
+  }
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
