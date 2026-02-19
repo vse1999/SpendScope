@@ -334,7 +334,7 @@ function NotificationsButton(): React.JSX.Element {
         >
           <Bell className="size-4" />
           {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 flex size-2 rounded-full bg-indigo-500" />
+            <span className="absolute right-1 top-1 flex size-2 rounded-full bg-primary" />
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -482,7 +482,7 @@ function NotificationItem({
       <div
         className={cn(
           'mt-1.5 size-1.5 rounded-full shrink-0',
-          !notification.read ? 'bg-indigo-500' : 'bg-transparent'
+          !notification.read ? 'bg-primary' : 'bg-transparent'
         )}
       />
       <div className="flex-1 space-y-1 min-w-0">

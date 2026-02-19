@@ -154,7 +154,7 @@ function SidebarLogo() {
       href="/dashboard"
       className="flex items-center gap-2 px-2 transition-opacity hover:opacity-80"
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-gradient-to-br from-indigo-500 to-purple-600 text-white shrink-0">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white shrink-0">
         <Wallet className="h-5 w-5" />
       </div>
       <span
@@ -288,13 +288,13 @@ function CompanySection({ company }: { company?: { name: string } | null }) {
 
   return (
     <div className="px-3 py-1.5">
-      <div
-        className={cn(
-          "flex items-center gap-2.5 rounded-lg px-2 py-2",
-          state === "collapsed" && "justify-center px-0"
-        )}
-      >
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-white text-xs font-bold">
+        <div
+          className={cn(
+            "flex items-center gap-2.5 rounded-lg px-2 py-2",
+            state === "collapsed" && "justify-center px-0"
+          )}
+        >
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground text-xs font-bold">
           {company.name.charAt(0).toUpperCase()}
         </div>
         <span
@@ -355,7 +355,7 @@ function UserMenu({
                     alt={user.name || "User avatar"}
                     className="rounded-lg"
                   />
-                  <AvatarFallback className="rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300 text-xs font-medium">
+                  <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs font-medium">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -387,7 +387,7 @@ function UserMenu({
                       alt={user.name || "User avatar"}
                       className="rounded-lg"
                     />
-                    <AvatarFallback className="rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300 text-xs font-medium">
+                    <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs font-medium">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
@@ -472,9 +472,9 @@ export function DashboardSidebar({
         </Sidebar>
 
         {/* Main Content Area */}
-        <SidebarInset className="flex-1 bg-slate-50 dark:bg-slate-950">
+        <SidebarInset className="flex-1 bg-transparent">
           {/* Mobile Header */}
-          <div className="flex h-16 items-center justify-between border-b bg-white dark:bg-slate-950 px-4 lg:hidden">
+          <div className="flex h-16 items-center justify-between border-b border-border/70 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80 px-4 lg:hidden">
             <div className="flex items-center">
               <SidebarTrigger className="-ml-1" />
               <span className="ml-3 font-semibold">SpendScope</span>
@@ -532,7 +532,7 @@ export function MobileSidebar({ user }: MobileSidebarProps) {
           className="flex items-center gap-2"
           onClick={() => setOpenMobile(false)}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-gradient-to-br from-indigo-500 to-purple-600 text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white">
             <Wallet className="h-5 w-5" />
           </div>
           <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
@@ -620,7 +620,7 @@ export function MobileSidebar({ user }: MobileSidebarProps) {
       <div className="border-t border-sidebar-border p-4">
         {company && (
           <div className="mb-3 flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/50 px-3 py-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10 text-primary">
               <Building2 className="h-3 w-3" />
             </div>
             <span className="text-xs font-medium text-sidebar-foreground/70 truncate">
@@ -632,7 +632,7 @@ export function MobileSidebar({ user }: MobileSidebarProps) {
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 rounded-lg">
             <AvatarImage src={user.image || undefined} alt={user.name || "User"} className="rounded-lg" />
-            <AvatarFallback className="rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300 text-xs font-medium">
+            <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs font-medium">
               {initials}
             </AvatarFallback>
           </Avatar>
