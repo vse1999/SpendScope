@@ -1,20 +1,20 @@
 "use client"
 
-import { useCallback } from "react"
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import { useCallback, type ReactNode } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { UserRole } from "@prisma/client"
+import { PieChart, TrendingUp, Users } from "lucide-react"
+
 import {
-  MonthlyTrendChart,
   CategoryDistributionChart,
-  UserSpendingChart,
   DateRangePicker,
   ExportButton,
+  MonthlyTrendChart,
+  UserSpendingChart,
 } from "@/components/analytics"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { TrendingUp, Users, PieChart } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
-import { UserRole } from "@prisma/client"
 import type { AnalyticsData } from "@/types/analytics"
 
 interface AnalyticsClientProps {
@@ -59,7 +59,7 @@ export function AnalyticsClient({ initialData, userRole }: AnalyticsClientProps)
   if (!data) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+        <h1 className="app-page-title">Analytics</h1>
         <Alert>
           <AlertDescription>No data available</AlertDescription>
         </Alert>
@@ -72,8 +72,8 @@ export function AnalyticsClient({ initialData, userRole }: AnalyticsClientProps)
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
-            Analytics
+          <h1 className="app-page-title">
+            <span className="app-page-title-gradient">Analytics</span>
           </h1>
           <p className="text-muted-foreground mt-1">
             Insights into your company&apos;s spending patterns
@@ -92,27 +92,18 @@ export function AnalyticsClient({ initialData, userRole }: AnalyticsClientProps)
           value={formatCurrency(data.summary.totalAmount)}
           subtitle={`${data.summary.totalCount} expenses`}
           icon={<TrendingUp className="h-5 w-5 text-white" />}
-          gradient="from-blue-500 to-blue-600"
-          shadow="shadow-blue-500/20"
-          bgGradient="from-blue-50 dark:from-blue-950/20"
         />
         <SummaryCard
           title="Average Expense"
           value={formatCurrency(data.summary.averageExpense)}
           subtitle="Per transaction"
           icon={<PieChart className="h-5 w-5 text-white" />}
-          gradient="from-emerald-500 to-emerald-600"
-          shadow="shadow-emerald-500/20"
-          bgGradient="from-emerald-50 dark:from-emerald-950/20"
         />
         <SummaryCard
           title="Active Members"
           value={data.userSpending.length.toString()}
           subtitle="Contributing expenses"
           icon={<Users className="h-5 w-5 text-white" />}
-          gradient="from-violet-500 to-violet-600"
-          shadow="shadow-violet-500/20"
-          bgGradient="from-violet-50 dark:from-violet-950/20"
         />
       </div>
 
@@ -144,25 +135,18 @@ function SummaryCard({
   value,
   subtitle,
   icon,
-  gradient,
-  shadow,
-  bgGradient,
 }: {
   title: string
   value: string
   subtitle: string
-  icon: React.ReactNode
-  gradient: string
-  shadow: string
-  bgGradient: string
+  icon: ReactNode
 }) {
   return (
-    <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300 group">
-      <div className={`absolute inset-0 bg-linear-to-br ${bgGradient} to-white dark:to-slate-900/50 opacity-80`} />
-      <div className="absolute top-0 right-0 w-32 h-32 bg-slate-100/30 dark:bg-slate-800/10 rounded-full -translate-y-8 translate-x-8" />
+    <Card className="app-card-strong relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
       <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300">{title}</CardTitle>
-        <div className={`h-10 w-10 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center shadow-lg ${shadow} group-hover:scale-110 transition-transform duration-300`}>
+        <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+        <div className="app-icon-chip transition-transform duration-200 group-hover:scale-105">
           {icon}
         </div>
       </CardHeader>

@@ -20,6 +20,8 @@ interface MonthlyTrendChartProps {
   onMonthClick?: (monthKey: string) => void
 }
 
+const BRAND_INDIGO = "var(--brand-indigo)"
+
 function isRechartsAreaClickEvent(value: unknown): value is RechartsAreaClickEvent {
   if (!value || typeof value !== "object") {
     return false
@@ -50,7 +52,7 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
   const averageAmount = data.length > 0 ? totalAmount / data.length : 0
 
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="app-card-strong">
       <CardHeader>
         <CardTitle className="text-lg">Monthly Spending Trend</CardTitle>
         <CardDescription>
@@ -75,8 +77,8 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
             >
               <defs>
                 <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                  <stop offset="5%" stopColor={BRAND_INDIGO} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={BRAND_INDIGO} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
@@ -106,7 +108,7 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
                     return (
                       <div className="bg-background/95 backdrop-blur-sm border rounded-xl p-3 shadow-xl">
                         <p className="font-semibold text-sm text-foreground">{payload[0].payload.month}</p>
-                        <p className="text-indigo-600 dark:text-indigo-400 font-bold text-lg mt-0.5">
+                        <p className="text-primary font-bold text-lg mt-0.5">
                           {formatCurrency(payload[0].value as number)}
                         </p>
                       </div>
@@ -118,13 +120,13 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
               <Area
                 type="monotone"
                 dataKey="amount"
-                stroke="#6366f1"
+                stroke={BRAND_INDIGO}
                 strokeWidth={2.5}
                 fillOpacity={1}
                 fill="url(#colorAmount)"
                 cursor={onMonthClick ? "pointer" : "default"}
                 dot={false}
-                activeDot={{ r: 6, fill: '#6366f1', stroke: '#fff', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: BRAND_INDIGO, stroke: "#fff", strokeWidth: 2 }}
               />
             </AreaChart>
           </ResponsiveContainer>

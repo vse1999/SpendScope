@@ -20,7 +20,7 @@ export default async function AnalyticsPage(props: AnalyticsPageProps) {
   if (result.error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+        <h1 className="app-page-title">Analytics</h1>
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{result.error}</AlertDescription>

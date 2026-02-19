@@ -17,7 +17,7 @@ export function CategoryBreakdown({ categories, totalExpenses }: CategoryBreakdo
   const safeTotal = totalExpenses || 1
 
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="app-card-strong">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">By Category</CardTitle>
         <CardDescription>Spending breakdown</CardDescription>
@@ -46,7 +46,7 @@ export function CategoryBreakdown({ categories, totalExpenses }: CategoryBreakdo
                       </span>
                     </div>
                   </div>
-                  <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-700 ease-out"
                       style={{

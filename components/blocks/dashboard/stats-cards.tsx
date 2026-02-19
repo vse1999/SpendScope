@@ -30,12 +30,11 @@ export function StatsCards({
   return (
     <div className="grid gap-5 md:grid-cols-3">
       {/* Total Expenses */}
-      <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300 group">
-        <div className="absolute inset-0 bg-linear-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-slate-900/50 opacity-80" />
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/40 dark:bg-indigo-900/10 rounded-full -translate-y-8 translate-x-8" />
+      <Card className="app-card-strong relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
         <CardHeader className="relative flex flex-row items-center justify-between pb-2">
-          <CardDescription className="text-sm font-semibold text-slate-600 dark:text-slate-300">Total Expenses</CardDescription>
-          <div className="h-10 w-10 rounded-xl bg-linear-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-300">
+          <CardDescription className="text-sm font-semibold">Total Expenses</CardDescription>
+          <div className="app-icon-chip transition-transform duration-200 group-hover:scale-105">
             <DollarSign className="h-5 w-5 text-white" />
           </div>
         </CardHeader>
@@ -50,12 +49,11 @@ export function StatsCards({
       </Card>
 
       {/* This Month */}
-      <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300 group">
-        <div className="absolute inset-0 bg-linear-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-slate-900/50 opacity-80" />
-        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/40 dark:bg-emerald-900/10 rounded-full -translate-y-8 translate-x-8" />
+      <Card className="app-card-strong relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
         <CardHeader className="relative flex flex-row items-center justify-between pb-2">
-          <CardDescription className="text-sm font-semibold text-slate-600 dark:text-slate-300">This Month</CardDescription>
-          <div className="h-10 w-10 rounded-xl bg-linear-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform duration-300">
+          <CardDescription className="text-sm font-semibold">This Month</CardDescription>
+          <div className="app-icon-chip transition-transform duration-200 group-hover:scale-105">
             <Calendar className="h-5 w-5 text-white" />
           </div>
         </CardHeader>

@@ -34,7 +34,7 @@ export function CategoryDistributionChart({
     : topCategories
 
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="app-card-strong">
       <CardHeader>
         <CardTitle className="text-lg">Spending by Category</CardTitle>
         <CardDescription>

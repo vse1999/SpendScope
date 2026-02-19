@@ -46,7 +46,7 @@ interface BudgetCardProps {
 function getUsageGradient(usagePercent: number): string {
   if (usagePercent >= 100) return "from-red-500 to-red-600"
   if (usagePercent >= 80) return "from-amber-500 to-amber-600"
-  return "from-emerald-500 to-emerald-600"
+  return "from-indigo-500 to-violet-600"
 }
 
 function getPolicyLabel(policy: BudgetExhaustionPolicy): string {
@@ -101,12 +101,11 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
   }
 
   return (
-    <Card className="relative overflow-hidden border-0 shadow-md transition-all duration-300 hover:shadow-lg group">
-      <div className="absolute inset-0 bg-linear-to-br from-amber-50 to-white opacity-80 dark:from-amber-950/20 dark:to-slate-900/50" />
-      <div className="absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-amber-100/40 dark:bg-amber-900/10" />
+    <Card className="app-card-strong relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
       <CardHeader className="relative flex flex-row items-center justify-between pb-2">
         <div>
-          <CardDescription className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+          <CardDescription className="text-sm font-semibold">
             Company Budget
           </CardDescription>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -198,7 +197,7 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
               </DialogContent>
             </Dialog>
           )}
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-amber-500 to-amber-600 shadow-lg shadow-amber-500/20 transition-transform duration-300 group-hover:scale-110">
+          <div className="app-icon-chip transition-transform duration-200 group-hover:scale-105">
             <PieChart className="h-5 w-5 text-white" />
           </div>
         </div>
@@ -206,7 +205,7 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
       <CardContent className="relative">
         {summary.hasBudget && summary.remaining !== null ? (
           <>
-            <div className={cn("text-3xl font-bold tracking-tight", summary.remaining < 0 ? "text-red-600" : "text-emerald-600")}>
+            <div className={cn("text-3xl font-bold tracking-tight", summary.remaining < 0 ? "text-destructive" : "text-foreground")}>
               {formatCurrency(summary.remaining)}
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -219,7 +218,7 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
                   {(summary.usagePercent ?? 0).toFixed(0)}%
                 </span>
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn(
                     "h-full rounded-full bg-linear-to-r transition-all duration-700 ease-out",

@@ -64,7 +64,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
   // Empty state
   if (!hasData) {
     return (
-      <Card className="border-0 shadow-md">
+      <Card className="app-card-strong">
         <CardHeader>
           <CardTitle className="text-lg">Spending by Team Member</CardTitle>
           <CardDescription>No data available</CardDescription>
@@ -97,7 +97,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
   }
 
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="app-card-strong">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Spending by Team Member</CardTitle>
         <CardDescription>
@@ -123,8 +123,8 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
                   onClick={() => onUserClick?.(user.email)}
                 >
                   {/* Avatar with initials */}
-                  <div className="shrink-0 w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
-                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                  <div className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-semibold text-primary">
                       {user.initials}
                     </span>
                   </div>
@@ -147,10 +147,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
                     <div className="flex items-center gap-3">
                       {/* Progress bar */}
                       <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-linear-to-r from-indigo-500 to-indigo-600 rounded-full"
-                          style={{ width: `${barWidth}%` }}
-                        />
+                        <div className="h-full bg-gradient-brand rounded-full" style={{ width: `${barWidth}%` }} />
                       </div>
                       
                       {/* Percentage */}

@@ -1,6 +1,7 @@
+import { Calculator, Layers, TrendingUp } from "lucide-react"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
-import { Calculator, TrendingUp, Layers } from "lucide-react"
 
 interface QuickStatsProps {
   averageExpense: number
@@ -14,26 +15,26 @@ export function QuickStats({ averageExpense, largestExpense, categoryCount }: Qu
   const stats = [
     {
       label: "Average Expense",
-      value: hasData ? formatCurrency(averageExpense) : "—",
+      value: hasData ? formatCurrency(averageExpense) : "--",
       icon: Calculator,
-      color: "text-blue-500",
+      color: "text-primary",
     },
     {
       label: "Largest Expense",
-      value: hasData ? formatCurrency(largestExpense) : "—",
+      value: hasData ? formatCurrency(largestExpense) : "--",
       icon: TrendingUp,
-      color: "text-amber-500",
+      color: "text-violet-500",
     },
     {
       label: "Categories Used",
       value: categoryCount.toString(),
       icon: Layers,
-      color: "text-violet-500",
+      color: "text-cyan-500",
     },
   ]
 
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="app-card-strong">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Quick Stats</CardTitle>
         <CardDescription>Monthly insights</CardDescription>
@@ -48,9 +49,7 @@ export function QuickStats({ averageExpense, largestExpense, categoryCount }: Qu
               </div>
               <span className="text-sm font-semibold tabular-nums">{stat.value}</span>
             </div>
-            {index < stats.length - 1 && (
-              <div className="h-px bg-border" />
-            )}
+            {index < stats.length - 1 && <div className="h-px bg-border" />}
           </div>
         ))}
       </CardContent>
