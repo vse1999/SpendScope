@@ -18,18 +18,7 @@ const EXPLICIT_ANY_PATTERNS = [
   /\bReadonlyArray<\s*any\s*>/,
 ];
 
-const ALLOWLIST = [
-  {
-    file: "components/analytics/monthly-trend-chart.tsx",
-    contains: "as any",
-    reason: "Recharts click state typing gap",
-  },
-  {
-    file: "components/blocks/auth/test-login-form.tsx",
-    contains: "as any",
-    reason: "NextAuth signIn test helper typing gap",
-  },
-];
+const ALLOWLIST = [];
 
 function normalizePath(filePath) {
   return filePath.replace(/\\/g, "/");
