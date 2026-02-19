@@ -8,9 +8,6 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Check, X, AlertTriangle, Sparkles, Users, Receipt, BarChart3, Download, CreditCard, Loader2, RefreshCw } from "lucide-react"
-// TODO: Use formatCurrency when implementing dynamic pricing from Stripe
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { formatCurrency } from "@/lib/format-utils"
 import { getTestCardInfo, isTestMode } from "@/lib/stripe/test-cards"
 import { resetToFree, syncSubscriptionAfterCheckout } from "@/app/actions/billing"
 import { toast } from "sonner"
@@ -35,6 +32,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
   const [isResetting, setIsResetting] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const hasSynced = useRef(false)
+  const allowBillingReset = process.env.NEXT_PUBLIC_ALLOW_BILLING_RESET === "true"
 
   // Sync subscription handler - defined before useEffect that uses it
   const handleSyncAfterCheckout = useCallback(async () => {
@@ -168,7 +166,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
       )}
 
       {/* Current Plan */}
-      <Card>
+      <Card className="app-card">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -197,8 +195,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
                   Refresh Status
                 </Button>
               )}
-              {/* Reset button for testing */}
-              {billingEnabled && isAdmin && usage.plan === "PRO" && (
+              {billingEnabled && isAdmin && usage.plan === "PRO" && allowBillingReset && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -223,7 +220,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
               <div className="flex items-center justify-between text-sm">
                 <span>Team Members</span>
                 <span className="text-muted-foreground">
-                  {usage.users.current} / {usage.users.limit === Infinity ? "∞" : usage.users.limit}
+                  {usage.users.current} / {usage.users.limit === Infinity ? "unlimited" : usage.users.limit}
                 </span>
               </div>
               <Progress value={usage.users.percentage} />
@@ -233,7 +230,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
               <div className="flex items-center justify-between text-sm">
                 <span>Monthly Expenses</span>
                 <span className="text-muted-foreground">
-                  {usage.expenses.current} / {usage.expenses.limit === Infinity ? "∞" : usage.expenses.limit}
+                  {usage.expenses.current} / {usage.expenses.limit === Infinity ? "unlimited" : usage.expenses.limit}
                 </span>
               </div>
               <Progress value={usage.expenses.percentage} />
@@ -264,7 +261,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
       {/* Pricing Plans */}
       <div className="grid gap-6 md:grid-cols-2">
         {plans.map((plan) => (
-          <Card key={plan.name} className={plan.popular ? "border-primary" : ""}>
+          <Card key={plan.name} className={plan.popular ? "app-card border-primary" : "app-card"}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -328,7 +325,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
                   {/* Show included badge for Free when on Pro */}
                   {plan.name === "Free" && usage.plan === "PRO" && (
                     <div className="text-center py-2 px-4 rounded-md bg-muted text-sm text-muted-foreground">
-                      ✓  You are already pro member
+                      You are already a Pro member
                     </div>
                   )}
 
@@ -354,7 +351,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
 
       {/* Test Mode Cards */}
       {billingEnabled && isTestMode() && (
-        <Card className="border-dashed border-2">
+        <Card className="app-card border-2 border-dashed">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />

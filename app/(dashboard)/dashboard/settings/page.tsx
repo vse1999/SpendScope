@@ -21,17 +21,29 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
     const user = session!.user!
     const params = await searchParams
 
-    // Get user's linked accounts
-    const accounts = await prisma.account.findMany({
-        where: { userId: user.id },
-        select: {
-            provider: true,
-            providerAccountId: true,
-            type: true,
-        },
-    })
+    const [accounts, userWithCompany] = await Promise.all([
+        prisma.account.findMany({
+            where: { userId: user.id },
+            select: {
+                provider: true,
+                providerAccountId: true,
+                type: true,
+            },
+        }),
+        prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+                company: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
+        }),
+    ])
 
     const linkedProviders = accounts.map(a => a.provider)
+    const companyName = userWithCompany?.company?.name ?? "No company assigned"
 
     // Handle different states
     const showLinkedSuccess = params.linked === "true"
@@ -42,7 +54,9 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+                <h1 className="app-page-title">
+                    <span className="app-page-title-gradient">Settings</span>
+                </h1>
                 <p className="text-muted-foreground">
                     Manage critical account and authentication settings.
                 </p>
@@ -70,7 +84,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
                 </Alert>
             )}
 
-            <Card>
+            <Card className="app-card">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <User className="h-5 w-5 text-primary" />
@@ -107,12 +121,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
                             <Building2 className="h-4 w-4" />
                             Company
                         </p>
-                        <p className="font-medium">{user.companyId ?? "No company assigned"}</p>
+                        <p className="font-medium">{companyName}</p>
                     </div>
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="app-card">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Shield className="h-5 w-5 text-primary" />
