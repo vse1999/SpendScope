@@ -27,7 +27,7 @@ export function MeshGradient({ className = "" }: MeshGradientProps) {
   return (
     <div className={`absolute inset-0 overflow-hidden ${className}`}>
       {/* Base gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
+      <div className="absolute inset-0 bg-linear-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
       
       {/* Gradient orbs - animated or static based on preference */}
       {useAnimatedOrbs ? (

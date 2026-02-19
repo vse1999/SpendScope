@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -30,24 +32,21 @@ export function TourSection({ tourSteps }: TourSectionProps) {
               "text-3xl font-semibold tracking-tight sm:text-4xl"
             )}
           >
-            Three-step{" "}
-            <span className="text-gradient">product tour</span>
+            Three-step <span className="text-gradient">operating flow</span>
           </h2>
           <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-            See the operating flow from input to insight.
+            Clear sequence from capture to control to review. Live visual proof is shown above for each workflow outcome.
           </p>
         </div>
       </TextReveal>
 
       <div className="relative">
-        {/* Timeline line */}
         <div className="absolute left-[19px] top-0 hidden h-full w-px bg-gradient-to-b from-indigo-500 via-violet-500 to-cyan-500 md:block" />
 
         <StaggerContainer className="space-y-6" staggerDelay={0.2} delayChildren={0.3}>
           {tourSteps.map((step, index) => (
             <StaggerItem key={step.title}>
               <div className="relative flex gap-6 md:items-start">
-                {/* Timeline dot */}
                 <motion.div
                   className="relative z-10 hidden shrink-0 md:block"
                   initial={{ scale: 0 }}
@@ -55,11 +54,8 @@ export function TourSection({ tourSteps }: TourSectionProps) {
                   viewport={{ once: true }}
                   transition={{ type: "spring", stiffness: 300, damping: 20, delay: index * 0.1 }}
                 >
-                  <div className="flex size-10 items-center justify-center rounded-full border-2 border-indigo-500 bg-background shadow-lg shadow-indigo-500/20"
-                  >
-                    <span className="text-sm font-semibold text-indigo-600">
-                      {index + 1}
-                    </span>
+                  <div className="flex size-10 items-center justify-center rounded-full border-2 border-indigo-500 bg-background shadow-lg shadow-indigo-500/20">
+                    <span className="text-sm font-semibold text-indigo-600">{index + 1}</span>
                   </div>
                 </motion.div>
 
@@ -79,12 +75,18 @@ export function TourSection({ tourSteps }: TourSectionProps) {
                         </Badge>
                         <CardTitle className="text-xl">{step.title}</CardTitle>
                       </div>
-                      <CardDescription className="text-base">
-                        {step.description}
-                      </CardDescription>
+                      <CardDescription className="text-base">{step.description}</CardDescription>
                     </CardHeader>
-                    <CardContent>
+
+                    <CardContent className="flex items-center justify-between gap-4">
                       <p className="text-sm text-muted-foreground">{step.detail}</p>
+                      <Link
+                        href="#product"
+                        className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
+                      >
+                        View proof
+                        <ArrowRight className="size-4" />
+                      </Link>
                     </CardContent>
                   </Card>
                 </SpotlightCard>
