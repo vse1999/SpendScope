@@ -19,6 +19,9 @@ export async function DashboardPageContent(): Promise<React.JSX.Element> {
   // Get companyId - user is guaranteed to have a company by layout guard
   const userCompanyResult = await getCachedUserCompany()
   const companyId = userCompanyResult.company!.id
+  const currentUserRole = userCompanyResult.hasCompany
+    ? userCompanyResult.userRole
+    : user.role
 
   // Fetch data - single efficient call replaces getExpensesByCompany + getExpenseStats
   const [dashboardResult, categoriesResult, budgetResult] = await Promise.all([
@@ -82,7 +85,7 @@ export async function DashboardPageContent(): Promise<React.JSX.Element> {
         monthlyChangePercent={data.monthlyChangePercent}
         budgetSummary={budgetSummary}
         budgetSettings={budgetSettings}
-        currentUserRole={user.role}
+        currentUserRole={currentUserRole}
       />
 
       <div className="grid gap-8 lg:grid-cols-3">
@@ -91,7 +94,7 @@ export async function DashboardPageContent(): Promise<React.JSX.Element> {
             expenses={data.recentExpenses}
             categories={categoryList}
             currentUserId={user.id}
-            currentUserRole={user.role}
+            currentUserRole={currentUserRole}
           />
         </div>
 

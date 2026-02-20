@@ -36,13 +36,18 @@ export default async function DashboardLayout({
     name: companyData.name,
   } : null
 
+  const userRole =
+    userCompanyResult.hasCompany && "userRole" in userCompanyResult
+      ? userCompanyResult.userRole
+      : UserRole.MEMBER
+
   // Build user object in the format expected by the sidebar
   const user = {
     id: session.user.id,
     name: session.user.name,
     email: session.user.email,
     image: session.user.image,
-    role: session.user.role || UserRole.MEMBER,
+    role: userRole,
     company,
   }
 

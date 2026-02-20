@@ -36,6 +36,9 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
   // Get companyId from database (not session, to handle stale JWT)
   const userCompanyResult = await getCachedUserCompany();
   const companyId = userCompanyResult.company!.id;
+  const isAdmin = userCompanyResult.hasCompany
+    ? userCompanyResult.userRole === "ADMIN"
+    : user.role === "ADMIN";
 
   // Parse search params
   const params = await searchParams;
@@ -91,7 +94,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
       initialSortConfig={sortConfig}
       currentUserId={user.id}
       companyId={companyId!}
-      isAdmin={user.role === "ADMIN"}
+      isAdmin={isAdmin}
       initialCopilotAlerts={copilotAlerts}
       initialPolicyConfig={policyConfig}
     />

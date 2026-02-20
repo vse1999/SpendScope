@@ -1,6 +1,7 @@
 import { AlertCircle } from "lucide-react"
 import { auth } from "@/auth"
 import { getAnalyticsData } from "@/app/actions/expenses"
+import { getCachedUserCompany } from "@/lib/queries/get-user-company"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AnalyticsClient } from "./analytics-client"
 
@@ -15,6 +16,8 @@ export async function AnalyticsPageContent({
   // session.user is guaranteed by (dashboard)/layout.tsx auth guard
   const session = await auth()
   const user = session!.user!
+  const userCompanyResult = await getCachedUserCompany()
+  const userRole = userCompanyResult.hasCompany ? userCompanyResult.userRole : user.role
 
   const days = Number(resolvedSearchParams?.days) || 90
   const result = await getAnalyticsData(days)
@@ -34,7 +37,7 @@ export async function AnalyticsPageContent({
   return (
     <AnalyticsClient
       initialData={result.data ?? null}
-      userRole={user.role}
+      userRole={userRole}
     />
   )
 }

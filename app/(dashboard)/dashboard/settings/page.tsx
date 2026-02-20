@@ -33,6 +33,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
         prisma.user.findUnique({
             where: { id: user.id },
             select: {
+                role: true,
                 company: {
                     select: {
                         name: true,
@@ -44,6 +45,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
 
     const linkedProviders = accounts.map(a => a.provider)
     const companyName = userWithCompany?.company?.name ?? "No company assigned"
+    const userRole = userWithCompany?.role ?? user.role
 
     // Handle different states
     const showLinkedSuccess = params.linked === "true"
@@ -114,7 +116,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
                             <Shield className="h-4 w-4" />
                             Access Role
                         </p>
-                        <p className="font-medium">{user.role}</p>
+                        <p className="font-medium">{userRole}</p>
                     </div>
                     <div className="space-y-1">
                         <p className="text-sm text-muted-foreground flex items-center gap-2">
