@@ -51,9 +51,3 @@ export interface RechartsBarClickEvent {
   count: number
 }
 
-// Recharts click event type for AreaChart
-export interface RechartsAreaClickEvent {
-  activePayload?: Array<{
-    payload: MonthlyTrend
-  }>
-}

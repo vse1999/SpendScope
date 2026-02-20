@@ -299,3 +299,23 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Keep analytics charts visually static (no focus outline box) */
+#analytics-container .recharts-wrapper:focus,
+#analytics-container .recharts-wrapper:focus-visible,
+#analytics-container .recharts-surface:focus,
+#analytics-container .recharts-surface:focus-visible,
+#analytics-container .recharts-layer:focus,
+#analytics-container .recharts-layer:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#analytics-container .recharts-wrapper *,
+#analytics-container .recharts-wrapper *:focus,
+#analytics-container .recharts-wrapper *:focus-visible,
+#analytics-container .recharts-wrapper *:active {
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: default !important;
+}

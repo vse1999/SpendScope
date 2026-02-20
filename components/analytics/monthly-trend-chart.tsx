@@ -1,55 +1,53 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import {
   AreaChart,
   Area,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
 } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
-import type { MonthlyTrend, RechartsAreaClickEvent } from "@/types/analytics"
+import type { MonthlyTrend } from "@/types/analytics"
 
 type TrendData = MonthlyTrend
 
 interface MonthlyTrendChartProps {
   data: TrendData[]
-  onMonthClick?: (monthKey: string) => void
 }
 
 const BRAND_INDIGO = "var(--brand-indigo)"
 
-function isRechartsAreaClickEvent(value: unknown): value is RechartsAreaClickEvent {
-  if (!value || typeof value !== "object") {
-    return false
-  }
-
-  const activePayload = (value as { activePayload?: unknown }).activePayload
-  if (!Array.isArray(activePayload) || activePayload.length === 0) {
-    return false
-  }
-
-  const firstEntry = activePayload[0]
-  if (!firstEntry || typeof firstEntry !== "object") {
-    return false
-  }
-
-  const payload = (firstEntry as { payload?: unknown }).payload
-  return Boolean(
-    payload &&
-      typeof payload === "object" &&
-      "monthKey" in payload &&
-      typeof (payload as { monthKey?: unknown }).monthKey === "string"
-  )
-}
-
-export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps) {
+export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
+  const chartContainerRef = useRef<HTMLDivElement | null>(null)
+  const [isChartReady, setIsChartReady] = useState(false)
 
   const totalAmount = data.reduce((sum, d) => sum + d.amount, 0)
   const averageAmount = data.length > 0 ? totalAmount / data.length : 0
+
+  useEffect(() => {
+    const container = chartContainerRef.current
+    if (!container) {
+      return
+    }
+
+    const updateReadiness = () => {
+      setIsChartReady(container.clientWidth > 0 && container.clientHeight > 0)
+    }
+
+    updateReadiness()
+
+    if (typeof ResizeObserver === "undefined") {
+      return
+    }
+
+    const observer = new ResizeObserver(() => updateReadiness())
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <Card className="app-card-strong">
@@ -60,76 +58,59 @@ export function MonthlyTrendChart({ data, onMonthClick }: MonthlyTrendChartProps
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-87.5 text-foreground">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={data}
-              onClick={(nextState) => {
-                if (!onMonthClick || !isRechartsAreaClickEvent(nextState)) {
-                  return
-                }
-
-                const monthKey = nextState.activePayload?.[0]?.payload?.monthKey
-                if (monthKey) {
-                  onMonthClick(monthKey)
-                }
-              }}
-            >
-              <defs>
-                <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={BRAND_INDIGO} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={BRAND_INDIGO} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
-              <XAxis
-                dataKey="month"
-                tick={{
-                  fontSize: 12,
-                  fill: 'currentColor',
-                  fontWeight: 500
-                }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{
-                  fontSize: 12,
-                  fill: 'currentColor',
-                  fontWeight: 500
-                }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => `$${value}`}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="bg-background/95 backdrop-blur-sm border rounded-xl p-3 shadow-xl">
-                        <p className="font-semibold text-sm text-foreground">{payload[0].payload.month}</p>
-                        <p className="text-primary font-bold text-lg mt-0.5">
-                          {formatCurrency(payload[0].value as number)}
-                        </p>
-                      </div>
-                    )
-                  }
-                  return null
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="amount"
-                stroke={BRAND_INDIGO}
-                strokeWidth={2.5}
-                fillOpacity={1}
-                fill="url(#colorAmount)"
-                cursor={onMonthClick ? "pointer" : "default"}
-                dot={false}
-                activeDot={{ r: 6, fill: BRAND_INDIGO, stroke: "#fff", strokeWidth: 2 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div
+          ref={chartContainerRef}
+          className="h-87.5 w-full min-w-0 select-none text-foreground pointer-events-none"
+        >
+          {isChartReady ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+              <AreaChart
+                data={data}
+                accessibilityLayer={false}
+                tabIndex={-1}
+                style={{ outline: "none", pointerEvents: "none" }}
+              >
+                <defs>
+                  <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={BRAND_INDIGO} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={BRAND_INDIGO} stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tick={{
+                    fontSize: 12,
+                    fill: 'currentColor',
+                    fontWeight: 500
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  tick={{
+                    fontSize: 12,
+                    fill: 'currentColor',
+                    fontWeight: 500
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `$${value}`}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="amount"
+                  stroke={BRAND_INDIGO}
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorAmount)"
+                  dot={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full w-full" aria-hidden="true" />
+          )}
         </div>
       </CardContent>
     </Card>

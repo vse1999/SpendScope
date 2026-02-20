@@ -46,14 +46,6 @@ export function AnalyticsClient({ initialData, userRole }: AnalyticsClientProps)
     router.push(`${pathname}?${createQueryString("days", newDays.toString())}`)
   }
 
-  const handleMonthClick = (monthKey: string) => {
-    router.push(`/dashboard?month=${monthKey}`)
-  }
-
-  const handleCategoryClick = (categoryName: string) => {
-    router.push(`/dashboard?category=${encodeURIComponent(categoryName)}`)
-  }
-
   const isAdmin = userRole === UserRole.ADMIN
 
   if (!data) {
@@ -109,22 +101,13 @@ export function AnalyticsClient({ initialData, userRole }: AnalyticsClientProps)
 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <MonthlyTrendChart
-          data={data.monthlyTrend}
-          onMonthClick={handleMonthClick}
-        />
-        <CategoryDistributionChart
-          data={data.categoryDistribution}
-          onCategoryClick={handleCategoryClick}
-        />
+        <MonthlyTrendChart data={data.monthlyTrend} />
+        <CategoryDistributionChart data={data.categoryDistribution} />
       </div>
 
       {/* User Spending - Full width for admin */}
       {isAdmin && (
-        <UserSpendingChart
-          data={data.userSpending}
-          onUserClick={(email) => router.push(`/dashboard?user=${encodeURIComponent(email)}`)}
-        />
+        <UserSpendingChart data={data.userSpending} />
       )}
     </div>
   )

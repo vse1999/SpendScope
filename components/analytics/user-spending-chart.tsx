@@ -3,12 +3,10 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
-import { cn } from "@/lib/utils"
 import type { UserSpending } from "@/types/analytics"
 
 interface UserSpendingChartProps {
   data: UserSpending[]
-  onUserClick?: (email: string) => void
 }
 
 interface ProcessedUserData extends UserSpending {
@@ -31,7 +29,7 @@ function truncateName(name: string, maxLength: number = 18): string {
   return name.slice(0, maxLength - 1) + "..."
 }
 
-export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps) {
+export function UserSpendingChart({ data }: UserSpendingChartProps) {
   // Process and sort data
   const { sortedData, totalAmount, maxAmount, hasData } = useMemo(() => {
     if (data.length === 0) {
@@ -116,11 +114,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
               return (
                 <div
                   key={user.email}
-                  className={cn(
-                    "group flex items-center gap-4 py-2",
-                    onUserClick && "cursor-pointer"
-                  )}
-                  onClick={() => onUserClick?.(user.email)}
+                  className="group flex items-center gap-4 py-2"
                 >
                   {/* Avatar with initials */}
                   <div className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
