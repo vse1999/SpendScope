@@ -9,6 +9,8 @@ interface AnalyticsPageContentProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
+const VALID_DAY_PRESETS = new Set([30, 90, 180, 365])
+
 export async function AnalyticsPageContent({
   searchParams,
 }: AnalyticsPageContentProps): Promise<React.JSX.Element> {
@@ -19,7 +21,8 @@ export async function AnalyticsPageContent({
   const userCompanyResult = await getCachedUserCompany()
   const userRole = userCompanyResult.hasCompany ? userCompanyResult.userRole : user.role
 
-  const days = Number(resolvedSearchParams?.days) || 90
+  const parsedDays = Number(resolvedSearchParams?.days)
+  const days = VALID_DAY_PRESETS.has(parsedDays) ? parsedDays : 90
   const result = await getAnalyticsData(days)
 
   if (result.error) {
@@ -37,6 +40,7 @@ export async function AnalyticsPageContent({
   return (
     <AnalyticsClient
       initialData={result.data ?? null}
+      initialDays={days}
       userRole={userRole}
     />
   )

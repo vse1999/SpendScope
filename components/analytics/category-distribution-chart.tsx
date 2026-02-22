@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
@@ -18,9 +17,6 @@ interface CategoryDistributionChartProps {
 export function CategoryDistributionChart({
   data
 }: CategoryDistributionChartProps) {
-  const chartContainerRef = useRef<HTMLDivElement | null>(null)
-  const [isChartReady, setIsChartReady] = useState(false)
-
   const total = data.reduce((sum, d) => sum + d.amount, 0)
 
   // Sort by amount and take top 6, group rest as "Other"
@@ -32,27 +28,6 @@ export function CategoryDistributionChart({
     ? [...topCategories, { name: "Other", color: "#94a3b8", amount: otherAmount }]
     : topCategories
 
-  useEffect(() => {
-    const container = chartContainerRef.current
-    if (!container) {
-      return
-    }
-
-    const updateReadiness = () => {
-      setIsChartReady(container.clientWidth > 0 && container.clientHeight > 0)
-    }
-
-    updateReadiness()
-
-    if (typeof ResizeObserver === "undefined") {
-      return
-    }
-
-    const observer = new ResizeObserver(() => updateReadiness())
-    observer.observe(container)
-    return () => observer.disconnect()
-  }, [])
-
   return (
     <Card className="app-card-strong">
       <CardHeader>
@@ -63,39 +38,34 @@ export function CategoryDistributionChart({
       </CardHeader>
       <CardContent>
         <div
-          ref={chartContainerRef}
           className="h-[280px] w-full min-w-0 select-none pointer-events-none"
         >
-          {isChartReady ? (
-            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-              <PieChart
-                accessibilityLayer={false}
-                tabIndex={-1}
-                style={{ outline: "none", pointerEvents: "none" }}
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+            <PieChart
+              accessibilityLayer={false}
+              tabIndex={-1}
+              style={{ outline: "none", pointerEvents: "none" }}
+            >
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                innerRadius={70}
+                outerRadius={110}
+                paddingAngle={3}
+                dataKey="amount"
+                rootTabIndex={-1}
               >
-                <Pie
-                  data={chartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={110}
-                  paddingAngle={3}
-                  dataKey="amount"
-                  rootTabIndex={-1}
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                      stroke="transparent"
-                    />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-full w-full" aria-hidden="true" />
-          )}
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
+                    stroke="transparent"
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
         </div>
 
         {/* Category list */}

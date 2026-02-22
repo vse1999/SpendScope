@@ -3,6 +3,9 @@
  */
 
 export interface MonthlyTrend {
+  label?: string
+  bucketKey?: string
+  bucketType?: "day" | "week" | "month"
   month: string
   amount: number
   monthKey: string
