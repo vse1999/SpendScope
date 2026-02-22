@@ -20,27 +20,35 @@ const PRESETS = [
 interface DateRangePickerProps {
   value: number
   onChange: (days: number) => void
+  disabled?: boolean
 }
 
-export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
+export function DateRangePicker({ value, onChange, disabled = false }: DateRangePickerProps) {
   const [open, setOpen] = useState(false)
   
   const selectedLabel = PRESETS.find(p => p.value === value)?.label || "Custom"
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" disabled={disabled}>
           <CalendarDays className="h-4 w-4" />
           {selectedLabel}
           <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent
+        align="end"
+        className="data-[state=open]:animate-none data-[state=closed]:animate-none"
+      >
         {PRESETS.map((preset) => (
           <DropdownMenuItem
             key={preset.value}
             onClick={() => {
+              if (disabled || preset.value === value) {
+                setOpen(false)
+                return
+              }
               onChange(preset.value)
               setOpen(false)
             }}

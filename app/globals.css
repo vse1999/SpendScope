@@ -119,6 +119,10 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    scrollbar-gutter: stable both-edges;
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -153,7 +157,7 @@
 /* Animation Utilities */
 @layer utilities {
   .app-shell {
-    @apply bg-linear-to-b from-indigo-50/55 via-background to-background dark:from-indigo-950/25 dark:via-background dark:to-background;
+    @apply bg-background;
   }
 
   .app-page-title {
