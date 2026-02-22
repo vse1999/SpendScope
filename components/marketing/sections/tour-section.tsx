@@ -1,8 +1,6 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -78,15 +76,8 @@ export function TourSection({ tourSteps }: TourSectionProps) {
                       <CardDescription className="text-base">{step.description}</CardDescription>
                     </CardHeader>
 
-                    <CardContent className="flex items-center justify-between gap-4">
+                    <CardContent>
                       <p className="text-sm text-muted-foreground">{step.detail}</p>
-                      <Link
-                        href="#product"
-                        className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200"
-                      >
-                        View proof
-                        <ArrowRight className="size-4" />
-                      </Link>
                     </CardContent>
                   </Card>
                 </SpotlightCard>
