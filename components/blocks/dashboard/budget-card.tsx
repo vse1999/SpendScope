@@ -101,7 +101,7 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
   }
 
   return (
-    <Card className="app-card-strong relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+    <Card className="app-card-strong relative overflow-hidden transition-shadow duration-200 hover:shadow-md group">
       <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
       <CardHeader className="relative flex flex-row items-center justify-between pb-2">
         <div>
@@ -221,7 +221,7 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
               <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn(
-                    "h-full rounded-full bg-linear-to-r transition-all duration-700 ease-out",
+                    "h-full rounded-full bg-linear-to-r transition-[width] duration-700 ease-out",
                     getUsageGradient(summary.usagePercent ?? 0)
                   )}
                   style={{ width: `${usagePercent}%` }}

@@ -58,7 +58,7 @@ export default async function DashboardLayout({
 
   return (
     <NotificationProvider>
-      <div className="min-h-screen app-shell">
+      <div id="dashboard-root" className="min-h-screen app-shell" suppressHydrationWarning>
         <DashboardSidebar user={user} defaultOpen={sidebarOpen}>
           <div className="flex flex-col min-h-screen w-full">
             {/* Header with breadcrumbs - Desktop only (mobile handled by sidebar) */}

@@ -48,7 +48,7 @@ export function CategoryBreakdown({ categories, totalExpenses }: CategoryBreakdo
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all duration-700 ease-out"
+                      className="h-full rounded-full transition-[width] duration-700 ease-out"
                       style={{
                         backgroundColor: category.color,
                         width: `${Math.min((category.amount / safeTotal) * 100, 100)}%`,

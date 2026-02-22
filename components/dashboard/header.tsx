@@ -324,7 +324,7 @@ function NotificationsButton(): React.JSX.Element {
   const [open, setOpen] = React.useState(false)
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -536,7 +536,7 @@ function UserMenu({ user }: { user: DashboardHeaderProps["user"] }): React.JSX.E
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -624,7 +624,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps): React.JSX.Eleme
   const breadcrumbs = generateBreadcrumbs(pathname)
 
   return (
-    <header className="sticky top-0 z-30 hidden h-14 items-center border-b border-border/40 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60 px-4 lg:flex lg:px-6">
+    <header className="sticky top-0 z-30 hidden h-14 items-center border-b border-border/40 bg-background px-4 lg:flex lg:px-6">
       {/* Left Section: Breadcrumbs */}
       <div className="flex flex-1 items-center gap-1 min-w-0">
         <nav

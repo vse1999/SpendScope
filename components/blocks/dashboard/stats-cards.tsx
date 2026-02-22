@@ -30,7 +30,7 @@ export function StatsCards({
   return (
     <div className="grid gap-5 md:grid-cols-3">
       {/* Total Expenses */}
-      <Card className="app-card-strong relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+      <Card className="app-card-strong relative overflow-hidden transition-shadow duration-200 hover:shadow-md group">
         <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
         <CardHeader className="relative flex flex-row items-center justify-between pb-2">
           <CardDescription className="text-sm font-semibold">Total Expenses</CardDescription>
@@ -49,7 +49,7 @@ export function StatsCards({
       </Card>
 
       {/* This Month */}
-      <Card className="app-card-strong relative overflow-hidden transition-all duration-200 hover:shadow-md group">
+      <Card className="app-card-strong relative overflow-hidden transition-shadow duration-200 hover:shadow-md group">
         <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
         <CardHeader className="relative flex flex-row items-center justify-between pb-2">
           <CardDescription className="text-sm font-semibold">This Month</CardDescription>

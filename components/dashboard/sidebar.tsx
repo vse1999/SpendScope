@@ -342,7 +342,7 @@ function UserMenu({
 
       <SidebarMenu>
         <SidebarMenuItem>
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
                 size="lg"
@@ -472,9 +472,9 @@ export function DashboardSidebar({
         </Sidebar>
 
         {/* Main Content Area */}
-        <SidebarInset className="flex-1 bg-transparent">
+        <SidebarInset className="flex-1 bg-background">
           {/* Mobile Header */}
-          <div className="flex h-16 items-center justify-between border-b border-border/70 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80 px-4 lg:hidden">
+          <div className="flex h-16 items-center justify-between border-b border-border/70 bg-background px-4 lg:hidden">
             <div className="flex items-center">
               <SidebarTrigger className="-ml-1" />
               <span className="ml-3 font-semibold">SpendScope</span>
