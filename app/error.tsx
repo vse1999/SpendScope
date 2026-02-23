@@ -22,7 +22,7 @@ export default function ErrorBoundary({ error, reset }: ErrorProps): React.React
   }, [error]);
 
   return (
-    <div className="min-h-[400px] app-shell flex items-center justify-center p-4">
+    <div className="min-h-100 app-shell flex items-center justify-center p-4">
       <div className="app-card-strong max-w-md w-full rounded-xl p-8 text-center">
         <h2 className="text-xl font-bold tracking-tight">
           Something went wrong
