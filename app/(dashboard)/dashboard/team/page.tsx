@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getTeamMembers, getPendingInvitations, getTeamRoleAuditLog } from "@/app/actions/team";
+import { isBillingEnabled } from "@/lib/stripe/config";
 import { TeamClient } from "./team-client";
 
 export default async function TeamPage(): Promise<React.JSX.Element> {
@@ -17,6 +18,7 @@ export default async function TeamPage(): Promise<React.JSX.Element> {
   const members = membersResult.success ? membersResult.members : [];
   const isAdmin = membersResult.success ? membersResult.isAdmin : false;
   const currentUserId = membersResult.success ? membersResult.currentUserId : "";
+  const billingEnabled = isBillingEnabled();
   
   const pendingInvitations = invitationsResult.success ? invitationsResult.invitations : [];
   const roleAuditEvents = roleAuditResult.success ? roleAuditResult.audits : [];
@@ -36,6 +38,7 @@ export default async function TeamPage(): Promise<React.JSX.Element> {
         members={members}
         pendingInvitations={pendingInvitations}
         isAdmin={isAdmin}
+        billingEnabled={billingEnabled}
         currentUserId={currentUserId}
         roleAuditEvents={roleAuditEvents}
       />

@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { getCachedUserCompany } from "@/lib/queries/get-user-company";
+import { isBillingEnabled } from "@/lib/stripe/config";
 import {
   getCategories,
   getExpenseCopilotAlerts,
@@ -39,6 +40,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
   const isAdmin = userCompanyResult.hasCompany
     ? userCompanyResult.userRole === "ADMIN"
     : user.role === "ADMIN";
+  const billingEnabled = isBillingEnabled();
 
   // Parse search params
   const params = await searchParams;
@@ -95,6 +97,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
       currentUserId={user.id}
       companyId={companyId!}
       isAdmin={isAdmin}
+      billingEnabled={billingEnabled}
       initialCopilotAlerts={copilotAlerts}
       initialPolicyConfig={policyConfig}
     />

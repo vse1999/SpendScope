@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { serializeExpense } from "@/lib/expenses/action-helpers";
 import { buildMonthlyTrend, normalizeAnalyticsDays } from "@/lib/analytics/monthly-trend";
+import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { getCurrentUserCompanyId } from "./expenses-shared";
 
 /**
@@ -221,6 +222,14 @@ export async function getAnalyticsData(days: number = 90) {
 
     if (!companyId) {
       return { error: "User not assigned to company" };
+    }
+
+    const analyticsAccess = await checkFeatureLimit(companyId, "analytics");
+    if (!analyticsAccess.allowed) {
+      return {
+        error: analyticsAccess.reason ?? "Advanced analytics is available on the Pro plan",
+        code: "FORBIDDEN_FEATURE" as const,
+      };
     }
 
     const normalizedDays = normalizeAnalyticsDays(days, 90);

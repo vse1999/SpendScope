@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  UpgradeToProDialog,
+  useUpgradeToProDialog,
+} from "@/components/entitlements";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -33,10 +37,17 @@ export function ExpensesClient({
   companyId,
   initialSortConfig,
   isAdmin,
+  billingEnabled,
   initialCopilotAlerts,
   initialPolicyConfig,
 }: ExpensesClientProps): React.JSX.Element {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
+  const {
+    open: isUpgradeDialogOpen,
+    context: upgradeDialogContext,
+    openUpgradeDialog,
+    onOpenChange: onUpgradeDialogOpenChange,
+  } = useUpgradeToProDialog();
 
   const {
     router,
@@ -84,6 +95,7 @@ export function ExpensesClient({
     filters,
     initialSortConfig,
     categories,
+    onUpgradeRequired: openUpgradeDialog,
   });
 
   const {
@@ -141,6 +153,7 @@ export function ExpensesClient({
               <ExpenseForm
                 userId={currentUserId}
                 companyId={companyId}
+                onUpgradeRequired={openUpgradeDialog}
                 onSuccess={() => {
                   setIsAddDialogOpen(false);
                   router.refresh();
@@ -260,6 +273,14 @@ export function ExpensesClient({
         onToggleSelect={toggleSelect}
         onSort={handleSort}
         onLoadMore={loadMore}
+      />
+
+      <UpgradeToProDialog
+        open={isUpgradeDialogOpen}
+        context={upgradeDialogContext}
+        isAdmin={isAdmin}
+        billingEnabled={billingEnabled}
+        onOpenChange={onUpgradeDialogOpenChange}
       />
     </div>
   );

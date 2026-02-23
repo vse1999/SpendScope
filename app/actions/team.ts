@@ -30,7 +30,13 @@ export type InviteTeamMemberResult =
   | {
       success: false;
       error: string;
-      code?: "UNAUTHORIZED" | "LIMIT_EXCEEDED" | "VALIDATION_ERROR" | "ALREADY_MEMBER" | "ALREADY_INVITED";
+      code?:
+        | "UNAUTHORIZED"
+        | "LIMIT_EXCEEDED"
+        | "FORBIDDEN_FEATURE"
+        | "VALIDATION_ERROR"
+        | "ALREADY_MEMBER"
+        | "ALREADY_INVITED";
     };
 
 export type RemoveTeamMemberResult =
@@ -59,6 +65,14 @@ type ServiceRoleUpdateErrorCode =
   | "ALREADY_SET"
   | "VALIDATION_ERROR";
 
+type InviteErrorCode =
+  | "UNAUTHORIZED"
+  | "LIMIT_EXCEEDED"
+  | "FORBIDDEN_FEATURE"
+  | "VALIDATION_ERROR"
+  | "ALREADY_MEMBER"
+  | "ALREADY_INVITED";
+
 function toRoleUpdateErrorCode(code: string): ServiceRoleUpdateErrorCode | undefined {
   switch (code) {
     case "UNAUTHORIZED":
@@ -67,6 +81,20 @@ function toRoleUpdateErrorCode(code: string): ServiceRoleUpdateErrorCode | undef
     case "LAST_ADMIN":
     case "ALREADY_SET":
     case "VALIDATION_ERROR":
+      return code;
+    default:
+      return undefined;
+  }
+}
+
+function toInviteErrorCode(code: string): InviteErrorCode | undefined {
+  switch (code) {
+    case "UNAUTHORIZED":
+    case "LIMIT_EXCEEDED":
+    case "FORBIDDEN_FEATURE":
+    case "VALIDATION_ERROR":
+    case "ALREADY_MEMBER":
+    case "ALREADY_INVITED":
       return code;
     default:
       return undefined;
@@ -168,7 +196,8 @@ export async function inviteTeamMember(formData: FormData): Promise<InviteTeamMe
 
     const result = await inviteUserToCompany(currentUserResult.user, { email, role });
     if (!result.ok) {
-      return { success: false, error: result.error };
+      const code = toInviteErrorCode(result.code);
+      return { success: false, error: result.error, ...(code ? { code } : {}) };
     }
 
     revalidatePath("/dashboard/team");

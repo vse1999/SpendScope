@@ -18,6 +18,7 @@ import {
   type SortConfig,
 } from "@/lib/expense-sorting";
 import { normalizeExpenseItem } from "./expenses-client-helpers";
+import type { UpgradeDialogContext } from "@/components/entitlements";
 import type {
   Category,
   Expense,
@@ -32,6 +33,7 @@ interface UseExpensesListStateArgs {
   filters: ExpensesClientProps["filters"];
   initialSortConfig: MultiSortConfig;
   categories: Category[];
+  onUpgradeRequired?: (context: UpgradeDialogContext) => void;
 }
 
 interface UseExpensesListStateResult {
@@ -108,6 +110,7 @@ export function useExpensesListState({
   filters,
   initialSortConfig,
   categories,
+  onUpgradeRequired,
 }: UseExpensesListStateArgs): UseExpensesListStateResult {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -323,6 +326,14 @@ export function useExpensesListState({
       });
 
       if ("error" in result) {
+        if (result.code === "FORBIDDEN_FEATURE") {
+          onUpgradeRequired?.({
+            feature: "csvExport",
+            source: "expenses_export",
+            reason: result.error,
+          });
+          return;
+        }
         toast.error(result.error);
         return;
       }

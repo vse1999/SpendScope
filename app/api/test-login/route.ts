@@ -108,6 +108,20 @@ async function ensureBaseData(): Promise<{
     },
   })
 
+  // Keep e2e paths deterministic: test company always has Pro features enabled.
+  await prisma.subscription.upsert({
+    where: { companyId: company.id },
+    update: {
+      plan: "PRO",
+      status: "ACTIVE",
+    },
+    create: {
+      companyId: company.id,
+      plan: "PRO",
+      status: "ACTIVE",
+    },
+  })
+
   const categorySeeds: Array<{ name: string; color: string }> = [
     { name: "Food", color: "#ef4444" },
     { name: "Travel", color: "#3b82f6" },

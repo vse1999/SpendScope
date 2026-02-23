@@ -11,7 +11,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const result = await getAnalyticsData(days)
   if ("error" in result) {
-    return NextResponse.json(result, { status: 400 })
+    const status = "code" in result && result.code === "FORBIDDEN_FEATURE" ? 403 : 400
+    return NextResponse.json(result, { status })
   }
 
   return NextResponse.json(result)

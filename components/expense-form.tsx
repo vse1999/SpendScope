@@ -41,11 +41,13 @@ import { toast } from "sonner";
 import { Plus, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import type { UpgradeDialogContext } from "@/components/entitlements";
 
 interface ExpenseFormProps {
   userId: string;
   companyId: string;
   onSuccess?: () => void;
+  onUpgradeRequired?: (context: UpgradeDialogContext) => void;
 }
 
 export default function ExpenseForm({
@@ -54,6 +56,7 @@ export default function ExpenseForm({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   companyId,
   onSuccess,
+  onUpgradeRequired,
 }: ExpenseFormProps) {
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
@@ -93,6 +96,14 @@ export default function ExpenseForm({
       setOpen(false);
       onSuccess?.();
     } else {
+      if (result.code === "LIMIT_EXCEEDED") {
+        onUpgradeRequired?.({
+          feature: "monthlyExpenses",
+          source: "expense_create",
+          reason: result.error,
+        });
+        return;
+      }
       toast.error(result.error);
     }
   }

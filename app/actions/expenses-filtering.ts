@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { buildMultiOrderBy, parseOffsetCursor, serializeExpense } from "@/lib/expenses/action-helpers";
+import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, getCurrentUserCompanyId } from "./expenses-shared";
 import type {
   ExpenseFilters,
@@ -178,13 +179,21 @@ export async function getExpensesSummary(filters: ExpenseFilters = {}): Promise<
  */
 export async function exportExpensesCSV(filters: ExportExpenseFilters): Promise<
   | { csvContent: string; filename: string }
-  | { error: string }
+  | { error: string; code?: "FORBIDDEN_FEATURE" }
 > {
   try {
     const companyId = await getCurrentUserCompanyId();
 
     if (!companyId) {
       return { error: "User not assigned to company" };
+    }
+
+    const exportAccess = await checkFeatureLimit(companyId, "export");
+    if (!exportAccess.allowed) {
+      return {
+        error: exportAccess.reason ?? "CSV export is available on the Pro plan",
+        code: "FORBIDDEN_FEATURE",
+      };
     }
 
     const whereClause = buildFilteredWhereClause(companyId, filters);
@@ -233,4 +242,3 @@ export async function exportExpensesCSV(filters: ExportExpenseFilters): Promise<
     };
   }
 }
-

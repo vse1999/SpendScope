@@ -1,9 +1,10 @@
 import { UserRole } from "@prisma/client";
-import { getTeamRoleAuditLog, updateTeamMemberRole } from "@/app/actions/team";
+import { getTeamRoleAuditLog, inviteTeamMember, updateTeamMemberRole } from "@/app/actions/team";
 import type { CurrentUserContext } from "@/lib/invitations/types";
 
 const mockAuth = jest.fn();
 const mockGetCurrentUserContext = jest.fn();
+const mockInviteUserToCompany = jest.fn();
 const mockUpdateCompanyMemberRole = jest.fn();
 const mockGetRecentTeamRoleAudits = jest.fn();
 
@@ -38,7 +39,7 @@ jest.mock("@/lib/invitations/service", () => ({
   getInvitationPreviewByToken: jest.fn(),
   getRecentTeamRoleAudits: (...args: unknown[]) => mockGetRecentTeamRoleAudits(...args),
   getTeamMembersForCompany: jest.fn(),
-  inviteUserToCompany: jest.fn(),
+  inviteUserToCompany: (...args: unknown[]) => mockInviteUserToCompany(...args),
   listPendingInvitations: jest.fn(),
   resendPendingInvitation: jest.fn(),
   updateCompanyMemberRole: (...args: unknown[]) => mockUpdateCompanyMemberRole(...args),
@@ -124,5 +125,28 @@ describe("team actions authz", () => {
       UserRole.ADMIN
     );
   });
-});
 
+  it("returns forbidden feature code when team invites are not available", async (): Promise<void> => {
+    mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
+    mockGetCurrentUserContext.mockResolvedValue(
+      createCurrentUserContext({ id: "admin-1", role: UserRole.ADMIN })
+    );
+    mockInviteUserToCompany.mockResolvedValue({
+      ok: false,
+      code: "FORBIDDEN_FEATURE",
+      error: "Team invites are available on the Pro plan.",
+    });
+
+    const formData = new FormData();
+    formData.set("email", "teammate@company.com");
+    formData.set("role", UserRole.MEMBER);
+
+    const result = await inviteTeamMember(formData);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.code).toBe("FORBIDDEN_FEATURE");
+      expect(result.error).toContain("Team invites");
+    }
+  });
+});
