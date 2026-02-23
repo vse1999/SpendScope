@@ -2,30 +2,28 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { displayFont } from "@/lib/fonts";
 import { TextReveal, StaggerContainer, StaggerItem } from "@/components/marketing/animations";
 import { SpotlightCard } from "@/components/marketing/animations";
-
-interface PricingPlan {
-  readonly name: "Free" | "Pro";
-  readonly description: string;
-  readonly price: string;
-  readonly period: string;
-  readonly isPopular?: boolean;
-  readonly badge?: string;
-  readonly features: readonly string[];
-  readonly cta?: string;
-}
+import {
+  getPricingBadgeClassName,
+  getPricingCardClassName,
+  getPricingFeatureIconClassName,
+  getPricingFeatureIconContainerClassName,
+  getPricingFeatureTextClassName,
+  getPricingPrimaryButtonClassName,
+} from "@/components/pricing/plan-card-styles";
+import type { PricingPlanPresentation } from "@/lib/marketing/pricing-plans";
 
 interface PricingSectionProps {
-  readonly plans: readonly PricingPlan[];
+  readonly plans: readonly PricingPlanPresentation[];
 }
 
-function PricingCard({ plan }: { readonly plan: PricingPlan }) {
+function PricingCard({ plan }: { readonly plan: PricingPlanPresentation }) {
   return (
     <StaggerItem>
       <SpotlightCard
@@ -36,12 +34,7 @@ function PricingCard({ plan }: { readonly plan: PricingPlan }) {
         <motion.div
           whileHover={{ y: -6 }}
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
-          className={cn(
-            "grid h-full grid-rows-[auto_auto_auto_1fr_auto] rounded-xl border p-6",
-            plan.isPopular
-              ? "border-indigo-500/40 bg-gradient-to-br from-indigo-950/30 via-slate-950 to-violet-950/30 shadow-xl shadow-indigo-500/10 dark:border-indigo-500/40 dark:from-indigo-950/30 dark:via-slate-950 dark:to-violet-950/30"
-              : "border-white/10 bg-card/50 dark:border-white/10 dark:bg-slate-950/50"
-          )}
+          className={cn("grid h-full grid-rows-[auto_auto_auto_1fr_auto] p-6", getPricingCardClassName(Boolean(plan.isPopular)))}
         >
           {/* Row 1: Title + Badge */}
           <div className="flex items-start justify-between">
@@ -72,12 +65,7 @@ function PricingCard({ plan }: { readonly plan: PricingPlan }) {
                   transition={{ duration: 2, repeat: Infinity }}
                 >
                   <Badge 
-                    className={cn(
-                      "text-xs",
-                      plan.isPopular 
-                        ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-0" 
-                        : "bg-muted text-muted-foreground"
-                    )}
+                    className={getPricingBadgeClassName(Boolean(plan.isPopular))}
                   >
                     {plan.badge}
                   </Badge>
@@ -102,17 +90,21 @@ function PricingCard({ plan }: { readonly plan: PricingPlan }) {
             <ul className="space-y-3">
               {plan.features.map((feature, featureIndex) => (
                 <motion.li
-                  key={feature}
+                  key={`${plan.name}-${feature.text}`}
                   className="flex items-start gap-3 text-sm"
                   initial={{ opacity: 0, x: -10 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: featureIndex * 0.1 }}
                 >
-                  <div className="flex size-4 shrink-0 items-center justify-center rounded-full bg-indigo-500/20">
-                    <Check className="size-2.5 text-indigo-400" />
+                  <div className={getPricingFeatureIconContainerClassName(feature.included)}>
+                    {feature.included ? (
+                      <Check className={getPricingFeatureIconClassName(true)} />
+                    ) : (
+                      <X className={getPricingFeatureIconClassName(false)} />
+                    )}
                   </div>
-                  <span className="text-foreground/90">{feature}</span>
+                  <span className={getPricingFeatureTextClassName(feature.included)}>{feature.text}</span>
                 </motion.li>
               ))}
             </ul>
@@ -122,17 +114,12 @@ function PricingCard({ plan }: { readonly plan: PricingPlan }) {
           <div className="mt-6">
             <Button
               asChild
-              className={cn(
-                "w-full transition-all duration-300",
-                plan.isPopular
-                  ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/40 hover:scale-[1.02]"
-                  : "border border-white/20 bg-transparent text-foreground hover:bg-white/5"
-              )}
+              className={getPricingPrimaryButtonClassName(Boolean(plan.isPopular))}
               variant={plan.isPopular ? "default" : "outline"}
               size="lg"
             >
               <Link href="/login?intent=signup">
-                {plan.cta ?? (plan.isPopular ? "Choose Pro" : "Start Free")}
+                {plan.cta}
               </Link>
             </Button>
           </div>

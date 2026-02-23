@@ -7,9 +7,18 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Check, X, AlertTriangle, Sparkles, Users, Receipt, BarChart3, Download, CreditCard, Loader2, RefreshCw } from "lucide-react"
+import { Check, X, AlertTriangle, Sparkles, CreditCard, Loader2, RefreshCw } from "lucide-react"
 import { getTestCardInfo, isTestMode } from "@/lib/stripe/test-cards"
 import { resetToFree, syncSubscriptionAfterCheckout } from "@/app/actions/billing"
+import { PRICING_PLANS } from "@/lib/marketing/pricing-plans"
+import {
+  getPricingBadgeClassName,
+  getPricingCardClassName,
+  getPricingFeatureIconClassName,
+  getPricingFeatureIconContainerClassName,
+  getPricingFeatureTextClassName,
+  getPricingPrimaryButtonClassName,
+} from "@/components/pricing/plan-card-styles"
 import { toast } from "sonner"
 
 interface UsageData {
@@ -109,37 +118,10 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
     setIsResetting(false)
   }
 
-  const plans = [
-    {
-      name: "Free",
-      description: "For small teams getting started",
-      price: "$0",
-      period: "forever",
-      current: usage.plan === "FREE",
-      features: [
-        { icon: Users, text: "Up to 3 team members", included: true },
-        { icon: Receipt, text: "100 expenses per month", included: true },
-        { icon: X, text: "Advanced analytics", included: false },
-        { icon: X, text: "CSV export", included: false },
-        { icon: X, text: "Team invites", included: false },
-      ],
-    },
-    {
-      name: "Pro",
-      description: "For growing companies",
-      price: "$29",
-      period: "per month",
-      current: usage.plan === "PRO",
-      popular: true,
-      features: [
-        { icon: Users, text: "Unlimited team members", included: true },
-        { icon: Receipt, text: "Unlimited expenses", included: true },
-        { icon: BarChart3, text: "Advanced analytics", included: true },
-        { icon: Download, text: "CSV export", included: true },
-        { icon: Users, text: "Team invitations", included: true },
-      ],
-    },
-  ]
+  const plans = PRICING_PLANS.map((plan) => ({
+    ...plan,
+    current: usage.plan === (plan.name === "Pro" ? "PRO" : "FREE"),
+  }))
 
   return (
     <div className="space-y-6 relative">
@@ -261,89 +243,103 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
       {/* Pricing Plans */}
       <div className="grid gap-6 md:grid-cols-2">
         {plans.map((plan) => (
-          <Card key={plan.name} className={plan.popular ? "app-card border-primary" : "app-card"}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    {plan.name}
-                    {plan.popular && (
-                      <Sparkles className="h-4 w-4 text-primary" />
+          <Card key={plan.name} className={getPricingCardClassName(Boolean(plan.isPopular))}>
+            <CardContent className="p-6">
+              <div className="grid h-full grid-rows-[auto_auto_auto_1fr_auto]">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-2xl font-semibold tracking-tight">{plan.name}</h3>
+                    {plan.isPopular && (
+                      <Sparkles className="size-5 text-indigo-400" />
                     )}
-                  </CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
+                  </div>
+
+                  <div className="flex h-6 items-center gap-2">
+                    <Badge className={getPricingBadgeClassName(Boolean(plan.isPopular))}>
+                      {plan.badge}
+                    </Badge>
+                    {plan.current && <Badge variant="outline">Current</Badge>}
+                  </div>
                 </div>
-                {plan.current && (
-                  <Badge variant="outline">Current</Badge>
-                )}
-              </div>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                <span className="text-muted-foreground">/{plan.period}</span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-3">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-3">
-                    <feature.icon className={`h-4 w-4 ${feature.included ? "text-primary" : "text-muted-foreground"}`} />
-                    <span className={feature.included ? "" : "text-muted-foreground line-through"}>
-                      {feature.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
 
-              {isAdmin && (
-                <>
-                  {/* Show upgrade button for Pro when on Free */}
-                  {plan.name === "Pro" && usage.plan === "FREE" && (
-                    <Button
-                      className="w-full"
-                      onClick={handleUpgrade}
-                      disabled={!billingEnabled || isUpgrading}
-                    >
-                      {isUpgrading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Redirecting...
-                        </>
-                      ) : (
-                        "Upgrade to Pro"
+                <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
+
+                <div className="mt-4">
+                  <span className="text-4xl font-bold tracking-tight">{plan.price}</span>
+                  <span className="ml-1 text-sm text-muted-foreground">/{plan.period}</span>
+                </div>
+
+                <div className="mt-6">
+                  <ul className="space-y-3">
+                    {plan.features.map((feature) => (
+                      <li key={`${plan.name}-${feature.text}`} className="flex items-start gap-3 text-sm">
+                        <div className={getPricingFeatureIconContainerClassName(feature.included)}>
+                          {feature.included ? (
+                            <Check className={getPricingFeatureIconClassName(true)} />
+                          ) : (
+                            <X className={getPricingFeatureIconClassName(false)} />
+                          )}
+                        </div>
+                        <span className={getPricingFeatureTextClassName(feature.included)}>{feature.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="mt-6">
+                  {isAdmin && (
+                    <>
+                      {/* Show upgrade button for Pro when on Free */}
+                      {plan.name === "Pro" && usage.plan === "FREE" && (
+                        <Button
+                          className={getPricingPrimaryButtonClassName(Boolean(plan.isPopular))}
+                          variant={plan.isPopular ? "default" : "outline"}
+                          onClick={handleUpgrade}
+                          disabled={!billingEnabled || isUpgrading}
+                        >
+                          {isUpgrading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Redirecting...
+                            </>
+                          ) : (
+                            "Upgrade to Pro"
+                          )}
+                        </Button>
                       )}
-                    </Button>
+
+                      {/* Show current plan badge when Pro */}
+                      {plan.name === "Pro" && usage.plan === "PRO" && (
+                        <Button variant="outline" className="w-full" disabled>
+                          <Check className="mr-2 h-4 w-4" />
+                          Current Plan
+                        </Button>
+                      )}
+
+                      {/* Show included badge for Free when on Pro */}
+                      {plan.name === "Free" && usage.plan === "PRO" && (
+                        <div className="rounded-md bg-muted px-4 py-2 text-center text-sm text-muted-foreground">
+                          You are already a Pro member
+                        </div>
+                      )}
+
+                      {/* Show current plan badge for Free when on Free */}
+                      {plan.name === "Free" && usage.plan === "FREE" && (
+                        <Button variant="outline" className="w-full" disabled>
+                          <Check className="mr-2 h-4 w-4" />
+                          Current Plan
+                        </Button>
+                      )}
+                    </>
                   )}
 
-                  {/* Show current plan badge when Pro */}
-                  {plan.name === "Pro" && usage.plan === "PRO" && (
-                    <Button variant="outline" className="w-full" disabled>
-                      <Check className="mr-2 h-4 w-4" />
-                      Current Plan
-                    </Button>
+                  {!isAdmin && (
+                    <p className="text-center text-sm text-muted-foreground">
+                      Only admins can manage billing
+                    </p>
                   )}
-
-                  {/* Show included badge for Free when on Pro */}
-                  {plan.name === "Free" && usage.plan === "PRO" && (
-                    <div className="text-center py-2 px-4 rounded-md bg-muted text-sm text-muted-foreground">
-                      You are already a Pro member
-                    </div>
-                  )}
-
-                  {/* Show current plan badge for Free when on Free */}
-                  {plan.name === "Free" && usage.plan === "FREE" && (
-                    <Button variant="outline" className="w-full" disabled>
-                      <Check className="mr-2 h-4 w-4" />
-                      Current Plan
-                    </Button>
-                  )}
-                </>
-              )}
-
-              {!isAdmin && (
-                <p className="text-sm text-muted-foreground text-center">
-                  Only admins can manage billing
-                </p>
-              )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         ))}

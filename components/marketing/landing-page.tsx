@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import {
   ArrowRight,
   Menu,
@@ -25,6 +24,7 @@ import {
   CTASection,
 } from "@/components/marketing/sections";
 import { MARKETING_ANALYTICS_DATA } from "@/lib/marketing/demo-data";
+import { PRICING_PLANS } from "@/lib/marketing/pricing-plans";
 
 // Data definitions - all serializable (no React components)
 const navigationItems = [
@@ -86,39 +86,6 @@ const tourSteps = [
   },
 ] as const;
 
-const plans = [
-  {
-    name: "Free" as const,
-    description: "Perfect for small teams getting started",
-    price: "$0",
-    period: "forever",
-    badge: "No card required",
-    features: [
-      "Up to 3 team members",
-      "100 expenses per month",
-      "Essential dashboard",
-      "Basic expense tools",
-    ],
-    cta: "Get Started Free",
-  },
-  {
-    name: "Pro" as const,
-    description: "For teams ready to scale their operations",
-    price: "$29",
-    period: "per month",
-    isPopular: true,
-    badge: "Most Popular",
-    features: [
-      "Unlimited team members",
-      "Unlimited expenses",
-      "Smart analytics & insights",
-      "Export & advanced reports",
-      "Priority support",
-    ],
-    cta: "Start Pro Trial",
-  },
-] as const;
-
 const faqItems = [
   {
     question: "Who is SpendScope for?",
@@ -142,25 +109,28 @@ const faqItems = [
   },
 ] as const;
 
+function BrandWordmark({ className }: { className?: string }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center font-bold tracking-tight",
+        "bg-gradient-to-r from-indigo-600 via-violet-500 to-cyan-500",
+        "bg-clip-text text-transparent",
+        "transition-all duration-300 hover:opacity-90",
+        className,
+      ].filter(Boolean).join(" ")}
+    >
+      SpendScope
+    </span>
+  );
+}
+
 function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-indigo-100/80 bg-background/80 backdrop-blur-md dark:border-indigo-900/40">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" className="inline-flex items-center gap-2">
-          <span className="inline-flex size-8 items-center justify-center rounded-md bg-linear-to-br from-indigo-600 to-violet-600 p-0.5"
-          >
-            <Image
-              src="/favicon.ico"
-              alt="SpendScope logo"
-              width={28}
-              height={28}
-              className="size-7 rounded-[6px]"
-              priority
-            />
-          </span>
-          <span className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-            SpendScope
-          </span>
+        <Link href="/" className="inline-flex items-center">
+          <BrandWordmark className="text-[1.65rem] sm:text-[1.85rem]" />
         </Link>
 
         {/* Desktop Navigation */}
@@ -256,18 +226,7 @@ function Footer() {
   return (
     <footer className="border-t border-border/70 bg-slate-50/50 py-8 dark:bg-slate-950/50">
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-center gap-4 px-4 text-sm text-muted-foreground sm:px-6">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex size-6 items-center justify-center rounded-md bg-linear-to-br from-indigo-600 to-violet-600 p-px">
-            <Image
-              src="/favicon.ico"
-              alt="SpendScope"
-              width={20}
-              height={20}
-              className="size-5 rounded-lg"
-            />
-          </span>
-          <span className="font-medium">{currentYear} SpendScope</span>
-        </div>
+        <p className="text-xs font-medium">(c) {currentYear} SpendScope</p>
         <p className="text-xs">Built with modern technology for modern finance teams.</p>
       </div>
     </footer>
@@ -291,7 +250,7 @@ export function LandingPage() {
         <TechStackSection technologies={technologies} />
         <FeaturesSection analyticsData={MARKETING_ANALYTICS_DATA} />
         <TourSection tourSteps={tourSteps} />
-        <PricingSection plans={plans} />
+        <PricingSection plans={PRICING_PLANS} />
         <FAQSection faqItems={faqItems} />
         <CTASection />
       </main>

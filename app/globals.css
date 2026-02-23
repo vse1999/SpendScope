@@ -218,7 +218,34 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  
+
+  .marketing-wordmark {
+    @apply inline-flex items-center font-bold leading-none tracking-tight antialiased;
+    letter-spacing: -0.025em;
+    font-feature-settings: "ss01" on, "ss02" on;
+  }
+
+  .marketing-wordmark-gradient {
+    background: linear-gradient(
+      135deg,
+      #6366f1 0%,
+      #8b5cf6 25%,
+      #06b6d4 50%,
+      #8b5cf6 75%,
+      #6366f1 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: all 0.3s ease;
+  }
+
+  .group:hover .marketing-wordmark-gradient {
+    background-position: right center;
+    filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.4));
+  }
+
   .bg-gradient-brand {
     background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
   }
