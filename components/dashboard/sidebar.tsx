@@ -9,9 +9,7 @@ import {
   BarChart3,
   Settings,
   CreditCard,
-  Building2,
   LogOut,
-  Wallet,
   Sparkles,
   Users,
 } from "lucide-react"
@@ -22,8 +20,6 @@ import { UserRole } from "@prisma/client"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import {
   Sidebar,
@@ -81,20 +77,6 @@ interface DashboardSidebarProps {
   defaultOpen?: boolean
 }
 
-interface MobileSidebarProps {
-  user: {
-    id: string
-    name?: string | null
-    email?: string | null
-    image?: string | null
-    role: string
-    company?: {
-      id: string
-      name: string
-    } | null
-  }
-}
-
 // =============================================================================
 // Navigation Configuration
 // =============================================================================
@@ -142,6 +124,30 @@ const secondaryNavigation: NavItem[] = [
   },
 ]
 
+function isAdminRole(userRole: string): boolean {
+  return userRole === UserRole.ADMIN
+}
+
+function isRouteActive(pathname: string, href: string): boolean {
+  if (href === "/dashboard") {
+    return pathname === "/dashboard"
+  }
+
+  return pathname.startsWith(href)
+}
+
+function filterNavigationByRole(items: NavItem[], userRole: string): NavItem[] {
+  const isAdmin = isAdminRole(userRole)
+
+  return items.filter((item) => {
+    if (item.adminOnly && !isAdmin) {
+      return false
+    }
+
+    return true
+  })
+}
+
 // =============================================================================
 // Logo Component
 // =============================================================================
@@ -152,11 +158,9 @@ function SidebarLogo() {
   return (
     <Link
       href="/dashboard"
-      className="flex items-center gap-2 px-2 transition-opacity hover:opacity-80"
+      className="flex items-center px-2 transition-opacity hover:opacity-80"
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white shrink-0">
-        <Wallet className="h-5 w-5" />
-      </div>
+
       <span
         className={cn(
           "text-lg font-semibold tracking-tight transition-opacity duration-200",
@@ -222,21 +226,8 @@ function NavItemButton({
 
 function NavigationGroups({ userRole }: { userRole: string }) {
   const pathname = usePathname()
-  const isAdmin = userRole === UserRole.ADMIN
-
-  const isActive = (href: string) => {
-    if (href === "/dashboard") {
-      return pathname === "/dashboard"
-    }
-    return pathname.startsWith(href)
-  }
-
-  const filteredNavigation = navigationItems.filter((item) => {
-    if (item.adminOnly && !isAdmin) {
-      return false
-    }
-    return true
-  })
+  const filteredNavigation = filterNavigationByRole(navigationItems, userRole)
+  const filteredSecondaryNavigation = filterNavigationByRole(secondaryNavigation, userRole)
 
   return (
     <SidebarContent className="gap-0 overflow-x-hidden">
@@ -249,7 +240,7 @@ function NavigationGroups({ userRole }: { userRole: string }) {
               <NavItemButton
                 key={item.href}
                 item={item}
-                isActive={isActive(item.href)}
+                isActive={isRouteActive(pathname, item.href)}
               />
             ))}
           </SidebarMenu>
@@ -263,11 +254,11 @@ function NavigationGroups({ userRole }: { userRole: string }) {
         <SidebarGroupLabel className="text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 px-3">Management</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {secondaryNavigation.map((item) => (
+            {filteredSecondaryNavigation.map((item) => (
               <NavItemButton
                 key={item.href}
                 item={item}
-                isActive={isActive(item.href)}
+                isActive={isRouteActive(pathname, item.href)}
               />
             ))}
           </SidebarMenu>
@@ -485,176 +476,6 @@ export function DashboardSidebar({
         </SidebarInset>
       </div>
     </SidebarProvider>
-  )
-}
-
-// =============================================================================
-// Mobile Sidebar Component
-// =============================================================================
-
-export function MobileSidebar({ user }: MobileSidebarProps) {
-  const company = user.company
-  const pathname = usePathname()
-  const { setOpenMobile } = useSidebar()
-  const isAdmin = user.role === UserRole.ADMIN
-
-  const isActive = (href: string) => {
-    if (href === "/dashboard") {
-      return pathname === "/dashboard"
-    }
-    return pathname.startsWith(href)
-  }
-
-  const filteredNavigation = navigationItems.filter((item) => {
-    if (item.adminOnly && !isAdmin) {
-      return false
-    }
-    return true
-  })
-
-  const initials = user.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "U"
-
-  const handleSignOut = () => {
-    signOut({ callbackUrl: "/" })
-  }
-
-  return (
-    <div className="flex h-full flex-col bg-sidebar">
-      {/* Header */}
-      <div className="flex h-16 items-center border-b border-sidebar-border px-4">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-2"
-          onClick={() => setOpenMobile(false)}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-brand text-white">
-            <Wallet className="h-5 w-5" />
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
-            SpendScope
-          </span>
-        </Link>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex-1 overflow-auto py-4">
-        <div className="px-3">
-          <p className="mb-2 px-3 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
-            Platform
-          </p>
-          <div className="space-y-1">
-            {filteredNavigation.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpenMobile(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className="flex-1">{item.title}</span>
-                  {item.proOnly && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-linear-to-r from-amber-500/20 to-orange-500/20 text-amber-600 border-0 text-[10px] font-medium"
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      PRO
-                    </Badge>
-                  )}
-                  {item.badge && (
-                    <Badge variant="secondary" className="text-[10px] font-medium">
-                      {item.badge}
-                    </Badge>
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-
-        <Separator className="my-4 bg-sidebar-border" />
-
-        <div className="px-3">
-          <p className="mb-2 px-3 text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider">
-            Management
-          </p>
-          <div className="space-y-1">
-            {secondaryNavigation.map((item) => {
-              const Icon = item.icon
-              const active = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpenMobile(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  )}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span>{item.title}</span>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="border-t border-sidebar-border p-4">
-        {company && (
-          <div className="mb-3 flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/50 px-3 py-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/10 text-primary">
-              <Building2 className="h-3 w-3" />
-            </div>
-            <span className="text-xs font-medium text-sidebar-foreground/70 truncate">
-              {company.name}
-            </span>
-          </div>
-        )}
-
-        <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9 rounded-lg">
-            <AvatarImage src={user.image || undefined} alt={user.name || "User"} className="rounded-lg" />
-            <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs font-medium">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {user.name}
-            </p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">
-              {user.email}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-            className="shrink-0 text-sidebar-foreground/70 hover:text-sidebar-foreground"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </div>
   )
 }
 
