@@ -1,6 +1,7 @@
 "use client"
 
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
+import { PieChart, Pie, Cell } from "recharts"
+import { StableResponsiveContainer } from "@/components/analytics/stable-responsive-container"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
 
@@ -40,7 +41,7 @@ export function CategoryDistributionChart({
         <div
           className="h-[280px] w-full min-w-0 select-none pointer-events-none"
         >
-          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+          <StableResponsiveContainer>
             <PieChart
               accessibilityLayer={false}
               tabIndex={-1}
@@ -65,7 +66,7 @@ export function CategoryDistributionChart({
                 ))}
               </Pie>
             </PieChart>
-          </ResponsiveContainer>
+          </StableResponsiveContainer>
         </div>
 
         {/* Category list */}

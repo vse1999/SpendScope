@@ -5,10 +5,10 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  ResponsiveContainer,
   XAxis,
   YAxis,
 } from "recharts"
+import { StableResponsiveContainer } from "@/components/analytics/stable-responsive-container"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
 import type { MonthlyTrend } from "@/types/analytics"
@@ -106,7 +106,7 @@ const MonthlyTrendChartComponent = ({
       </CardHeader>
       <CardContent>
         <div className="relative h-87.5 w-full min-w-0 select-none text-foreground pointer-events-none">
-          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+          <StableResponsiveContainer>
             <AreaChart
               data={data}
               accessibilityLayer={false}
@@ -164,7 +164,7 @@ const MonthlyTrendChartComponent = ({
                 animationBegin={0}
               />
             </AreaChart>
-          </ResponsiveContainer>
+          </StableResponsiveContainer>
         </div>
       </CardContent>
     </Card>
