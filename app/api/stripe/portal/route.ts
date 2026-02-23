@@ -6,6 +6,26 @@ import { createApiRouteContext, logApiError, logApiInfo, withRequestIdHeader } f
 
 const PORTAL_ROUTE = "/api/stripe/portal";
 
+function isMissingCustomerError(error: unknown): boolean {
+  if (!(error && typeof error === "object")) {
+    return false;
+  }
+
+  const maybeStripeError = error as {
+    message?: string;
+    code?: string;
+    param?: string;
+  };
+
+  const hasMissingCustomerMessage =
+    typeof maybeStripeError.message === "string" &&
+    maybeStripeError.message.includes("No such customer");
+  const hasMissingCustomerCode =
+    maybeStripeError.code === "resource_missing" && maybeStripeError.param === "customer";
+
+  return hasMissingCustomerMessage || hasMissingCustomerCode;
+}
+
 export async function POST(request: Request): Promise<Response> {
   const routeContext = createApiRouteContext(request, PORTAL_ROUTE);
 
@@ -49,11 +69,32 @@ export async function POST(request: Request): Promise<Response> {
       ), routeContext)
     }
 
-    // Create customer portal session
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: user.company.subscription.stripeCustomerId,
-      return_url: `${process.env.NEXTAUTH_URL}/dashboard/billing`,
-    })
+    let portalSession: { url: string }
+    try {
+      portalSession = await stripe.billingPortal.sessions.create({
+        customer: user.company.subscription.stripeCustomerId,
+        return_url: `${process.env.NEXTAUTH_URL}/dashboard/billing`,
+      })
+    } catch (error) {
+      if (!isMissingCustomerError(error)) {
+        throw error;
+      }
+
+      await prisma.subscription.update({
+        where: { companyId: user.company.id },
+        data: { stripeCustomerId: null },
+      });
+
+      logApiInfo("Stripe customer missing, cleared stale billing customer mapping", routeContext, {
+        companyId: user.company.id,
+        userId: session.user.id,
+      });
+
+      return withRequestIdHeader(NextResponse.json(
+        { error: "Billing customer record was reset. Please start checkout again." },
+        { status: 409 }
+      ), routeContext);
+    }
 
     logApiInfo("Created Stripe billing portal session", routeContext, {
       companyId: user.company.id,

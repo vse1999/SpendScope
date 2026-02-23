@@ -36,10 +36,12 @@ export const FEATURE_LIMITS = {
   },
 } as const;
 
+export type SubscriptionPlanKey = keyof typeof FEATURE_LIMITS;
+
 /**
  * Type for plan limits derived from FEATURE_LIMITS
  */
-export type PlanLimits = typeof FEATURE_LIMITS[keyof typeof FEATURE_LIMITS];
+export type PlanLimits = typeof FEATURE_LIMITS[SubscriptionPlanKey];
 
 /**
  * Type for feature flags within a plan

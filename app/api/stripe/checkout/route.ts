@@ -6,6 +6,26 @@ import { createApiRouteContext, logApiError, logApiInfo, withRequestIdHeader } f
 
 const CHECKOUT_ROUTE = "/api/stripe/checkout";
 
+function isMissingCustomerError(error: unknown): boolean {
+  if (!(error && typeof error === "object")) {
+    return false;
+  }
+
+  const maybeStripeError = error as {
+    message?: string;
+    code?: string;
+    param?: string;
+  };
+
+  const hasMissingCustomerMessage =
+    typeof maybeStripeError.message === "string" &&
+    maybeStripeError.message.includes("No such customer");
+  const hasMissingCustomerCode =
+    maybeStripeError.code === "resource_missing" && maybeStripeError.param === "customer";
+
+  return hasMissingCustomerMessage || hasMissingCustomerCode;
+}
+
 export async function POST(request: Request): Promise<Response> {
   const routeContext = createApiRouteContext(request, CHECKOUT_ROUTE);
 
@@ -39,6 +59,7 @@ export async function POST(request: Request): Promise<Response> {
         { status: 400 }
       ), routeContext)
     }
+    const company = user.company
 
     // Check if user is admin
     if (user.role !== "ADMIN") {
@@ -50,7 +71,7 @@ export async function POST(request: Request): Promise<Response> {
 
     // Get or create Stripe customer
     const subscription = await prisma.subscription.findUnique({
-      where: { companyId: user.company.id },
+      where: { companyId: company.id },
     })
 
     if (subscription?.stripeSubId && subscription.status !== "CANCELED") {
@@ -60,56 +81,81 @@ export async function POST(request: Request): Promise<Response> {
       ), routeContext)
     }
 
-    let customerId = subscription?.stripeCustomerId
-
-    if (!customerId) {
-      // Create new Stripe customer
+    const createCustomer = async (): Promise<string> => {
       const customer = await stripe.customers.create({
         email: session.user.email || undefined,
-        name: user.company.name,
+        name: company.name,
         metadata: {
-          companyId: user.company.id,
+          companyId: company.id,
           userId: session.user.id,
         },
       })
-      customerId = customer.id
 
-      // Update subscription record
-      await prisma.subscription.update({
-        where: { companyId: user.company.id },
-        data: { stripeCustomerId: customerId },
+      await prisma.subscription.upsert({
+        where: { companyId: company.id },
+        update: { stripeCustomerId: customer.id },
+        create: {
+          companyId: company.id,
+          stripeCustomerId: customer.id,
+        },
+      })
+
+      return customer.id
+    }
+
+    const createCheckoutSession = async (customerId: string): Promise<{ url: string | null }> => {
+      return stripe.checkout.sessions.create({
+        customer: customerId,
+        line_items: [
+          {
+            price: PRICE_IDS.PRO_MONTHLY,
+            quantity: 1,
+          },
+        ],
+        mode: "subscription",
+        success_url: `${process.env.NEXTAUTH_URL}/dashboard/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXTAUTH_URL}/dashboard/billing?canceled=true`,
+        subscription_data: {
+          // Optional: Add trial period for testing
+          // trial_period_days: 14,
+          metadata: {
+            companyId: company.id,
+          },
+        },
+        // Collect tax ID if needed
+        // tax_id_collection: {enabled: true},
+        // Allow promotion codes for testing discounts
+        allow_promotion_codes: true,
+        // Billing address collection (optional)
+        billing_address_collection: "auto",
       })
     }
 
-    // Create checkout session with test-friendly settings
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: [
-        {
-          price: PRICE_IDS.PRO_MONTHLY,
-          quantity: 1,
-        },
-      ],
-      mode: "subscription",
-      success_url: `${process.env.NEXTAUTH_URL}/dashboard/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXTAUTH_URL}/dashboard/billing?canceled=true`,
-      subscription_data: {
-        // Optional: Add trial period for testing
-        // trial_period_days: 14,
-        metadata: {
-          companyId: user.company.id,
-        },
-      },
-      // Collect tax ID if needed
-      // tax_id_collection: {enabled: true},
-      // Allow promotion codes for testing discounts
-      allow_promotion_codes: true,
-      // Billing address collection (optional)
-      billing_address_collection: "auto",
-    })
+    let customerId = subscription?.stripeCustomerId
+    if (!customerId) {
+      customerId = await createCustomer()
+    }
+
+    let checkoutSession: { url: string | null }
+    try {
+      checkoutSession = await createCheckoutSession(customerId)
+    } catch (error) {
+      if (!isMissingCustomerError(error)) {
+        throw error
+      }
+
+      logApiInfo("Stripe customer missing, recreating customer and retrying checkout", routeContext, {
+        companyId: company.id,
+        userId: session.user.id,
+        staleCustomerId: customerId,
+      })
+
+      customerId = await createCustomer()
+      checkoutSession = await createCheckoutSession(customerId)
+    }
 
     logApiInfo("Created Stripe checkout session", routeContext, {
-      companyId: user.company.id,
+      companyId: company.id,
       userId: session.user.id,
     });
     return withRequestIdHeader(NextResponse.json({ url: checkoutSession.url }), routeContext)

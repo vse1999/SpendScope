@@ -1,4 +1,5 @@
 import Stripe from "stripe"
+import { FEATURE_LIMITS } from "@/lib/subscription/config"
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || ""
 const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
@@ -57,30 +58,10 @@ export const PRICE_IDS = {
   PRO_MONTHLY: process.env.STRIPE_PRO_MONTHLY_PRICE_ID || "price_test_pro",
 } as const
 
-// Feature limits per plan
+// Single source of truth for plan limits/features (shared with feature-gate service)
 export const PLAN_LIMITS = {
-  FREE: {
-    name: "Free",
-    maxUsers: 3,
-    maxMonthlyExpenses: 100,
-    features: {
-      analytics: false,
-      export: false,
-      teamInvites: false,
-      unlimitedExpenses: false,
-    },
-  },
-  PRO: {
-    name: "Pro",
-    maxUsers: Infinity,
-    maxMonthlyExpenses: Infinity,
-    features: {
-      analytics: true,
-      export: true,
-      teamInvites: true,
-      unlimitedExpenses: true,
-    },
-  },
+  FREE: FEATURE_LIMITS.FREE,
+  PRO: FEATURE_LIMITS.PRO,
 } as const
 
 // Helper to check if billing is enabled
