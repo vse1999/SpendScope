@@ -1,5 +1,6 @@
 import { UserRole } from "@prisma/client";
 import { createCompany } from "@/app/actions/companies";
+import { getNumericLimits } from "@/lib/subscription/config";
 
 const mockAuth = jest.fn();
 const mockCheckRateLimit = jest.fn();
@@ -114,6 +115,50 @@ describe("createCompany", () => {
         companyId: "company-1",
         role: UserRole.ADMIN,
       },
+    });
+  });
+
+  it("initializes company usage limits from canonical FREE plan config", async (): Promise<void> => {
+    mockAuth.mockResolvedValue({
+      user: {
+        id: "user-1",
+      },
+    });
+
+    mockCheckRateLimit.mockResolvedValue({ allowed: true });
+    mockCompanyFindUnique.mockResolvedValue(null);
+
+    const createdCompany = {
+      id: "company-1",
+      name: "Acme Inc",
+      slug: "acme-inc",
+    };
+
+    mockTx.company.create.mockResolvedValue(createdCompany);
+    mockTx.category.createMany.mockResolvedValue({ count: 5 });
+    mockTx.subscription.create.mockResolvedValue({ id: "sub-1" });
+    mockTx.companyUsage.create.mockResolvedValue({ id: "usage-1" });
+    mockTx.user.update.mockResolvedValue({
+      id: "user-1",
+      companyId: "company-1",
+      role: UserRole.ADMIN,
+    });
+
+    const formData = new FormData();
+    formData.set("name", "Acme Inc");
+    formData.set("slug", "acme-inc");
+
+    await createCompany(formData);
+
+    const freePlanLimits = getNumericLimits("FREE");
+
+    expect(mockTx.companyUsage.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        companyId: "company-1",
+        maxExpenses: freePlanLimits.maxMonthlyExpenses,
+        maxUsers: freePlanLimits.maxUsers,
+        maxCategories: freePlanLimits.maxCategories,
+      }),
     });
   });
 });

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
+import { getNumericLimits } from "@/lib/subscription/config";
 import { FeatureGateError } from "@/lib/errors";
 import { InvitationStatus, SubscriptionPlan, UserRole } from "@prisma/client";
 import { createNotification } from "@/app/actions/notifications";
@@ -76,6 +77,10 @@ type JoinCompanyResult =
         | "INVITATION_REQUIRED"
         | "ALREADY_IN_ANOTHER_COMPANY";
     };
+
+function formatPlanLimit(limit: number): string {
+  return Number.isFinite(limit) ? String(limit) : "unlimited";
+}
 
 /**
  * Create a new company and assign the current user as admin
@@ -158,15 +163,16 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
       // Create CompanyUsage record with default limits
       const now = new Date();
       const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+      const freePlanLimits = getNumericLimits(SubscriptionPlan.FREE);
 
       await tx.companyUsage.create({
         data: {
           companyId: company.id,
           currentMonth,
           monthlyExpenses: 0,
-          maxExpenses: 100,
-          maxUsers: 3,
-          maxCategories: 5,
+          maxExpenses: freePlanLimits.maxMonthlyExpenses,
+          maxUsers: freePlanLimits.maxUsers,
+          maxCategories: freePlanLimits.maxCategories,
           version: 0,
         },
       });
@@ -281,12 +287,12 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
 
     // Check user limit before allowing join
     const plan = company.subscription?.plan ?? SubscriptionPlan.FREE;
-    const maxUsersForPlan = plan === SubscriptionPlan.PRO ? Infinity : 3;
+    const maxUsersForPlan = getNumericLimits(plan).maxUsers;
 
     if (company._count.users >= maxUsersForPlan) {
       return {
         success: false,
-        error: `This company has reached the maximum user limit (${maxUsersForPlan}). Upgrade to Pro for unlimited users.`,
+        error: `This company has reached the maximum user limit (${formatPlanLimit(maxUsersForPlan)}). Upgrade to Pro for unlimited users.`,
         code: "LIMIT_EXCEEDED",
       };
     }
@@ -431,34 +437,3 @@ export async function getUserCompany() {
   }
 }
 
-/**
- * Leave current company
- */
-export async function leaveCompany() {
-  try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return { error: "Not authenticated" };
-    }
-
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        companyId: null,
-        // Prevent role carry-over into a future company.
-        role: UserRole.MEMBER,
-      },
-    });
-
-    revalidatePath("/dashboard");
-    revalidatePath("/onboarding");
-
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to leave company:", error);
-    return {
-      error: error instanceof Error ? error.message : "Failed to leave company",
-    };
-  }
-}
