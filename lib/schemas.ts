@@ -142,18 +142,3 @@ export type ExpenseFormInput = z.infer<typeof expenseFormSchema>;
  */
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 
-/**
- * Type for updating an existing expense
- * All fields optional except id
- */
-export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
-
-/**
- * Type for category input
- */
-export type CategoryInput = z.infer<typeof categorySchema>;
-
-/**
- * Type for updating a category
- */
-export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;

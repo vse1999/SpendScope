@@ -1,20 +1,6 @@
 import { decodeCursor } from "@/lib/pagination/cursor-pagination";
 import type { MultiSortConfig } from "@/lib/expense-sorting";
 
-export interface ExpenseWithRelations {
-  id: string;
-  amount: { toString(): string };
-  description: string;
-  date: Date;
-  categoryId: string;
-  userId: string;
-  companyId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  category?: { name: string; color: string };
-  user?: { name: string | null; email: string | null };
-}
-
 export function serializeExpense<T extends { amount: { toString(): string } }>(
   expense: T
 ): Omit<T, "amount"> & { amount: string } {

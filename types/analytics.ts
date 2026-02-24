@@ -39,18 +39,3 @@ export interface AnalyticsData {
   summary: AnalyticsSummary
 }
 
-// Recharts tooltip payload type
-export interface RechartsTooltipPayload<T> {
-  payload: T
-  value: number
-  name: string
-}
-
-// Recharts click event type for BarChart
-export interface RechartsBarClickEvent {
-  name: string
-  email: string
-  amount: number
-  count: number
-}
-
