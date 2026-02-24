@@ -33,8 +33,6 @@ export function ExpensesClient({
   categories,
   summary,
   filters,
-  currentUserId,
-  companyId,
   initialSortConfig,
   isAdmin,
   billingEnabled,
@@ -151,8 +149,6 @@ export function ExpensesClient({
                 <DialogDescription>Create a new expense entry</DialogDescription>
               </DialogHeader>
               <ExpenseForm
-                userId={currentUserId}
-                companyId={companyId}
                 onUpgradeRequired={openUpgradeDialog}
                 onSuccess={() => {
                   setIsAddDialogOpen(false);

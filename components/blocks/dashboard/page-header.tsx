@@ -20,7 +20,7 @@ export function PageHeader({ userName, companyId, userId }: PageHeaderProps) {
         </p>
       </div>
       {userId && companyId && (
-        <ExpenseForm userId={userId} companyId={companyId} />
+        <ExpenseForm />
       )}
     </div>
   )

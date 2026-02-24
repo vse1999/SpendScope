@@ -44,17 +44,11 @@ import { cn } from "@/lib/utils";
 import type { UpgradeDialogContext } from "@/components/entitlements";
 
 interface ExpenseFormProps {
-  userId: string;
-  companyId: string;
   onSuccess?: () => void;
   onUpgradeRequired?: (context: UpgradeDialogContext) => void;
 }
 
 export default function ExpenseForm({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  userId,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  companyId,
   onSuccess,
   onUpgradeRequired,
 }: ExpenseFormProps) {
