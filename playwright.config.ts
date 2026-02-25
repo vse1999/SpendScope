@@ -1,15 +1,23 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const configuredAuthUrl = process.env.NEXTAUTH_URL ?? process.env.AUTH_URL;
-const baseURL =
-  process.env.PLAYWRIGHT_BASE_URL ?? configuredAuthUrl ?? "http://localhost:3000";
+function getOptionalEnv(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
+
+const playwrightBaseUrl = getOptionalEnv("PLAYWRIGHT_BASE_URL");
+const nextAuthUrl = getOptionalEnv("NEXTAUTH_URL");
+const authUrl = getOptionalEnv("AUTH_URL");
+const appUrl = getOptionalEnv("APP_URL");
+const configuredAuthUrl = nextAuthUrl ?? authUrl;
+const baseURL = playwrightBaseUrl ?? configuredAuthUrl ?? "http://localhost:3000";
 
 function getOrigin(url: string): string {
   return new URL(url).origin;
 }
 
-if (process.env.PLAYWRIGHT_BASE_URL && configuredAuthUrl) {
-  const playwrightOrigin = getOrigin(process.env.PLAYWRIGHT_BASE_URL);
+if (playwrightBaseUrl && configuredAuthUrl) {
+  const playwrightOrigin = getOrigin(playwrightBaseUrl);
   const authOrigin = getOrigin(configuredAuthUrl);
 
   if (playwrightOrigin !== authOrigin) {
@@ -41,7 +49,7 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: process.env.PLAYWRIGHT_BASE_URL
+  webServer: playwrightBaseUrl
     ? undefined
     : {
         command: "npm run dev",
@@ -53,9 +61,9 @@ export default defineConfig({
           ENABLE_TEST_ENDPOINTS: process.env.ENABLE_TEST_ENDPOINTS ?? "true",
           E2E_LOGIN_BYPASS: process.env.E2E_LOGIN_BYPASS ?? "true",
           E2E_LOGIN_TOKEN: process.env.E2E_LOGIN_TOKEN ?? "test",
-          NEXTAUTH_URL: process.env.NEXTAUTH_URL ?? baseURL,
-          AUTH_URL: process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? baseURL,
-          APP_URL: process.env.APP_URL ?? baseURL,
+          NEXTAUTH_URL: nextAuthUrl ?? baseURL,
+          AUTH_URL: authUrl ?? nextAuthUrl ?? baseURL,
+          APP_URL: appUrl ?? baseURL,
         },
       },
 });
