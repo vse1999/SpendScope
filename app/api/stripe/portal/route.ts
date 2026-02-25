@@ -82,7 +82,14 @@ export async function POST(request: Request): Promise<Response> {
 
       await prisma.subscription.update({
         where: { companyId: user.company.id },
-        data: { stripeCustomerId: null },
+        data: {
+          plan: "FREE",
+          status: "ACTIVE",
+          stripeCustomerId: null,
+          stripeSubId: null,
+          stripePriceId: null,
+          currentPeriodEnd: null,
+        },
       });
 
       logApiInfo("Stripe customer missing, cleared stale billing customer mapping", routeContext, {

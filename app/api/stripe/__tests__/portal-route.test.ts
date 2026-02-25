@@ -38,7 +38,12 @@ describe("POST /api/stripe/portal authz", () => {
     mockIsBillingEnabled.mockReturnValue(true);
     mockPrismaSubscriptionUpdate.mockResolvedValue({
       companyId: "company-1",
+      plan: "FREE",
+      status: "ACTIVE",
       stripeCustomerId: null,
+      stripeSubId: null,
+      stripePriceId: null,
+      currentPeriodEnd: null,
     });
   });
 
@@ -124,7 +129,14 @@ describe("POST /api/stripe/portal authz", () => {
     expect(response.headers.get("x-request-id")).toBe("req-portal-stale-customer-1");
     expect(mockPrismaSubscriptionUpdate).toHaveBeenCalledWith({
       where: { companyId: "company-1" },
-      data: { stripeCustomerId: null },
+      data: {
+        plan: "FREE",
+        status: "ACTIVE",
+        stripeCustomerId: null,
+        stripeSubId: null,
+        stripePriceId: null,
+        currentPeriodEnd: null,
+      },
     });
   });
 });
