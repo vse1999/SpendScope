@@ -1,0 +1,41 @@
+name: Feature request
+description: Propose an enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user or business problem are we solving?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the preferred behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact and risk
+      description: Consider auth, billing, security, and data integrity impact.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Readiness
+      options:
+        - label: This request does not require sharing secrets.
+          required: true
+        - label: I checked for existing related issues.
+          required: true

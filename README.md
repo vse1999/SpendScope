@@ -1,24 +1,30 @@
 # SpendScope
 
-SpendScope is a Next.js 16 expense platform with multi-tenant workflows, role-aware access, Stripe billing, and AI-assisted expense review.
+SpendScope is a production-oriented expense management platform for teams that need clear spend visibility, policy-aware controls, and reliable billing operations.
+
+## Why SpendScope
+
+- Multi-tenant company data isolation
+- Role-based access (admin/member)
+- Expense workflows with filtering, sorting, bulk actions, and CSV export
+- Analytics dashboards and trend visualization
+- Plan-based entitlements (Free vs Pro)
+- Stripe checkout, billing portal, and webhook synchronization
+- Team notifications for billing and collaboration events
 
 ## Tech Stack
 
 - Next.js 16 (App Router)
 - React 19 + TypeScript (`strict: true`)
-- Prisma + PostgreSQL (Neon)
-- NextAuth v5
+- Prisma + PostgreSQL (Neon-compatible)
+- NextAuth v5 (Auth.js)
 - Tailwind CSS 4 + shadcn/ui
 - Jest + ts-jest
-- Playwright (baseline E2E scaffold)
+- Playwright E2E
+- Sentry (optional)
+- Upstash Redis (recommended for production rate limiting)
 
-## Prerequisites
-
-- Node.js 20+
-- npm 10+
-- PostgreSQL connection string (for Prisma)
-
-## Local Setup
+## Quick Start (5 Minutes)
 
 1. Install dependencies:
 
@@ -32,13 +38,16 @@ npm ci
 cp .env.example .env.local
 ```
 
-3. Generate Prisma client (also runs automatically on install):
+3. Update `.env.local` values (database, auth, OAuth, optional billing).
+
+4. Generate Prisma client and apply migrations:
 
 ```bash
 npx prisma generate
+npx prisma migrate dev
 ```
 
-4. Run development server:
+5. Run the app:
 
 ```bash
 npm run dev
@@ -46,76 +55,128 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-## Quality Gates
+## Environment Variables
 
-Run these before opening a PR:
+Use `.env.example` as the source of truth.
+
+### Required for local development
+
+- `DATABASE_URL`
+- `NEXTAUTH_URL`
+- `APP_URL`
+- `NEXTAUTH_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+
+### Required when billing is enabled
+
+Set `NEXT_PUBLIC_ENABLE_BILLING=true`, then configure:
+
+- `STRIPE_SECRET_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRO_MONTHLY_PRICE_ID`
+- `STRIPE_PRO_YEARLY_PRICE_ID`
+
+### Recommended for production
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+- `SENTRY_DSN`
+- `NEXT_PUBLIC_SENTRY_DSN`
+
+### Non-production toggles (must stay `false` in deployed environments)
+
+- `ENABLE_TEST_ENDPOINTS`
+- `E2E_LOGIN_BYPASS`
+- `ALLOW_BILLING_RESET`
+- `NEXT_PUBLIC_ALLOW_BILLING_RESET`
+
+## Scripts
+
+### Development
+
+```bash
+npm run dev
+npm run build
+npm run start
+```
+
+### Quality Gates
 
 ```bash
 npx tsc --noEmit
 npm run lint
+npm run audit:prod
 npm run check:any
-npm test -- --runInBand
+npm run test:ci
 npm run build
 ```
 
-Notes:
-- `npm run check:any` blocks new explicit `any` usage outside the current allowlist.
-- `npm run test:ci` is the CI coverage run (`jest --runInBand --coverage`).
-
-## Testing
-
-Unit/integration tests:
+### Testing
 
 ```bash
 npm test -- --runInBand
-```
-
-Coverage:
-
-```bash
 npm run test:coverage
-```
-
-E2E baseline:
-
-```bash
 npm run test:e2e
-```
-
-Quick E2E config validation (no browser run):
-
-```bash
 npm run test:e2e:list
 ```
 
-## Deployment Safety
-
-Run policy and secret checks before deployment:
+### Deployment Safety
 
 ```bash
 npm run deploy:check
-```
-
-`deploy:check` validates required auth env (`NEXTAUTH_URL`, `APP_URL`,
-`NEXTAUTH_SECRET`, Google/GitHub OAuth keys), deploy safety flags, and
-basic Stripe mode consistency when billing is enabled.
-
-Run post-deploy smoke checks:
-
-```bash
 npm run smoke:deploy
 ```
 
-## CI Workflows
-
-- `CI`: typecheck, lint, explicit-any regression check, tests with coverage, build, coverage artifact upload.
-- `Deploy Smoke Checks`: manual workflow for deployed environment checks.
-- `E2E (Playwright)`: manual workflow for Playwright browser tests.
-
-## Stripe Helpers
+### Stripe Helpers
 
 ```bash
 npm run stripe:listen
 npm run stripe:listen:secret
 npm run stripe:trigger:checkout
 ```
+
+## CI Workflows
+
+- `CI` (`.github/workflows/ci.yml`): policy checks, typecheck, lint, audit, explicit-`any` gate, tests, and build
+- `E2E (Playwright)` (`.github/workflows/e2e.yml`): manual browser workflow
+- `Deploy Smoke Checks` (`.github/workflows/deploy-smoke.yml`): manual post-deploy smoke checks
+
+## Deployment Notes
+
+- Vercel preview deployments run automatically for pushed branches if Git integration is enabled.
+- If you want deployment only from `master`, configure Vercel ignored-build or production-branch policy.
+
+## Project Docs
+
+- Architecture: `ARCHITECTURE.md`
+- Engineering standards: `AGENTS.md`
+- Stripe webhook setup: `docs/deployment/stripe-webhook-setup.md`
+- Deployment checklist: `docs/deployment/test-mode-checklist.md`
+- Commit workflow: `docs/commands/commit.md`
+
+## Contributing
+
+See `CONTRIBUTING.md` for development workflow, quality gates, and pull request expectations.
+
+## Security
+
+See `SECURITY.md` for vulnerability reporting and handling.
+
+## Merge Readiness
+
+A branch is merge-ready only when all of these pass:
+
+- `npx tsc --noEmit`
+- `npm run lint`
+- `npm run audit:prod`
+- `npm run check:any`
+- `npm run test:ci`
+- `npm run build`
+
+## License
+
+No open-source license file is currently defined in this repository.
