@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -28,6 +28,7 @@ import { updateExpense, getExpenseHistory } from "@/app/actions/expenses"
 import { toast } from "sonner"
 import type { ExpenseHistoryItem } from "@/types/expense-history"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { formatBusinessDate } from "@/lib/expenses/date-serialization"
 
 interface Category {
   id: string
@@ -88,6 +89,10 @@ export function EditExpenseDialog({
   const initialFormData = useMemo(() => createInitialFormData(expense), [expense])
   const [formData, setFormData] = useState(initialFormData)
 
+  useEffect(() => {
+    setFormData(initialFormData)
+  }, [initialFormData])
+
   // Handle dialog close with state reset
   const handleOpenChange = useCallback((open: boolean): void => {
     if (!open) {
@@ -117,7 +122,7 @@ export function EditExpenseDialog({
     const data = new FormData()
     data.append("amount", formData.amount)
     data.append("description", formData.description)
-    data.append("date", formData.date.toISOString().split("T")[0])
+    data.append("date", formatBusinessDate(formData.date))
     data.append("categoryId", formData.categoryId)
 
     const result = await updateExpense(expense.id, data)
