@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -56,6 +57,7 @@ export function ExpenseTable({
   currentUserId,
   currentUserRole
 }: ExpenseTableProps) {
+  const router = useRouter()
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null)
@@ -78,8 +80,7 @@ export function ExpenseTable({
       toast.error(result.error)
     } else {
       toast.success("Expense deleted successfully")
-      // Refresh the page to show updated data
-      window.location.reload()
+      router.refresh()
     }
 
     setIsDeleting(false)
@@ -206,7 +207,7 @@ export function ExpenseTable({
           setEditingExpense(null)
         }}
         onSuccess={() => {
-          window.location.reload()
+          router.refresh()
         }}
         canEdit={editingExpense ? canEdit(editingExpense) : false}
         isAdmin={isAdmin}

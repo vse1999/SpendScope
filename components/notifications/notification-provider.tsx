@@ -22,6 +22,7 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
   const [isLoading, setIsLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<number>(Date.now())
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
+  const pollingInFlightRef = useRef<boolean>(false)
   const isMountedRef = useRef(true)
 
   // Fetch notifications from database
@@ -65,6 +66,32 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
     
     return () => {
       isMountedRef.current = false
+    }
+  }, [loadNotifications])
+
+  const pollNotifications = useCallback(async (): Promise<void> => {
+    if (document.hidden || pollingInFlightRef.current) {
+      return
+    }
+
+    pollingInFlightRef.current = true
+    try {
+      await loadNotifications(false)
+    } finally {
+      pollingInFlightRef.current = false
+    }
+  }, [loadNotifications])
+
+  useEffect(() => {
+    const handleVisibilityChange = (): void => {
+      if (!document.hidden) {
+        void loadNotifications(false)
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
     }
   }, [loadNotifications])
 
@@ -230,9 +257,8 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
       clearInterval(pollingRef.current)
     }
 
-    pollingRef.current = setInterval(async () => {
-      console.log('[NotificationProvider] Polling for notifications...')
-      await loadNotifications(false)
+    pollingRef.current = setInterval(() => {
+      void pollNotifications()
     }, 30000) // 30 seconds
 
     return () => {
@@ -240,7 +266,7 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
         clearInterval(pollingRef.current)
       }
     }
-  }, [loadNotifications])
+  }, [pollNotifications])
 
   const value = useMemo<NotificationContextValue>(
     () => ({
