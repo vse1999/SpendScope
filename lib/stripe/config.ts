@@ -1,16 +1,32 @@
 import Stripe from "stripe"
 import { FEATURE_LIMITS } from "@/lib/subscription/config"
 
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || ""
-const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ""
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY?.trim() ?? ""
+const STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim() ?? ""
 const BILLING_FLAG_ENABLED = process.env.NEXT_PUBLIC_ENABLE_BILLING === "true"
 const ALLOW_LIVE_STRIPE_KEYS = process.env.ALLOW_LIVE_STRIPE_KEYS === "true"
 
-// Stripe client (used only when billing is enabled by guard checks below)
-export const stripe = new Stripe(STRIPE_SECRET_KEY, {
-  apiVersion: "2026-01-28.clover",
-  typescript: true,
-})
+function createStripeClient(): Stripe {
+  if (!STRIPE_SECRET_KEY) {
+    const missingKeyError = new Error(
+      "Stripe is not configured: STRIPE_SECRET_KEY is missing."
+    )
+
+    return new Proxy({} as Stripe, {
+      get() {
+        throw missingKeyError
+      },
+    })
+  }
+
+  return new Stripe(STRIPE_SECRET_KEY, {
+    apiVersion: "2026-01-28.clover",
+    typescript: true,
+  })
+}
+
+// Build-safe Stripe client: avoids module-load crashes when billing env is absent.
+export const stripe: Stripe = createStripeClient()
 
 type StripeKeyMode = "missing" | "test" | "live" | "unknown"
 

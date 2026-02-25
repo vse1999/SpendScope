@@ -29,6 +29,19 @@ describe("stripe config safety guard", () => {
     expect(config.isBillingEnabled()).toBe(false)
   })
 
+  it("loads safely when stripe keys are missing", () => {
+    process.env.NEXT_PUBLIC_ENABLE_BILLING = "false"
+
+    expect(() => loadConfig()).not.toThrow()
+
+    const config = loadConfig()
+    expect(config.STRIPE_ENABLED).toBe(false)
+    expect(config.isBillingEnabled()).toBe(false)
+    expect(() => config.stripe.customers).toThrow(
+      "Stripe is not configured: STRIPE_SECRET_KEY is missing."
+    )
+  })
+
   it("enables billing for test keys when feature flag is on", () => {
     process.env.NEXT_PUBLIC_ENABLE_BILLING = "true"
     process.env.STRIPE_SECRET_KEY = "sk_test_123"
