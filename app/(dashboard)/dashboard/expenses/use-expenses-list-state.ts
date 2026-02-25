@@ -13,11 +13,17 @@ import {
 import {
   MAX_SORT_LEVELS,
   getDefaultDirection,
-  serializeMultiSort,
   type MultiSortConfig,
   type SortConfig,
 } from "@/lib/expense-sorting";
 import { normalizeExpenseItem } from "./expenses-client-helpers";
+import {
+  buildFilterSearchParams,
+  buildSortSearchParams,
+  getSelectedCategoryNames,
+  hasCustomSortConfig,
+  type ExpenseFilterDraft,
+} from "./use-expenses-list-state-helpers";
 import type { UpgradeDialogContext } from "@/components/entitlements";
 import type {
   Category,
@@ -182,27 +188,15 @@ export function useExpensesListState({
   };
 
   const applyFilters = (): void => {
-    const params = new URLSearchParams(searchParams);
-
-    if (search) params.set("search", search);
-    else params.delete("search");
-
-    if (fromDate) params.set("from", fromDate);
-    else params.delete("from");
-
-    if (toDate) params.set("to", toDate);
-    else params.delete("to");
-
-    if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
-    else params.delete("category");
-
-    if (minAmount) params.set("minAmount", minAmount);
-    else params.delete("minAmount");
-
-    if (maxAmount) params.set("maxAmount", maxAmount);
-    else params.delete("maxAmount");
-
-    params.delete("cursor");
+    const filterDraft: ExpenseFilterDraft = {
+      search,
+      fromDate,
+      toDate,
+      selectedCategories,
+      minAmount,
+      maxAmount,
+    };
+    const params = buildFilterSearchParams(new URLSearchParams(searchParams), filterDraft);
 
     startTransition(() => {
       router.replace(`/dashboard/expenses?${params.toString()}`, { scroll: false });
@@ -210,17 +204,8 @@ export function useExpensesListState({
   };
 
   const handleSort = (field: SortField, event?: React.MouseEvent): void => {
-    const params = new URLSearchParams(searchParams);
     const newSortConfig = getNextSortConfig(sortConfig, field, Boolean(event?.shiftKey));
-
-    const sortParam = serializeMultiSort(newSortConfig);
-    if (sortParam) {
-      params.set("sort", sortParam);
-    } else {
-      params.delete("sort");
-    }
-
-    params.delete("cursor");
+    const params = buildSortSearchParams(new URLSearchParams(searchParams), newSortConfig);
     setSortConfig(newSortConfig);
 
     startTransition(() => {
@@ -229,20 +214,13 @@ export function useExpensesListState({
   };
 
   const removeSort = (field: SortField): void => {
-    const params = new URLSearchParams(searchParams);
     const newSortConfig = sortConfig.filter((sort) => sort.field !== field);
 
     if (newSortConfig.length === 0) {
       newSortConfig.push({ field: "date", direction: "desc" });
     }
 
-    const sortParam = serializeMultiSort(newSortConfig);
-    if (sortParam) {
-      params.set("sort", sortParam);
-    } else {
-      params.delete("sort");
-    }
-    params.delete("cursor");
+    const params = buildSortSearchParams(new URLSearchParams(searchParams), newSortConfig);
 
     setSortConfig(newSortConfig);
 
@@ -404,11 +382,8 @@ export function useExpensesListState({
     Boolean(minAmount) ||
     Boolean(maxAmount);
   const hasSelection = selectedIds.size > 0;
-  const hasCustomSort =
-    sortConfig.length > 1 || sortConfig[0]?.field !== "date" || sortConfig[0]?.direction !== "desc";
-  const selectedCategoryNames = categories
-    .filter((category) => selectedCategories.includes(category.id))
-    .map((category) => category.name);
+  const hasCustomSort = hasCustomSortConfig(sortConfig);
+  const selectedCategoryNames = getSelectedCategoryNames(categories, selectedCategories);
 
   return {
     router,
