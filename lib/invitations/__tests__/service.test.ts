@@ -65,6 +65,18 @@ describe("invitation service role governance", () => {
     expect(mockPrismaUserFindFirst).not.toHaveBeenCalled();
   });
 
+  it("blocks role updates when user is not assigned to a company", async (): Promise<void> => {
+    const currentUser = createCurrentUserContext({ companyId: null });
+
+    const result = await updateCompanyMemberRole(currentUser, "member-1", UserRole.ADMIN);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe("UNAUTHORIZED");
+    }
+    expect(mockPrismaUserFindFirst).not.toHaveBeenCalled();
+  });
+
   it("blocks self role updates", async (): Promise<void> => {
     const currentUser = createCurrentUserContext();
     mockPrismaUserFindFirst.mockResolvedValue({
@@ -79,6 +91,25 @@ describe("invitation service role governance", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.code).toBe("SELF_UPDATE");
+    }
+    expect(mockPrismaUserUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns already-set when target role equals requested role", async (): Promise<void> => {
+    const currentUser = createCurrentUserContext();
+    mockPrismaUserFindFirst.mockResolvedValue({
+      id: "member-1",
+      name: "Team Member",
+      email: "member@company.com",
+      role: UserRole.MEMBER,
+    });
+
+    const result = await updateCompanyMemberRole(currentUser, "member-1", UserRole.MEMBER);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe("ALREADY_SET");
+      expect(result.error).toContain("already member");
     }
     expect(mockPrismaUserUpdate).not.toHaveBeenCalled();
   });
@@ -191,5 +222,15 @@ describe("invitation service role governance", () => {
       toRole: UserRole.ADMIN,
       createdAt: now,
     });
+  });
+
+  it("returns no audits when current user has no company", async (): Promise<void> => {
+    const currentUser = createCurrentUserContext({ companyId: null });
+
+    const results = await getRecentTeamRoleAudits(currentUser);
+
+    expect(results).toEqual([]);
+    expect(mockPrismaUserFindMany).not.toHaveBeenCalled();
+    expect(mockPrismaNotificationFindMany).not.toHaveBeenCalled();
   });
 });
