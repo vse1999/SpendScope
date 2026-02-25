@@ -69,4 +69,33 @@ describe("expense action entitlement guards", () => {
     }
     expect(mockExpenseFindMany).not.toHaveBeenCalled();
   });
+
+  it("neutralizes formula-like CSV cells during export", async (): Promise<void> => {
+    mockGetCurrentUserCompanyId.mockResolvedValue("company-1");
+    mockCheckFeatureLimit.mockResolvedValue({
+      allowed: true,
+      remaining: 1,
+      reason: null,
+    });
+    mockExpenseFindMany.mockResolvedValue([
+      {
+        id: "expense-1",
+        date: new Date("2026-02-01T00:00:00.000Z"),
+        description: '=HYPERLINK("https://evil.example","click")',
+        amount: { toString: (): string => "42.50" },
+        category: { name: "+Finance" },
+        user: { name: "@attacker", email: "user@example.com" },
+      },
+    ]);
+
+    const result = await exportExpensesCSV({});
+
+    expect("csvContent" in result).toBe(true);
+    if ("csvContent" in result) {
+      const [, row] = result.csvContent.split("\n");
+      expect(row).toContain(`"'=HYPERLINK(""https://evil.example"",""click"")"`);
+      expect(row).toContain(`"'+Finance"`);
+      expect(row).toContain(`"'@attacker"`);
+    }
+  });
 });

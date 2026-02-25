@@ -12,6 +12,16 @@ import type {
 
 type ExportExpenseFilters = Omit<ExpenseFilters, "sort">;
 
+const CSV_FORMULA_PREFIX = /^[=+\-@]/;
+
+function encodeCsvCell(value: string): string {
+  const neutralizedValue = CSV_FORMULA_PREFIX.test(value.trimStart())
+    ? `'${value}`
+    : value;
+
+  return `"${neutralizedValue.replace(/"/g, "\"\"")}"`;
+}
+
 function buildFilteredWhereClause(companyId: string, filters: ExportExpenseFilters): Record<string, unknown> {
   // Build where clause with filters
   const whereClause: Record<string, unknown> = {
@@ -221,9 +231,9 @@ export async function exportExpensesCSV(filters: ExportExpenseFilters): Promise<
     const headers = ["Date", "Description", "Category", "User", "Amount"];
     const rows = expenses.map((e) => [
       format(new Date(e.date), "yyyy-MM-dd"),
-      `"${e.description.replace(/"/g, "\"\"")}"`, // Escape quotes
-      e.category.name,
-      e.user?.name || e.user?.email || "Unknown",
+      encodeCsvCell(e.description),
+      encodeCsvCell(e.category.name),
+      encodeCsvCell(e.user?.name || e.user?.email || "Unknown"),
       e.amount.toString(),
     ]);
 
