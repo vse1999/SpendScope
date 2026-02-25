@@ -12,16 +12,16 @@ export function DashboardPageSkeleton(): React.JSX.Element {
         <Skeleton className="h-10 w-36 rounded-xl" />
       </div>
 
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className="grid items-start gap-5 md:grid-cols-3">
         {Array.from({ length: 3 }).map((_, index) => (
-          <Card key={`dashboard-stats-skeleton-${index}`} className="app-card-strong">
+          <Card key={`dashboard-stats-skeleton-${index}`} className="app-card-strong min-h-[14rem]">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <Skeleton className="h-4 w-28 rounded-lg" />
-              <Skeleton className="h-10 w-10 rounded-xl" />
+              <Skeleton className="h-9 w-9 rounded-lg" />
             </CardHeader>
             <CardContent>
               <Skeleton className="h-9 w-32 rounded-lg" />
-              <Skeleton className="mt-2 h-4 w-28 rounded-lg" />
+              <Skeleton className="mt-2 h-4 w-40 rounded-lg" />
             </CardContent>
           </Card>
         ))}
