@@ -12,8 +12,8 @@ export function PageHeader({ userName, companyId, userId }: PageHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
       <div>
-        <h1 className="app-page-title">
-          <span className="app-page-title-gradient">Dashboard</span>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          Dashboard
         </h1>
         <p className="text-muted-foreground mt-1">
           Welcome back, {firstName}! Here&apos;s your spending overview.

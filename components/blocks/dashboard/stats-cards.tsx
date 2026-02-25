@@ -28,18 +28,17 @@ export function StatsCards({
   currentUserRole,
 }: StatsCardsProps) {
   return (
-    <div className="grid gap-5 md:grid-cols-3">
+    <div className="grid items-start gap-5 md:grid-cols-3">
       {/* Total Expenses */}
-      <Card className="app-card-strong relative overflow-hidden transition-shadow duration-200 hover:shadow-md group">
-        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
-        <CardHeader className="relative flex flex-row items-center justify-between pb-2">
+      <Card className="app-card-strong min-h-[14rem] transition-shadow duration-200 hover:shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardDescription className="text-sm font-semibold">Total Expenses</CardDescription>
-          <div className="app-icon-chip transition-transform duration-200 group-hover:scale-105">
-            <DollarSign className="h-5 w-5 text-white" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <DollarSign className="h-5 w-5" />
           </div>
         </CardHeader>
-        <CardContent className="relative">
-          <div className="text-3xl font-bold tracking-tight">{formatCurrency(totalExpenses)}</div>
+        <CardContent>
+          <div className="text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap">{formatCurrency(totalExpenses)}</div>
           <p className="text-sm text-muted-foreground mt-2">
             {expenseCount === 0
               ? "No expenses recorded"
@@ -49,16 +48,15 @@ export function StatsCards({
       </Card>
 
       {/* This Month */}
-      <Card className="app-card-strong relative overflow-hidden transition-shadow duration-200 hover:shadow-md group">
-        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
-        <CardHeader className="relative flex flex-row items-center justify-between pb-2">
+      <Card className="app-card-strong min-h-[14rem] transition-shadow duration-200 hover:shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardDescription className="text-sm font-semibold">This Month</CardDescription>
-          <div className="app-icon-chip transition-transform duration-200 group-hover:scale-105">
-            <Calendar className="h-5 w-5 text-white" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <Calendar className="h-5 w-5" />
           </div>
         </CardHeader>
-        <CardContent className="relative">
-          <div className="text-3xl font-bold tracking-tight">{formatCurrency(thisMonth)}</div>
+        <CardContent>
+          <div className="text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap">{formatCurrency(thisMonth)}</div>
           <div className="flex items-center gap-1.5 mt-2">
             <div className={cn(
               "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold",

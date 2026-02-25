@@ -31,14 +31,13 @@ function truncateName(name: string, maxLength: number = 18): string {
 
 export function UserSpendingChart({ data }: UserSpendingChartProps) {
   // Process and sort data
-  const { sortedData, totalAmount, maxAmount, hasData } = useMemo(() => {
+  const { sortedData, totalAmount, hasData } = useMemo(() => {
     if (data.length === 0) {
-      return { sortedData: [], totalAmount: 0, maxAmount: 0, hasData: false }
+      return { sortedData: [], totalAmount: 0, hasData: false }
     }
 
     const sorted = [...data].sort((a, b) => b.amount - a.amount)
     const total = data.reduce((sum, d) => sum + d.amount, 0)
-    const max = sorted[0]?.amount ?? 0
 
     const processed: ProcessedUserData[] = sorted.map((user) => ({
       ...user,
@@ -47,7 +46,7 @@ export function UserSpendingChart({ data }: UserSpendingChartProps) {
       avgAmount: user.count > 0 ? user.amount / user.count : 0,
     }))
 
-    return { sortedData: processed, totalAmount: total, maxAmount: max, hasData: true }
+    return { sortedData: processed, totalAmount: total, hasData: true }
   }, [data])
 
   // Calculate dynamic height based on member count
@@ -109,7 +108,7 @@ export function UserSpendingChart({ data }: UserSpendingChartProps) {
         >
           <div className="space-y-3">
             {sortedData.map((user) => {
-              const barWidth = maxAmount > 0 ? (user.amount / maxAmount) * 100 : 0
+              const barWidth = user.percentage
               
               return (
                 <div
@@ -141,7 +140,7 @@ export function UserSpendingChart({ data }: UserSpendingChartProps) {
                     <div className="flex items-center gap-3">
                       {/* Progress bar */}
                       <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-brand rounded-full" style={{ width: `${barWidth}%` }} />
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${barWidth}%` }} />
                       </div>
                       
                       {/* Percentage */}

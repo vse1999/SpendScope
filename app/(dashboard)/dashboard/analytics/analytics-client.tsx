@@ -106,9 +106,14 @@ export function AnalyticsClient({
   if (!data) {
     return (
       <div className="space-y-6">
-        <h1 className="app-page-title">Analytics</h1>
-        <Alert>
-          <AlertDescription>No data available</AlertDescription>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Analytics
+          </h1>
+          <p className="text-muted-foreground">Visualize spending patterns and trends</p>
+        </div>
+        <Alert variant="destructive">
+          <AlertDescription>Failed to load analytics data</AlertDescription>
         </Alert>
       </div>
     )
@@ -118,8 +123,8 @@ export function AnalyticsClient({
     <div className="space-y-8" id="analytics-container" aria-busy={isPending}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="app-page-title">
-            <span className="app-page-title-gradient">Analytics</span>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Analytics
           </h1>
           <p className="mt-1 text-muted-foreground">
             Insights into your company&apos;s spending patterns
@@ -180,17 +185,16 @@ function SummaryCard({
   icon: ReactNode
 }): React.JSX.Element {
   return (
-    <Card className="app-card-strong group relative overflow-hidden transition-shadow duration-200 hover:shadow-md">
-      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-brand" />
-      <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="app-card-strong min-h-[10.5rem] transition-shadow duration-200 hover:shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-semibold">{title}</CardTitle>
-        <div className="app-icon-chip transition-transform duration-200 group-hover:scale-105">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           {icon}
         </div>
       </CardHeader>
-      <CardContent className="relative">
-        <div className="text-3xl font-bold tracking-tight">{value}</div>
-        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+      <CardContent>
+        <div className="text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap">{value}</div>
+        <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{subtitle}</p>
       </CardContent>
     </Card>
   )

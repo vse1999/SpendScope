@@ -26,8 +26,8 @@ export default async function TeamPage(): Promise<React.JSX.Element> {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="app-page-title">
-          <span className="app-page-title-gradient">Team Members</span>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          Team Members
         </h1>
         <p className="text-muted-foreground">
           Manage your team and their access

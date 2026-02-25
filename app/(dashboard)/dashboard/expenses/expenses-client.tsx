@@ -122,8 +122,8 @@ export function ExpensesClient({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="app-page-title">
-            <span className="app-page-title-gradient">Expenses</span>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Expenses
           </h1>
           <p className="text-muted-foreground">Manage and analyze your expenses</p>
         </div>
