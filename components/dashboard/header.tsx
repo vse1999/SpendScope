@@ -324,7 +324,7 @@ function NotificationsButton(): React.JSX.Element {
   const [open, setOpen] = React.useState(false)
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -334,7 +334,7 @@ function NotificationsButton(): React.JSX.Element {
         >
           <Bell className="size-4" />
           {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 flex size-2 rounded-full bg-indigo-500" />
+            <span className="absolute right-1 top-1 flex size-2 rounded-full bg-primary" />
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -482,7 +482,7 @@ function NotificationItem({
       <div
         className={cn(
           'mt-1.5 size-1.5 rounded-full shrink-0',
-          !notification.read ? 'bg-indigo-500' : 'bg-transparent'
+          !notification.read ? 'bg-primary' : 'bg-transparent'
         )}
       />
       <div className="flex-1 space-y-1 min-w-0">
@@ -536,7 +536,7 @@ function UserMenu({ user }: { user: DashboardHeaderProps["user"] }): React.JSX.E
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -624,7 +624,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps): React.JSX.Eleme
   const breadcrumbs = generateBreadcrumbs(pathname)
 
   return (
-    <header className="sticky top-0 z-30 hidden h-14 items-center border-b border-border/40 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60 px-4 lg:flex lg:px-6">
+    <header className="sticky top-0 z-30 hidden h-14 items-center border-b border-border/40 bg-background px-4 lg:flex lg:px-6">
       {/* Left Section: Breadcrumbs */}
       <div className="flex flex-1 items-center gap-1 min-w-0">
         <nav

@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  UpgradeToProDialog,
+  useUpgradeToProDialog,
+} from "@/components/entitlements";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -29,14 +33,19 @@ export function ExpensesClient({
   categories,
   summary,
   filters,
-  currentUserId,
-  companyId,
   initialSortConfig,
   isAdmin,
+  billingEnabled,
   initialCopilotAlerts,
   initialPolicyConfig,
 }: ExpensesClientProps): React.JSX.Element {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
+  const {
+    open: isUpgradeDialogOpen,
+    context: upgradeDialogContext,
+    openUpgradeDialog,
+    onOpenChange: onUpgradeDialogOpenChange,
+  } = useUpgradeToProDialog();
 
   const {
     router,
@@ -84,6 +93,7 @@ export function ExpensesClient({
     filters,
     initialSortConfig,
     categories,
+    onUpgradeRequired: openUpgradeDialog,
   });
 
   const {
@@ -112,7 +122,9 @@ export function ExpensesClient({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Expenses
+          </h1>
           <p className="text-muted-foreground">Manage and analyze your expenses</p>
         </div>
         <div className="flex items-center gap-2">
@@ -137,8 +149,7 @@ export function ExpensesClient({
                 <DialogDescription>Create a new expense entry</DialogDescription>
               </DialogHeader>
               <ExpenseForm
-                userId={currentUserId}
-                companyId={companyId}
+                onUpgradeRequired={openUpgradeDialog}
                 onSuccess={() => {
                   setIsAddDialogOpen(false);
                   router.refresh();
@@ -151,7 +162,7 @@ export function ExpensesClient({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="app-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
           </CardHeader>
@@ -164,7 +175,7 @@ export function ExpensesClient({
         </Card>
 
         {hasFilters && (
-          <Card>
+          <Card className="app-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Active Filters</CardTitle>
               <Filter className="h-4 w-4 text-muted-foreground" />
@@ -251,12 +262,21 @@ export function ExpensesClient({
         selectedIds={selectedIds}
         hasFilters={hasFilters}
         nextCursor={nextCursor}
+        isRefreshing={isPending}
         isLoadingMore={isLoadingMore}
         sortConfig={sortConfig}
         onToggleSelectAll={toggleSelectAll}
         onToggleSelect={toggleSelect}
         onSort={handleSort}
         onLoadMore={loadMore}
+      />
+
+      <UpgradeToProDialog
+        open={isUpgradeDialogOpen}
+        context={upgradeDialogContext}
+        isAdmin={isAdmin}
+        billingEnabled={billingEnabled}
+        onOpenChange={onUpgradeDialogOpenChange}
       />
     </div>
   );

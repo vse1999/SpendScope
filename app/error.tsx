@@ -22,25 +22,25 @@ export default function ErrorBoundary({ error, reset }: ErrorProps): React.React
   }, [error]);
 
   return (
-    <div className="min-h-[400px] flex items-center justify-center">
-      <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg text-center">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+    <div className="min-h-100 app-shell flex items-center justify-center p-4">
+      <div className="app-card-strong max-w-md w-full rounded-xl p-8 text-center">
+        <h2 className="text-xl font-bold tracking-tight">
           Something went wrong
         </h2>
-        <p className="text-gray-600 mb-6">
+        <p className="mt-3 text-muted-foreground">
           We&apos;ve encountered an error loading this section.
         </p>
-        <div className="flex gap-4 justify-center">
+        <div className="mt-6 flex gap-4 justify-center">
           <button
             onClick={reset}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="rounded-md bg-gradient-brand px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-95"
             type="button"
           >
             Try again
           </button>
           <a
             href="/dashboard"
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
           >
             Back to dashboard
           </a>

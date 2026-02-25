@@ -87,7 +87,7 @@ export function ExportButton({ data, filename = "analytics" }: ExportButtonProps
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="gap-2" disabled={isExporting}>
           {isExporting ? (

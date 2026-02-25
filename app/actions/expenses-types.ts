@@ -20,7 +20,13 @@ export type CreateExpenseResult =
   | {
     success: false;
     error: string;
-    code?: "LIMIT_EXCEEDED" | "UNAUTHORIZED" | "VALIDATION_ERROR" | "RATE_LIMITED" | "BUDGET_EXCEEDED";
+    code?:
+      | "LIMIT_EXCEEDED"
+      | "LIMIT_CHECK_UNAVAILABLE"
+      | "UNAUTHORIZED"
+      | "VALIDATION_ERROR"
+      | "RATE_LIMITED"
+      | "BUDGET_EXCEEDED";
   };
 
 export type GetPaginatedExpensesResult =
@@ -40,4 +46,3 @@ export interface ExpenseFilters {
   search?: string;
   sort?: MultiSortConfig;
 }
-

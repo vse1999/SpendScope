@@ -1,7 +1,7 @@
 /**
  * Expense Sorting Utilities
- * 
- * These are separated from the server actions file because
+ *
+ * These are separated from server action files because
  * "use server" files can only export async functions.
  */
 
@@ -24,9 +24,8 @@ export interface SortConfig {
 }
 
 /**
- * Multi-sort configuration - array of sort configs
+ * Multi-sort configuration - array of sort configs.
  * First item is primary sort, second is secondary, etc.
- * Maximum 3 sort levels are supported
  */
 export type MultiSortConfig = SortConfig[];
 
@@ -39,18 +38,16 @@ export const MAX_SORT_LEVELS = 3;
  * Valid sort fields for validation
  */
 export const VALID_SORT_FIELDS: ExpenseSortField[] = [
-  "date", 
-  "amount", 
-  "category", 
-  "user", 
-  "createdAt"
+  "date",
+  "amount",
+  "category",
+  "user",
+  "createdAt",
 ];
 
 /**
- * Parse multi-sort from URL parameter string
+ * Parse multi-sort from URL parameter string.
  * Format: "date:desc,amount:asc,user:asc"
- * @param sortParam - The URL parameter value
- * @returns Array of SortConfig, default if invalid
  */
 export function parseMultiSort(sortParam: string | null | undefined): MultiSortConfig {
   if (!sortParam) {
@@ -58,25 +55,34 @@ export function parseMultiSort(sortParam: string | null | undefined): MultiSortC
   }
 
   const sorts: SortConfig[] = [];
+  const seenFields = new Set<ExpenseSortField>();
   const parts = sortParam.split(",");
 
   for (const part of parts) {
-    const [field, direction] = part.split(":");
-    
-    if (field && VALID_SORT_FIELDS.includes(field as ExpenseSortField)) {
-      sorts.push({
-        field: field as ExpenseSortField,
-        direction: direction === "asc" ? "asc" : "desc",
-      });
+    const [rawField, rawDirection] = part.split(":");
+    const field = rawField?.trim();
+    const direction = rawDirection?.trim();
+
+    if (!field) {
+      continue;
     }
 
-    // Stop at max sort levels
+    const parsedField = field as ExpenseSortField;
+    if (!VALID_SORT_FIELDS.includes(parsedField) || seenFields.has(parsedField)) {
+      continue;
+    }
+
+    sorts.push({
+      field: parsedField,
+      direction: direction === "asc" ? "asc" : "desc",
+    });
+    seenFields.add(parsedField);
+
     if (sorts.length >= MAX_SORT_LEVELS) {
       break;
     }
   }
 
-  // Return default if no valid sorts found
   if (sorts.length === 0) {
     return [{ field: "date", direction: "desc" }];
   }
@@ -85,20 +91,18 @@ export function parseMultiSort(sortParam: string | null | undefined): MultiSortC
 }
 
 /**
- * Serialize multi-sort config to URL parameter string
+ * Serialize multi-sort config to URL parameter string.
  * Format: "date:desc,amount:asc,user:asc"
- * @param configs - Array of SortConfig
- * @returns URL parameter string
  */
 export function serializeMultiSort(configs: MultiSortConfig): string {
   return configs
     .slice(0, MAX_SORT_LEVELS)
-    .map(config => `${config.field}:${config.direction}`)
+    .map((config) => `${config.field}:${config.direction}`)
     .join(",");
 }
 
 /**
- * Get human-readable label for sort field
+ * Get human-readable label for sort field.
  */
 export function getSortFieldLabel(field: ExpenseSortField): string {
   const labels: Record<ExpenseSortField, string> = {
@@ -108,20 +112,55 @@ export function getSortFieldLabel(field: ExpenseSortField): string {
     user: "User",
     createdAt: "Created",
   };
-  return labels[field] || field;
+
+  return labels[field];
 }
 
 /**
- * Get the default direction for a field
+ * Get the default direction for a field.
  */
-export function getDefaultDirection(field: ExpenseSortField): "asc" | "desc" {
-  // Text fields default to asc, date/number fields default to desc
-  return (field === "user" || field === "category") ? "asc" : "desc";
+export function getDefaultDirection(field: ExpenseSortField): SortDirection {
+  // Text fields default to asc, date/number fields default to desc.
+  return field === "user" || field === "category" ? "asc" : "desc";
 }
 
 /**
- * Get priority indicator (1°, 2°, 3°) based on sort index
+ * Get priority indicator (#1, #2, #3) based on sort index.
  */
 export function getSortPriorityLabel(index: number): string {
-  return `${index + 1}°`;
+  return `#${index + 1}`;
+}
+
+export function toggleSortDirection(direction: SortDirection): SortDirection {
+  return direction === "asc" ? "desc" : "asc";
+}
+
+interface NextSortConfigArgs {
+  current: MultiSortConfig;
+  field: ExpenseSortField;
+  isShiftClick: boolean;
+}
+
+/**
+ * Sorting interaction model:
+ * - Click: single-column sort (toggle if same field)
+ * - Shift+click: add/toggle secondary sort while preserving existing priorities
+ */
+export function getNextSortConfig({ current, field, isShiftClick }: NextSortConfigArgs): MultiSortConfig {
+  if (!isShiftClick) {
+    const existing = current.find((sort) => sort.field === field);
+    const direction = existing ? toggleSortDirection(existing.direction) : getDefaultDirection(field);
+    return [{ field, direction }];
+  }
+
+  const existingIndex = current.findIndex((sort) => sort.field === field);
+  if (existingIndex >= 0) {
+    const updated = [...current];
+    const sortToUpdate = updated[existingIndex];
+    updated[existingIndex] = { ...sortToUpdate, direction: toggleSortDirection(sortToUpdate.direction) };
+    return updated;
+  }
+
+  const nextSort: SortConfig = { field, direction: getDefaultDirection(field) };
+  return [...current, nextSort].slice(0, MAX_SORT_LEVELS);
 }

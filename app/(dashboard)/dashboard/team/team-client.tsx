@@ -4,6 +4,10 @@ import { useState } from "react";
 import { UserRole } from "@prisma/client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import {
+  UpgradeToProDialog,
+  useUpgradeToProDialog,
+} from "@/components/entitlements";
 import type { Invitation, TeamMember, TeamRoleAuditEntry } from "@/lib/invitations/types";
 import {
   cancelInvitation,
@@ -24,6 +28,7 @@ interface TeamClientProps {
   pendingInvitations: Invitation[];
   roleAuditEvents: TeamRoleAuditEntry[];
   isAdmin: boolean;
+  billingEnabled: boolean;
   currentUserId: string;
 }
 
@@ -32,6 +37,7 @@ export function TeamClient({
   pendingInvitations,
   roleAuditEvents,
   isAdmin,
+  billingEnabled,
   currentUserId,
 }: TeamClientProps): React.JSX.Element {
   const router = useRouter();
@@ -46,6 +52,12 @@ export function TeamClient({
   const [pendingMemberAction, setPendingMemberAction] = useState<PendingMemberAction | null>(null);
   const [inviteEmail, setInviteEmail] = useState<string>("");
   const [inviteRole, setInviteRole] = useState<UserRole>(UserRole.MEMBER);
+  const {
+    open: isUpgradeDialogOpen,
+    context: upgradeDialogContext,
+    openUpgradeDialog,
+    onOpenChange: onUpgradeDialogOpenChange,
+  } = useUpgradeToProDialog();
 
   const hasPendingMemberMutation = isUpdatingRole !== null || isRemoving !== null;
 
@@ -68,6 +80,24 @@ export function TeamClient({
         setInviteRole(UserRole.MEMBER);
         setIsInviteDialogOpen(false);
         router.refresh();
+        return;
+      }
+
+      if (result.code === "FORBIDDEN_FEATURE") {
+        openUpgradeDialog({
+          feature: "teamInvites",
+          source: "team_invite",
+          reason: result.error,
+        });
+        return;
+      }
+
+      if (result.code === "LIMIT_EXCEEDED") {
+        openUpgradeDialog({
+          feature: "userSeats",
+          source: "team_invite",
+          reason: result.error,
+        });
         return;
       }
 
@@ -215,6 +245,14 @@ export function TeamClient({
           onResendInvitation={handleResendInvitation}
         />
       )}
+
+      <UpgradeToProDialog
+        open={isUpgradeDialogOpen}
+        context={upgradeDialogContext}
+        isAdmin={isAdmin}
+        billingEnabled={billingEnabled}
+        onOpenChange={onUpgradeDialogOpenChange}
+      />
     </div>
   );
 }

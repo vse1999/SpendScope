@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { buildMultiOrderBy, parseOffsetCursor, serializeExpense } from "@/lib/expenses/action-helpers";
+import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, getCurrentUserCompanyId } from "./expenses-shared";
 import type {
   ExpenseFilters,
@@ -10,6 +11,16 @@ import type {
 } from "./expenses-types";
 
 type ExportExpenseFilters = Omit<ExpenseFilters, "sort">;
+
+const CSV_FORMULA_PREFIX = /^[=+\-@]/;
+
+function encodeCsvCell(value: string): string {
+  const neutralizedValue = CSV_FORMULA_PREFIX.test(value.trimStart())
+    ? `'${value}`
+    : value;
+
+  return `"${neutralizedValue.replace(/"/g, "\"\"")}"`;
+}
 
 function buildFilteredWhereClause(companyId: string, filters: ExportExpenseFilters): Record<string, unknown> {
   // Build where clause with filters
@@ -178,13 +189,21 @@ export async function getExpensesSummary(filters: ExpenseFilters = {}): Promise<
  */
 export async function exportExpensesCSV(filters: ExportExpenseFilters): Promise<
   | { csvContent: string; filename: string }
-  | { error: string }
+  | { error: string; code?: "FORBIDDEN_FEATURE" }
 > {
   try {
     const companyId = await getCurrentUserCompanyId();
 
     if (!companyId) {
       return { error: "User not assigned to company" };
+    }
+
+    const exportAccess = await checkFeatureLimit(companyId, "export");
+    if (!exportAccess.allowed) {
+      return {
+        error: exportAccess.reason ?? "CSV export is available on the Pro plan",
+        code: "FORBIDDEN_FEATURE",
+      };
     }
 
     const whereClause = buildFilteredWhereClause(companyId, filters);
@@ -212,9 +231,9 @@ export async function exportExpensesCSV(filters: ExportExpenseFilters): Promise<
     const headers = ["Date", "Description", "Category", "User", "Amount"];
     const rows = expenses.map((e) => [
       format(new Date(e.date), "yyyy-MM-dd"),
-      `"${e.description.replace(/"/g, "\"\"")}"`, // Escape quotes
-      e.category.name,
-      e.user?.name || e.user?.email || "Unknown",
+      encodeCsvCell(e.description),
+      encodeCsvCell(e.category.name),
+      encodeCsvCell(e.user?.name || e.user?.email || "Unknown"),
       e.amount.toString(),
     ]);
 
@@ -233,4 +252,3 @@ export async function exportExpensesCSV(filters: ExportExpenseFilters): Promise<
     };
   }
 }
-

@@ -1,7 +1,9 @@
 "use server";
 
+import type { Expense } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { createExpenseSchema } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
 import {
@@ -16,35 +18,28 @@ import { serializeExpense } from "@/lib/expenses/action-helpers";
 import { getCurrentUserCompanyId } from "./expenses-shared";
 import type { CreateExpenseResult } from "./expenses-types";
 
+const LIMIT_CHECK_UNAVAILABLE_MESSAGE =
+  "Unable to verify plan limits right now. Please try again.";
+
 /**
  * Create a new expense with feature limit enforcement and rate limiting
  * Validates input data and creates expense for current user's company
  */
 export async function createExpense(formData: FormData): Promise<CreateExpenseResult> {
-  // Apply rate limiting at the start
-  try {
-    // Check action rate limit
-    const actionLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit("expense-action", { tier: "action" }));
-    if (!actionLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
-    }
-
-    // Check user rate limit
-    const headersList = await import("next/headers").then(m => m.headers());
-    const userId = headersList.get("x-user-id") ?? "anonymous";
-    const userLimit = await import("@/lib/rate-limit").then(m => m.checkRateLimit(userId, { tier: "action" }));
-    if (!userLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
-    }
-  } catch {
-    // Continue if rate limiting fails
-  }
-
   try {
     const session = await auth();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
+    }
+
+    const [actionLimit, userLimit] = await Promise.all([
+      checkRateLimit("expense-action", { tier: "action" }),
+      checkRateLimit(`expense-user:${session.user.id}`, { tier: "action" }),
+    ]);
+
+    if (!actionLimit.allowed || !userLimit.allowed) {
+      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
 
     const companyId = await getCurrentUserCompanyId();
@@ -110,9 +105,20 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
     try {
       limitCheck = await checkFeatureLimit(companyId, "expense", 1);
     } catch (error) {
-      console.error("Failed to check feature limit:", error);
-      // Gracefully handle limit check failure - allow creation
-      limitCheck = { allowed: true, remaining: Infinity };
+      const checkedError = error instanceof Error ? error : new Error(String(error));
+      console.error("entitlement_check_failed", {
+        event: "entitlement_check_failed",
+        action: "createExpense",
+        companyId,
+        userId: session.user.id,
+        errorName: checkedError.name,
+        message: checkedError.message,
+      });
+      return {
+        success: false,
+        error: LIMIT_CHECK_UNAVAILABLE_MESSAGE,
+        code: "LIMIT_CHECK_UNAVAILABLE",
+      };
     }
 
     if (!limitCheck.allowed) {
@@ -124,41 +130,49 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
     }
 
     // Use transaction: consume resource + create expense atomically
-    const expense = await prisma.$transaction(async (tx) => {
-      // Consume the resource
-      try {
+    let expense: Expense;
+    try {
+      expense = await prisma.$transaction(async (tx) => {
         await consumeResource(companyId, "expense", 1);
-      } catch (error) {
-        // If limit was exceeded during transaction, abort
-        if (error instanceof FeatureGateError) {
-          throw error;
-        }
-        // For other errors, log but continue (graceful degradation)
-        console.error("Failed to consume resource:", error);
-      }
 
-      // Create the expense
-      const newExpense = await tx.expense.create({
-        data: {
-          amount: validated.amount,
-          description: validated.description,
-          date: new Date(validated.date),
-          categoryId: validated.categoryId,
-          userId: session.user.id,
-          companyId: companyId,
-        },
+        return tx.expense.create({
+          data: {
+            amount: validated.amount,
+            description: validated.description,
+            date: new Date(validated.date),
+            categoryId: validated.categoryId,
+            userId: session.user.id,
+            companyId: companyId,
+          },
+        });
       });
-
-      return newExpense;
-    }).catch((error: Error) => {
+    } catch (error) {
       if (error instanceof FeatureGateError) {
-        throw error;
+        return {
+          success: false,
+          error: error.message,
+          code: "LIMIT_EXCEEDED",
+        };
       }
-      throw new Error(`Transaction failed: ${error.message}`);
-    });
+
+      const consumeError = error instanceof Error ? error : new Error(String(error));
+      console.error("entitlement_consume_failed", {
+        event: "entitlement_consume_failed",
+        action: "createExpense",
+        companyId,
+        userId: session.user.id,
+        errorName: consumeError.name,
+        message: consumeError.message,
+      });
+      return {
+        success: false,
+        error: LIMIT_CHECK_UNAVAILABLE_MESSAGE,
+        code: "LIMIT_CHECK_UNAVAILABLE",
+      };
+    }
 
     revalidatePath("/dashboard");
-    revalidatePath("/expenses");
+    revalidatePath("/dashboard/expenses");
 
     // Notify all company members about the new expense
     try {
@@ -208,4 +222,3 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
     };
   }
 }
-

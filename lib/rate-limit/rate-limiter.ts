@@ -174,6 +174,7 @@ async function checkRedisRateLimit(
   try {
     // Use Redis pipeline for atomic operations
     const pipeline = redis.pipeline();
+    const requestMember = `${now}-${Math.random()}`;
 
     // Remove entries outside the current window
     pipeline.zremrangebyscore(key, 0, windowStart);
@@ -182,7 +183,7 @@ async function checkRedisRateLimit(
     pipeline.zcard(key);
 
     // Add current request
-    pipeline.zadd(key, { score: now, member: `${now}-${Math.random()}` });
+    pipeline.zadd(key, { score: now, member: requestMember });
 
     // Set expiry on the key
     pipeline.pexpire(key, windowMs);
@@ -198,7 +199,7 @@ async function checkRedisRateLimit(
 
     if (totalRequests > config.requests) {
       // Rate limit exceeded - remove the request we just added
-      await redis.zrem(key, `${now}-${Math.random()}`);
+      await redis.zrem(key, requestMember);
 
       // Get oldest entry to calculate accurate retry-after
       const oldestEntries = await redis.zrange(key, 0, 0, { withScores: true });
@@ -235,9 +236,9 @@ export async function checkRateLimit(
   identifier: string,
   options: Partial<RateLimitOptions> = {}
 ): Promise<RateLimitResult> {
-  const mergedOptions = { ...DEFAULT_RATE_LIMIT_OPTIONS, ...options };
-  const config = getRateLimitConfig(mergedOptions.tier);
-  const keyPrefix = mergedOptions.keyPrefix ?? RATE_LIMIT_KEY_PREFIXES[mergedOptions.tier];
+  const tier = options.tier ?? DEFAULT_RATE_LIMIT_OPTIONS.tier;
+  const config = getRateLimitConfig(tier);
+  const keyPrefix = options.keyPrefix ?? RATE_LIMIT_KEY_PREFIXES[tier];
   const key = `${keyPrefix}:${identifier}`;
 
   const redis = getRedisClient();
@@ -259,9 +260,9 @@ export async function getRateLimitStatus(
   identifier: string,
   options: Partial<RateLimitOptions> = {}
 ): Promise<Omit<RateLimitResult, "allowed" | "retryAfter"> & { limit: number }> {
-  const mergedOptions = { ...DEFAULT_RATE_LIMIT_OPTIONS, ...options };
-  const config = getRateLimitConfig(mergedOptions.tier);
-  const keyPrefix = mergedOptions.keyPrefix ?? RATE_LIMIT_KEY_PREFIXES[mergedOptions.tier];
+  const tier = options.tier ?? DEFAULT_RATE_LIMIT_OPTIONS.tier;
+  const config = getRateLimitConfig(tier);
+  const keyPrefix = options.keyPrefix ?? RATE_LIMIT_KEY_PREFIXES[tier];
   const key = `${keyPrefix}:${identifier}`;
 
   const redis = getRedisClient();
@@ -318,8 +319,8 @@ export async function resetRateLimit(
   identifier: string,
   options: Partial<RateLimitOptions> = {}
 ): Promise<void> {
-  const mergedOptions = { ...DEFAULT_RATE_LIMIT_OPTIONS, ...options };
-  const keyPrefix = mergedOptions.keyPrefix ?? RATE_LIMIT_KEY_PREFIXES[mergedOptions.tier];
+  const tier = options.tier ?? DEFAULT_RATE_LIMIT_OPTIONS.tier;
+  const keyPrefix = options.keyPrefix ?? RATE_LIMIT_KEY_PREFIXES[tier];
   const key = `${keyPrefix}:${identifier}`;
 
   const redis = getRedisClient();

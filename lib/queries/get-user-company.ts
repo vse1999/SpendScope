@@ -1,8 +1,18 @@
 "use server";
 
 import { cache } from "react";
+import { UserRole } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+
+function isDynamicServerUsageError(error: unknown): boolean {
+    if (!error || typeof error !== "object") {
+        return false;
+    }
+
+    const digest = "digest" in error ? (error as { digest?: unknown }).digest : undefined;
+    return digest === "DYNAMIC_SERVER_USAGE";
+}
 
 /**
  * Cached version of getUserCompany for use in Server Components.
@@ -21,10 +31,10 @@ export const getCachedUserCompany = cache(async () => {
             return { hasCompany: false as const };
         }
 
-        // Always query database for fresh companyId - don't rely on session
+        // Always query database for fresh companyId/role - don't rely on session
         const user = await prisma.user.findUnique({
             where: { id: session.user.id },
-            select: { companyId: true },
+            select: { companyId: true, role: true },
         });
 
         if (!user?.companyId) {
@@ -44,8 +54,12 @@ export const getCachedUserCompany = cache(async () => {
             return { hasCompany: false as const };
         }
 
-        return { hasCompany: true as const, company };
+        return { hasCompany: true as const, company, userRole: user.role as UserRole };
     } catch (error) {
+        if (isDynamicServerUsageError(error)) {
+            throw error;
+        }
+
         console.error("Failed to get user company:", error);
         return { hasCompany: false as const };
     }

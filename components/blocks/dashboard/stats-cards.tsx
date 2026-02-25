@@ -28,19 +28,17 @@ export function StatsCards({
   currentUserRole,
 }: StatsCardsProps) {
   return (
-    <div className="grid gap-5 md:grid-cols-3">
+    <div className="grid items-start gap-5 md:grid-cols-3">
       {/* Total Expenses */}
-      <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300 group">
-        <div className="absolute inset-0 bg-linear-to-br from-indigo-50 to-white dark:from-indigo-950/20 dark:to-slate-900/50 opacity-80" />
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-100/40 dark:bg-indigo-900/10 rounded-full -translate-y-8 translate-x-8" />
-        <CardHeader className="relative flex flex-row items-center justify-between pb-2">
-          <CardDescription className="text-sm font-semibold text-slate-600 dark:text-slate-300">Total Expenses</CardDescription>
-          <div className="h-10 w-10 rounded-xl bg-linear-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform duration-300">
-            <DollarSign className="h-5 w-5 text-white" />
+      <Card className="app-card-strong min-h-[14rem] transition-shadow duration-200 hover:shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardDescription className="text-sm font-semibold">Total Expenses</CardDescription>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <DollarSign className="h-5 w-5" />
           </div>
         </CardHeader>
-        <CardContent className="relative">
-          <div className="text-3xl font-bold tracking-tight">{formatCurrency(totalExpenses)}</div>
+        <CardContent>
+          <div className="text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap">{formatCurrency(totalExpenses)}</div>
           <p className="text-sm text-muted-foreground mt-2">
             {expenseCount === 0
               ? "No expenses recorded"
@@ -50,17 +48,15 @@ export function StatsCards({
       </Card>
 
       {/* This Month */}
-      <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300 group">
-        <div className="absolute inset-0 bg-linear-to-br from-emerald-50 to-white dark:from-emerald-950/20 dark:to-slate-900/50 opacity-80" />
-        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-100/40 dark:bg-emerald-900/10 rounded-full -translate-y-8 translate-x-8" />
-        <CardHeader className="relative flex flex-row items-center justify-between pb-2">
-          <CardDescription className="text-sm font-semibold text-slate-600 dark:text-slate-300">This Month</CardDescription>
-          <div className="h-10 w-10 rounded-xl bg-linear-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform duration-300">
-            <Calendar className="h-5 w-5 text-white" />
+      <Card className="app-card-strong min-h-[14rem] transition-shadow duration-200 hover:shadow-md">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardDescription className="text-sm font-semibold">This Month</CardDescription>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <Calendar className="h-5 w-5" />
           </div>
         </CardHeader>
-        <CardContent className="relative">
-          <div className="text-3xl font-bold tracking-tight">{formatCurrency(thisMonth)}</div>
+        <CardContent>
+          <div className="text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap">{formatCurrency(thisMonth)}</div>
           <div className="flex items-center gap-1.5 mt-2">
             <div className={cn(
               "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold",

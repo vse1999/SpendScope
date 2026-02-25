@@ -43,10 +43,10 @@ interface BudgetCardProps {
   currentUserRole: BudgetCardUserRole
 }
 
-function getUsageGradient(usagePercent: number): string {
-  if (usagePercent >= 100) return "from-red-500 to-red-600"
-  if (usagePercent >= 80) return "from-amber-500 to-amber-600"
-  return "from-emerald-500 to-emerald-600"
+function getUsageColor(usagePercent: number): string {
+  if (usagePercent >= 100) return "bg-red-500"
+  if (usagePercent >= 80) return "bg-amber-500"
+  return "bg-primary"
 }
 
 function getPolicyLabel(policy: BudgetExhaustionPolicy): string {
@@ -69,20 +69,24 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
   const [monthlyBudget, setMonthlyBudget] = useState<string>(
     settings ? settings.monthlyBudget.toFixed(2) : "10000"
   )
-  const [currency, setCurrency] = useState<string>(settings?.currency ?? "USD")
   const [policy, setPolicy] = useState<BudgetExhaustionPolicy>(
     settings?.exhaustionPolicy ?? BUDGET_EXHAUSTION_POLICY.WARN_ONLY
   )
   const [isActive, setIsActive] = useState<boolean>(settings?.isActive ?? true)
 
   const usagePercent = summary.usagePercent ? Math.min(summary.usagePercent, 100) : 0
+  const monthlyTargetLabel =
+    summary.hasBudget && summary.budgetAmount !== null
+      ? `Monthly target: ${formatCurrency(summary.budgetAmount)}`
+      : "No active monthly budget configured"
+  const policyLabel = `Policy: ${getPolicyLabel(summary.exhaustionPolicy)}`
 
   const handleSave = async (): Promise<void> => {
     setIsSaving(true)
     try {
       const formData = new FormData()
       formData.append("monthlyBudget", monthlyBudget)
-      formData.append("currency", currency)
+      formData.append("currency", "USD")
       formData.append("exhaustionPolicy", policy)
       formData.append("isActive", String(isActive))
 
@@ -101,18 +105,14 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
   }
 
   return (
-    <Card className="relative overflow-hidden border-0 shadow-md transition-all duration-300 hover:shadow-lg group">
-      <div className="absolute inset-0 bg-linear-to-br from-amber-50 to-white opacity-80 dark:from-amber-950/20 dark:to-slate-900/50" />
-      <div className="absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-amber-100/40 dark:bg-amber-900/10" />
-      <CardHeader className="relative flex flex-row items-center justify-between pb-2">
+    <Card className="app-card-strong min-h-[14rem] transition-shadow duration-200 hover:shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
-          <CardDescription className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+          <CardDescription className="text-sm font-semibold">
             Company Budget
           </CardDescription>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {summary.hasBudget && summary.budgetAmount !== null
-              ? `Monthly target: ${formatCurrency(summary.budgetAmount)}`
-              : "No active monthly budget configured"}
+          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground" title={monthlyTargetLabel}>
+            {monthlyTargetLabel}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -141,16 +141,6 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
                       step="0.01"
                       value={monthlyBudget}
                       onChange={(event) => setMonthlyBudget(event.target.value)}
-                      disabled={isSaving}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="currency">Currency</Label>
-                    <Input
-                      id="currency"
-                      value={currency}
-                      maxLength={3}
-                      onChange={(event) => setCurrency(event.target.value.toUpperCase())}
                       disabled={isSaving}
                     />
                   </div>
@@ -198,19 +188,19 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
               </DialogContent>
             </Dialog>
           )}
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-amber-500 to-amber-600 shadow-lg shadow-amber-500/20 transition-transform duration-300 group-hover:scale-110">
-            <PieChart className="h-5 w-5 text-white" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+            <PieChart className="h-5 w-5" />
           </div>
         </div>
       </CardHeader>
-      <CardContent className="relative">
+      <CardContent>
         {summary.hasBudget && summary.remaining !== null ? (
           <>
-            <div className={cn("text-3xl font-bold tracking-tight", summary.remaining < 0 ? "text-red-600" : "text-emerald-600")}>
+            <div className={cn("text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap", summary.remaining < 0 ? "text-destructive" : "text-foreground")}>
               {formatCurrency(summary.remaining)}
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Policy: {getPolicyLabel(summary.exhaustionPolicy)}
+            <p className="mt-1 line-clamp-1 text-xs text-muted-foreground" title={policyLabel}>
+              {policyLabel}
             </p>
             <div className="mt-3">
               <div className="mb-1.5 flex items-center justify-between">
@@ -219,11 +209,11 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
                   {(summary.usagePercent ?? 0).toFixed(0)}%
                 </span>
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                 <div
                   className={cn(
-                    "h-full rounded-full bg-linear-to-r transition-all duration-700 ease-out",
-                    getUsageGradient(summary.usagePercent ?? 0)
+                    "h-full rounded-full transition-[width] duration-700 ease-out",
+                    getUsageColor(summary.usagePercent ?? 0)
                   )}
                   style={{ width: `${usagePercent}%` }}
                 />

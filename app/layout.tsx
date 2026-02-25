@@ -17,6 +17,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "SpendScope - Enterprise Expense Analytics",
   description: "Track, analyze, and manage company expenses with AI-powered insights",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", type: "image/x-icon" },
+      { url: "/favico/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favico/favicon-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/favico/favicon-64.png", sizes: "64x64", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/favico/favicon-256.png",
+  },
 };
 
 export default function RootLayout({
@@ -31,9 +41,9 @@ export default function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
-          disableTransitionOnChange={false}
+          disableTransitionOnChange={true}
         >
           {children}
           <Toaster />

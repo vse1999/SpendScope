@@ -24,7 +24,7 @@ export default async function AcceptInvitePage({ searchParams }: AcceptInvitePag
 
   if (!token) {
     return (
-      <main className="min-h-screen bg-slate-50 p-4 dark:bg-slate-950">
+      <main className="min-h-screen app-shell p-4">
         <div className="mx-auto max-w-md pt-16">
           <Card>
             <CardHeader>
@@ -51,7 +51,7 @@ export default async function AcceptInvitePage({ searchParams }: AcceptInvitePag
 
   if (!invitationResult.success) {
     return (
-      <main className="min-h-screen bg-slate-50 p-4 dark:bg-slate-950">
+      <main className="min-h-screen app-shell p-4">
         <div className="mx-auto max-w-md pt-16">
           <Card>
             <CardHeader>
@@ -74,7 +74,7 @@ export default async function AcceptInvitePage({ searchParams }: AcceptInvitePag
 
   const invitation = invitationResult.invitation;
   return (
-    <main className="min-h-screen bg-slate-50 p-4 dark:bg-slate-950">
+    <main className="min-h-screen app-shell p-4">
       <div className="mx-auto max-w-md pt-16">
         <Card>
           <CardHeader>

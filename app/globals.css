@@ -119,7 +119,234 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    scrollbar-gutter: stable both-edges;
+  }
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Modern Design System - Nordic Aurora Theme */
+:root {
+  /* Primary Gradient Colors */
+  --brand-indigo: #6366f1;
+  --brand-violet: #8b5cf6;
+  --brand-cyan: #06b6d4;
+  --gradient-start: #6366f1;
+  --gradient-mid: #8b5cf6;
+  --gradient-end: #06b6d4;
+  
+  /* Glow Colors */
+  --glow-primary: rgba(99, 102, 241, 0.4);
+  --glow-secondary: rgba(139, 92, 246, 0.3);
+  --glow-accent: rgba(6, 182, 212, 0.3);
+  
+  /* Glass Morphism */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-backdrop: blur(20px);
+}
+
+.dark {
+  --glass-bg: rgba(15, 23, 42, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.05);
+}
+
+/* Animation Utilities */
+@layer utilities {
+  .app-shell {
+    @apply bg-background;
+  }
+
+  .app-page-title {
+    @apply text-3xl font-bold tracking-tight text-foreground;
+  }
+
+  .app-page-title-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--brand-indigo),
+      var(--brand-violet),
+      var(--brand-cyan)
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .app-card {
+    @apply border-border/70 bg-card shadow-sm;
+  }
+
+  .app-card-strong {
+    @apply border-border/80 bg-card shadow-md;
+  }
+
+  .app-icon-chip {
+    @apply flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-md shadow-indigo-500/20;
+    background: linear-gradient(
+      135deg,
+      var(--gradient-start),
+      var(--gradient-mid),
+      var(--gradient-end)
+    );
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-float-delayed {
+    animation: float 6s ease-in-out infinite;
+    animation-delay: -3s;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .animate-gradient {
+    animation: gradient-shift 8s ease infinite;
+    background-size: 200% 200%;
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .marketing-wordmark {
+    @apply inline-flex items-center font-bold leading-none tracking-tight antialiased;
+    letter-spacing: -0.025em;
+    font-feature-settings: "ss01" on, "ss02" on;
+  }
+
+  .marketing-wordmark-gradient {
+    background: linear-gradient(
+      135deg,
+      #6366f1 0%,
+      #8b5cf6 25%,
+      #06b6d4 50%,
+      #8b5cf6 75%,
+      #6366f1 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: all 0.3s ease;
+  }
+
+  .group:hover .marketing-wordmark-gradient {
+    background-position: right center;
+    filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.4));
+  }
+
+  .bg-gradient-brand {
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+  }
+  
+  .border-gradient {
+    border-image: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end)) 1;
+  }
+  
+  /* Glass Card Utility */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+  }
+  
+  /* Spotlight Effect */
+  .spotlight {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .spotlight::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(99, 102, 241, 0.15),
+      transparent 40%
+    );
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  
+  .spotlight:hover::before {
+    opacity: 1;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--glow-primary);
+  }
+  50% {
+    box-shadow: 0 0 40px var(--glow-primary), 0 0 60px var(--glow-secondary);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Keep analytics charts visually static (no focus outline box) */
+#analytics-container .recharts-wrapper:focus,
+#analytics-container .recharts-wrapper:focus-visible,
+#analytics-container .recharts-surface:focus,
+#analytics-container .recharts-surface:focus-visible,
+#analytics-container .recharts-layer:focus,
+#analytics-container .recharts-layer:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#analytics-container .recharts-wrapper *,
+#analytics-container .recharts-wrapper *:focus,
+#analytics-container .recharts-wrapper *:focus-visible,
+#analytics-container .recharts-wrapper *:active {
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: default !important;
 }

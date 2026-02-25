@@ -36,15 +36,12 @@ export const FEATURE_LIMITS = {
   },
 } as const;
 
+export type SubscriptionPlanKey = keyof typeof FEATURE_LIMITS;
+
 /**
  * Type for plan limits derived from FEATURE_LIMITS
  */
-export type PlanLimits = typeof FEATURE_LIMITS[keyof typeof FEATURE_LIMITS];
-
-/**
- * Type for feature flags within a plan
- */
-export type PlanFeatures = PlanLimits["features"];
+export type PlanLimits = typeof FEATURE_LIMITS[SubscriptionPlanKey];
 
 /**
  * Specific numeric limits that can be checked
@@ -76,19 +73,6 @@ export function getNumericLimits(plan: SubscriptionPlan): NumericLimits {
     maxMonthlyExpenses: limits.maxMonthlyExpenses,
     maxCategories: limits.maxCategories,
   };
-}
-
-/**
- * Check if a plan has a specific feature enabled
- * @param plan - The subscription plan
- * @param feature - The feature to check
- * @returns Whether the feature is enabled
- */
-export function hasFeature(
-  plan: SubscriptionPlan,
-  feature: keyof PlanFeatures
-): boolean {
-  return FEATURE_LIMITS[plan].features[feature];
 }
 
 /**

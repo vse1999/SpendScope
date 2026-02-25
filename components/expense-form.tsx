@@ -41,38 +41,63 @@ import { toast } from "sonner";
 import { Plus, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import type { UpgradeDialogContext } from "@/components/entitlements";
+import {
+  formatBusinessDate,
+  parseExpenseDateInput,
+} from "@/lib/expenses/date-serialization";
 
 interface ExpenseFormProps {
-  userId: string;
-  companyId: string;
   onSuccess?: () => void;
+  onUpgradeRequired?: (context: UpgradeDialogContext) => void;
 }
 
 export default function ExpenseForm({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  userId,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  companyId,
   onSuccess,
+  onUpgradeRequired,
 }: ExpenseFormProps) {
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState<boolean>(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
 
   const form = useForm<ExpenseFormInput>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       amount: "",
       description: "",
-      date: new Date().toISOString(),
+      date: formatBusinessDate(new Date()),
       categoryId: "",
     },
   });
 
   useEffect(() => {
-    async function loadCategories() {
-      const result = await getCategories();
-      if (Array.isArray(result)) {
-        setCategories(result);
+    async function loadCategories(): Promise<void> {
+      setIsCategoriesLoading(true);
+      setCategoriesError(null);
+      try {
+        const result = await getCategories();
+        if (Array.isArray(result)) {
+          setCategories(result);
+          return;
+        }
+
+        const errorMessage =
+          typeof result === "object" &&
+          result !== null &&
+          "error" in result &&
+          typeof result.error === "string"
+            ? result.error
+            : "Failed to load categories";
+
+        setCategoriesError(errorMessage);
+        toast.error(errorMessage);
+      } catch {
+        const errorMessage = "Failed to load categories";
+        setCategoriesError(errorMessage);
+        toast.error(errorMessage);
+      } finally {
+        setIsCategoriesLoading(false);
       }
     }
     loadCategories();
@@ -93,6 +118,14 @@ export default function ExpenseForm({
       setOpen(false);
       onSuccess?.();
     } else {
+      if (result.code === "LIMIT_EXCEEDED") {
+        onUpgradeRequired?.({
+          feature: "monthlyExpenses",
+          source: "expense_create",
+          reason: result.error,
+        });
+        return;
+      }
       toast.error(result.error);
     }
   }
@@ -155,18 +188,31 @@ export default function ExpenseForm({
                   <FormLabel>Category</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger disabled={isCategoriesLoading || categoriesError !== null}>
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
+                      {isCategoriesLoading ? (
+                        <SelectItem value="__loading__" disabled>
+                          Loading categories...
                         </SelectItem>
-                      ))}
+                      ) : categoriesError ? (
+                        <SelectItem value="__error__" disabled>
+                          Failed to load categories
+                        </SelectItem>
+                      ) : (
+                        categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
+                  {categoriesError ? (
+                    <p className="text-sm text-destructive">{categoriesError}</p>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )}
@@ -189,7 +235,7 @@ export default function ExpenseForm({
                           )}
                         >
                           {field.value ? (
-                            format(new Date(field.value), "PPP")
+                            format(parseExpenseDateInput(field.value), "PPP")
                           ) : (
                             <span>Pick a date</span>
                           )}
@@ -200,10 +246,8 @@ export default function ExpenseForm({
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={field.value ? new Date(field.value) : undefined}
-                        onSelect={(date) =>
-                          field.onChange(date?.toISOString())
-                        }
+                        selected={field.value ? parseExpenseDateInput(field.value) : undefined}
+                        onSelect={(date) => field.onChange(date ? formatBusinessDate(date) : "")}
                         initialFocus
                       />
                     </PopoverContent>
@@ -216,7 +260,7 @@ export default function ExpenseForm({
             <DialogFooter>
               <Button
                 type="submit"
-                disabled={form.formState.isSubmitting}
+                disabled={form.formState.isSubmitting || isCategoriesLoading || categoriesError !== null}
               >
                 {form.formState.isSubmitting ? "Saving..." : "Save Expense"}
               </Button>

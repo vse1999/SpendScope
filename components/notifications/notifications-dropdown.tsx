@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useMemo } from 'react'
+import { useRouter } from "next/navigation"
 import {
   Bell,
   Check,
@@ -221,6 +222,7 @@ interface NotificationsDropdownProps {
 export function NotificationsDropdown({
   children,
 }: NotificationsDropdownProps): React.JSX.Element {
+  const router = useRouter()
   const {
     notifications,
     unreadCount,
@@ -256,9 +258,9 @@ export function NotificationsDropdown({
 
   const handleRefresh = useCallback(async (): Promise<void> => {
     setIsRefreshing(true)
-    // Force a page reload to get fresh data
-    window.location.reload()
-  }, [])
+    router.refresh()
+    setIsRefreshing(false)
+  }, [router])
 
   return (
     <DropdownMenu>

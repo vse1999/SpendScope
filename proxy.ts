@@ -17,22 +17,36 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth
   const pathname = req.nextUrl.pathname
   const testEndpointsEnabled = areTestEndpointsEnabled()
+  const isApiRoute = pathname.startsWith("/api")
 
-  // Auth pages (login and onboarding) - accessible when logged in
   const isAuthPage =
     pathname.startsWith("/login") ||
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/invite/accept")
-  const isPublicPage =
-    pathname === "/" ||
+  const isPublicApiRoute =
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/stripe/webhooks") ||
     (testEndpointsEnabled && pathname.startsWith("/api/test-login")) ||
-    (testEndpointsEnabled && pathname.startsWith("/api/test-logout"))
+    (testEndpointsEnabled && pathname.startsWith("/api/test-logout")) ||
+    (testEndpointsEnabled && pathname.startsWith("/api/rate-limit-test"))
+  const isPublicPage = pathname === "/"
   const isStaticFile = pathname.startsWith("/_next") || pathname.startsWith("/favicon") || pathname.includes(".")
 
   // Allow static files and public pages
   if (isStaticFile || isPublicPage) {
+    return NextResponse.next()
+  }
+
+  // API endpoints should return HTTP errors instead of redirect responses.
+  if (isApiRoute) {
+    if (isPublicApiRoute) {
+      return NextResponse.next()
+    }
+
+    if (!isLoggedIn) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
     return NextResponse.next()
   }
 

@@ -1,5 +1,5 @@
 // Dashboard Components
-export { DashboardSidebar, MobileSidebar } from "./sidebar"
+export { DashboardSidebar } from "./sidebar"
 export { DashboardHeader } from "./header"
 
 // Types

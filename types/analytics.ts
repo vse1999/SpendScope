@@ -3,6 +3,9 @@
  */
 
 export interface MonthlyTrend {
+  label?: string
+  bucketKey?: string
+  bucketType?: "day" | "week" | "month"
   month: string
   amount: number
   monthKey: string
@@ -36,24 +39,3 @@ export interface AnalyticsData {
   summary: AnalyticsSummary
 }
 
-// Recharts tooltip payload type
-export interface RechartsTooltipPayload<T> {
-  payload: T
-  value: number
-  name: string
-}
-
-// Recharts click event type for BarChart
-export interface RechartsBarClickEvent {
-  name: string
-  email: string
-  amount: number
-  count: number
-}
-
-// Recharts click event type for AreaChart
-export interface RechartsAreaClickEvent {
-  activePayload?: Array<{
-    payload: MonthlyTrend
-  }>
-}

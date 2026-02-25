@@ -190,7 +190,7 @@ describe("FeatureGateService", () => {
         expect(result.allowed).toBe(false);
         expect(result.remaining).toBe(0);
         expect(result.reason).toContain("reached your");
-        expect(result.upgradeUrl).toBe("/settings/billing");
+        expect(result.upgradeUrl).toBe("/dashboard/billing");
       });
 
       it("should block when would exceed limit", async (): Promise<void> => {

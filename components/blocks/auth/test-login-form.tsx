@@ -55,18 +55,16 @@ export function TestLoginForm({ redirectTo = "/dashboard" }: TestLoginFormProps)
       const result = await signIn("credentials", {
         email: "test@spendscope.local",
         password: "test123",
-        redirect: true,
+        redirect: false,
         callbackUrl: redirectTo,
       })
       
       console.log("[TEST LOGIN] Result:", result)
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const signInResult = result as any
-      if (signInResult?.error) {
-        setError(`Test login failed: ${signInResult.error}`)
-      } else if (signInResult?.url) {
-        window.location.href = signInResult.url
+      if (result?.error) {
+        setError(`Test login failed: ${result.error}`)
+      } else if (result?.url) {
+        window.location.href = result.url
       } else {
         setError("No redirect URL returned")
       }

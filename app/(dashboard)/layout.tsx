@@ -36,13 +36,18 @@ export default async function DashboardLayout({
     name: companyData.name,
   } : null
 
+  const userRole =
+    userCompanyResult.hasCompany && "userRole" in userCompanyResult
+      ? userCompanyResult.userRole
+      : UserRole.MEMBER
+
   // Build user object in the format expected by the sidebar
   const user = {
     id: session.user.id,
     name: session.user.name,
     email: session.user.email,
     image: session.user.image,
-    role: session.user.role || UserRole.MEMBER,
+    role: userRole,
     company,
   }
 
@@ -53,7 +58,7 @@ export default async function DashboardLayout({
 
   return (
     <NotificationProvider>
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div id="dashboard-root" className="min-h-screen app-shell" suppressHydrationWarning>
         <DashboardSidebar user={user} defaultOpen={sidebarOpen}>
           <div className="flex flex-col min-h-screen w-full">
             {/* Header with breadcrumbs - Desktop only (mobile handled by sidebar) */}

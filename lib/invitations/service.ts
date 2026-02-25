@@ -280,6 +280,22 @@ export async function inviteUserToCompany(
     return { ok: false, code: "UNAUTHORIZED", error: "Only admins can invite team members" };
   }
 
+  try {
+    const inviteFeatureCheck = await checkFeatureLimit(currentUser.companyId, "teamInvites");
+    if (!inviteFeatureCheck.allowed) {
+      return {
+        ok: false,
+        code: "FORBIDDEN_FEATURE",
+        error: inviteFeatureCheck.reason ?? "Team invites are available on the Pro plan.",
+      };
+    }
+  } catch (error) {
+    if (error instanceof FeatureGateError) {
+      return { ok: false, code: "FORBIDDEN_FEATURE", error: error.message };
+    }
+    throw error;
+  }
+
   const email = normalizeEmail(input.email);
   if (!isValidEmail(email)) {
     return { ok: false, code: "VALIDATION_ERROR", error: "Valid email is required" };

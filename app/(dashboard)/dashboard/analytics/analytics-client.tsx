@@ -1,140 +1,174 @@
 "use client"
 
-import { useCallback } from "react"
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { UserRole } from "@prisma/client"
+import { Loader2, PieChart, TrendingUp, Users } from "lucide-react"
+import { toast } from "sonner"
+
 import {
-  MonthlyTrendChart,
   CategoryDistributionChart,
-  UserSpendingChart,
   DateRangePicker,
   ExportButton,
+  MonthlyTrendChart,
+  UserSpendingChart,
 } from "@/components/analytics"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { TrendingUp, Users, PieChart } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
-import { UserRole } from "@prisma/client"
 import type { AnalyticsData } from "@/types/analytics"
 
 interface AnalyticsClientProps {
   initialData: AnalyticsData | null
+  initialDays: number
   userRole: UserRole
 }
 
-export function AnalyticsClient({ initialData, userRole }: AnalyticsClientProps) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
+interface AnalyticsApiResponse {
+  data?: AnalyticsData
+  error?: string
+}
 
-  // Get days from URL or default to 90
-  const days = Number(searchParams.get("days")) || 90
-
-  // Use initialData directly - it will update when server component re-renders
-  const data = initialData
-
-  const createQueryString = useCallback(
-    (name: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString())
-      params.set(name, value)
-      return params.toString()
-    },
-    [searchParams]
+export function AnalyticsClient({
+  initialData,
+  initialDays,
+  userRole,
+}: AnalyticsClientProps): React.JSX.Element {
+  const [days, setDays] = useState<number>(initialDays)
+  const [data, setData] = useState<AnalyticsData | null>(initialData)
+  const [isPending, setIsPending] = useState<boolean>(false)
+  const activeRequestIdRef = useRef<number>(0)
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const chartMotionPolicy = prefersReducedMotion ? "none" : "stable"
+  const monthlyTrendData = useMemo<AnalyticsData["monthlyTrend"]>(
+    () => data?.monthlyTrend ?? [],
+    [data]
   )
 
-  const handleDaysChange = (newDays: number) => {
-    router.push(`${pathname}?${createQueryString("days", newDays.toString())}`)
-  }
+  const updateDaysQueryWithoutNavigation = useCallback((newDays: number): void => {
+    if (typeof window === "undefined") {
+      return
+    }
 
-  const handleMonthClick = (monthKey: string) => {
-    router.push(`/dashboard?month=${monthKey}`)
-  }
+    const nextUrl = new URL(window.location.href)
+    nextUrl.searchParams.set("days", newDays.toString())
+    const nextPath = `${nextUrl.pathname}?${nextUrl.searchParams.toString()}`
+    window.history.replaceState(window.history.state, "", nextPath)
+  }, [])
 
-  const handleCategoryClick = (categoryName: string) => {
-    router.push(`/dashboard?category=${encodeURIComponent(categoryName)}`)
-  }
+  const handleDaysChange = useCallback((newDays: number): void => {
+    if (newDays === days || isPending) {
+      return
+    }
+
+    setDays(newDays)
+    updateDaysQueryWithoutNavigation(newDays)
+
+    const requestId = activeRequestIdRef.current + 1
+    activeRequestIdRef.current = requestId
+    setIsPending(true)
+
+    void (async () => {
+      try {
+        const response = await fetch(`/api/analytics?days=${newDays}`, {
+          method: "GET",
+          cache: "no-store",
+          headers: {
+            Accept: "application/json",
+          },
+        })
+
+        const result = (await response.json()) as AnalyticsApiResponse
+        if (activeRequestIdRef.current !== requestId) {
+          return
+        }
+
+        if (!response.ok || !result.data) {
+          toast.error(result.error ?? "Failed to load analytics data")
+          setIsPending(false)
+          return
+        }
+
+        setData(result.data)
+        setIsPending(false)
+      } catch {
+        if (activeRequestIdRef.current !== requestId) {
+          return
+        }
+
+        toast.error("Failed to load analytics data")
+        setIsPending(false)
+      }
+    })()
+  }, [days, isPending, updateDaysQueryWithoutNavigation])
 
   const isAdmin = userRole === UserRole.ADMIN
 
   if (!data) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-        <Alert>
-          <AlertDescription>No data available</AlertDescription>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Analytics
+          </h1>
+          <p className="text-muted-foreground">Visualize spending patterns and trends</p>
+        </div>
+        <Alert variant="destructive">
+          <AlertDescription>Failed to load analytics data</AlertDescription>
         </Alert>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8" id="analytics-container">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-8" id="analytics-container" aria-busy={isPending}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Analytics
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 text-muted-foreground">
             Insights into your company&apos;s spending patterns
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <DateRangePicker value={days} onChange={handleDaysChange} />
+          <DateRangePicker value={days} onChange={handleDaysChange} disabled={isPending} />
           <ExportButton data={data} filename={`analytics-${days}days`} />
+          {isPending && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Updating
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid gap-5 md:grid-cols-3">
         <SummaryCard
           title="Total Spent"
           value={formatCurrency(data.summary.totalAmount)}
           subtitle={`${data.summary.totalCount} expenses`}
           icon={<TrendingUp className="h-5 w-5 text-white" />}
-          gradient="from-blue-500 to-blue-600"
-          shadow="shadow-blue-500/20"
-          bgGradient="from-blue-50 dark:from-blue-950/20"
         />
         <SummaryCard
           title="Average Expense"
           value={formatCurrency(data.summary.averageExpense)}
           subtitle="Per transaction"
           icon={<PieChart className="h-5 w-5 text-white" />}
-          gradient="from-emerald-500 to-emerald-600"
-          shadow="shadow-emerald-500/20"
-          bgGradient="from-emerald-50 dark:from-emerald-950/20"
         />
         <SummaryCard
           title="Active Members"
           value={data.userSpending.length.toString()}
           subtitle="Contributing expenses"
           icon={<Users className="h-5 w-5 text-white" />}
-          gradient="from-violet-500 to-violet-600"
-          shadow="shadow-violet-500/20"
-          bgGradient="from-violet-50 dark:from-violet-950/20"
         />
       </div>
 
-      {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <MonthlyTrendChart
-          data={data.monthlyTrend}
-          onMonthClick={handleMonthClick}
-        />
-        <CategoryDistributionChart
-          data={data.categoryDistribution}
-          onCategoryClick={handleCategoryClick}
-        />
+        <MonthlyTrendChart data={monthlyTrendData} motionPolicy={chartMotionPolicy} />
+        <CategoryDistributionChart data={data.categoryDistribution} />
       </div>
 
-      {/* User Spending - Full width for admin */}
-      {isAdmin && (
-        <UserSpendingChart
-          data={data.userSpending}
-          onUserClick={(email) => router.push(`/dashboard?user=${encodeURIComponent(email)}`)}
-        />
-      )}
+      {isAdmin && <UserSpendingChart data={data.userSpending} />}
     </div>
   )
 }
@@ -144,32 +178,47 @@ function SummaryCard({
   value,
   subtitle,
   icon,
-  gradient,
-  shadow,
-  bgGradient,
 }: {
   title: string
   value: string
   subtitle: string
-  icon: React.ReactNode
-  gradient: string
-  shadow: string
-  bgGradient: string
-}) {
+  icon: ReactNode
+}): React.JSX.Element {
   return (
-    <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300 group">
-      <div className={`absolute inset-0 bg-linear-to-br ${bgGradient} to-white dark:to-slate-900/50 opacity-80`} />
-      <div className="absolute top-0 right-0 w-32 h-32 bg-slate-100/30 dark:bg-slate-800/10 rounded-full -translate-y-8 translate-x-8" />
-      <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-300">{title}</CardTitle>
-        <div className={`h-10 w-10 rounded-xl bg-linear-to-br ${gradient} flex items-center justify-center shadow-lg ${shadow} group-hover:scale-110 transition-transform duration-300`}>
+    <Card className="app-card-strong min-h-[10.5rem] transition-shadow duration-200 hover:shadow-md">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
           {icon}
         </div>
       </CardHeader>
-      <CardContent className="relative">
-        <div className="text-3xl font-bold tracking-tight">{value}</div>
-        <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+      <CardContent>
+        <div className="text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap">{value}</div>
+        <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{subtitle}</p>
       </CardContent>
     </Card>
   )
+}
+
+function usePrefersReducedMotion(): boolean {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(false)
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return
+    }
+
+    const mediaQueryList = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const updatePreference = (): void => {
+      setPrefersReducedMotion(mediaQueryList.matches)
+    }
+
+    updatePreference()
+    mediaQueryList.addEventListener("change", updatePreference)
+    return () => {
+      mediaQueryList.removeEventListener("change", updatePreference)
+    }
+  }, [])
+
+  return prefersReducedMotion
 }

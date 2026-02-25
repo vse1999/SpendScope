@@ -13,11 +13,18 @@ import {
 import {
   MAX_SORT_LEVELS,
   getDefaultDirection,
-  serializeMultiSort,
   type MultiSortConfig,
   type SortConfig,
 } from "@/lib/expense-sorting";
 import { normalizeExpenseItem } from "./expenses-client-helpers";
+import {
+  buildFilterSearchParams,
+  buildSortSearchParams,
+  getSelectedCategoryNames,
+  hasCustomSortConfig,
+  type ExpenseFilterDraft,
+} from "./use-expenses-list-state-helpers";
+import type { UpgradeDialogContext } from "@/components/entitlements";
 import type {
   Category,
   Expense,
@@ -32,6 +39,7 @@ interface UseExpensesListStateArgs {
   filters: ExpensesClientProps["filters"];
   initialSortConfig: MultiSortConfig;
   categories: Category[];
+  onUpgradeRequired?: (context: UpgradeDialogContext) => void;
 }
 
 interface UseExpensesListStateResult {
@@ -76,12 +84,39 @@ interface UseExpensesListStateResult {
   loadMore: () => Promise<void>;
 }
 
+function getNextSortConfig(
+  current: MultiSortConfig,
+  field: SortField,
+  isShiftClick: boolean
+): MultiSortConfig {
+  if (!isShiftClick) {
+    const existing = current.find((sort) => sort.field === field);
+    const direction = existing ? (existing.direction === "asc" ? "desc" : "asc") : getDefaultDirection(field);
+    return [{ field, direction }];
+  }
+
+  const existingIndex = current.findIndex((sort) => sort.field === field);
+  if (existingIndex >= 0) {
+    const updated = [...current];
+    const currentSort = updated[existingIndex];
+    updated[existingIndex] = {
+      ...currentSort,
+      direction: currentSort.direction === "asc" ? "desc" : "asc",
+    };
+    return updated;
+  }
+
+  const nextSort: SortConfig = { field, direction: getDefaultDirection(field) };
+  return [...current, nextSort].slice(0, MAX_SORT_LEVELS);
+}
+
 export function useExpensesListState({
   initialExpenses,
   initialNextCursor,
   filters,
   initialSortConfig,
   categories,
+  onUpgradeRequired,
 }: UseExpensesListStateArgs): UseExpensesListStateResult {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -153,101 +188,44 @@ export function useExpensesListState({
   };
 
   const applyFilters = (): void => {
-    const params = new URLSearchParams(searchParams);
-
-    if (search) params.set("search", search);
-    else params.delete("search");
-
-    if (fromDate) params.set("from", fromDate);
-    else params.delete("from");
-
-    if (toDate) params.set("to", toDate);
-    else params.delete("to");
-
-    if (selectedCategories.length > 0) params.set("category", selectedCategories.join(","));
-    else params.delete("category");
-
-    if (minAmount) params.set("minAmount", minAmount);
-    else params.delete("minAmount");
-
-    if (maxAmount) params.set("maxAmount", maxAmount);
-    else params.delete("maxAmount");
-
-    params.delete("cursor");
-    setExpenses([]);
+    const filterDraft: ExpenseFilterDraft = {
+      search,
+      fromDate,
+      toDate,
+      selectedCategories,
+      minAmount,
+      maxAmount,
+    };
+    const params = buildFilterSearchParams(new URLSearchParams(searchParams), filterDraft);
 
     startTransition(() => {
-      router.push(`/dashboard/expenses?${params.toString()}`);
+      router.replace(`/dashboard/expenses?${params.toString()}`, { scroll: false });
     });
   };
 
   const handleSort = (field: SortField, event?: React.MouseEvent): void => {
-    const params = new URLSearchParams(searchParams);
-    const isShiftClick = event?.shiftKey;
-
-    let newSortConfig: MultiSortConfig;
-
-    if (isShiftClick) {
-      const existingSort = sortConfig.find((sort) => sort.field === field);
-      const direction = existingSort
-        ? existingSort.direction === "asc"
-          ? "desc"
-          : "asc"
-        : getDefaultDirection(field);
-      newSortConfig = [{ field, direction }];
-    } else {
-      const existingIndex = sortConfig.findIndex((sort) => sort.field === field);
-
-      if (existingIndex >= 0) {
-        const currentSort = sortConfig[existingIndex];
-        const newDirection = currentSort.direction === "asc" ? "desc" : "asc";
-        const updatedSort: SortConfig = { ...currentSort, direction: newDirection };
-        const withoutCurrent = sortConfig.filter((_, index) => index !== existingIndex);
-        newSortConfig = [updatedSort, ...withoutCurrent];
-      } else {
-        const nextSort: SortConfig = { field, direction: getDefaultDirection(field) };
-        const trimmedExisting = sortConfig.slice(0, Math.max(0, MAX_SORT_LEVELS - 1));
-        newSortConfig = [nextSort, ...trimmedExisting];
-      }
-    }
-
-    const sortParam = serializeMultiSort(newSortConfig);
-    if (sortParam) {
-      params.set("sort", sortParam);
-    } else {
-      params.delete("sort");
-    }
-
-    params.delete("cursor");
+    const newSortConfig = getNextSortConfig(sortConfig, field, Boolean(event?.shiftKey));
+    const params = buildSortSearchParams(new URLSearchParams(searchParams), newSortConfig);
     setSortConfig(newSortConfig);
-    setExpenses([]);
 
     startTransition(() => {
-      router.push(`/dashboard/expenses?${params.toString()}`);
+      router.replace(`/dashboard/expenses?${params.toString()}`, { scroll: false });
     });
   };
 
   const removeSort = (field: SortField): void => {
-    const params = new URLSearchParams(searchParams);
     const newSortConfig = sortConfig.filter((sort) => sort.field !== field);
 
     if (newSortConfig.length === 0) {
       newSortConfig.push({ field: "date", direction: "desc" });
     }
 
-    const sortParam = serializeMultiSort(newSortConfig);
-    if (sortParam) {
-      params.set("sort", sortParam);
-    } else {
-      params.delete("sort");
-    }
-    params.delete("cursor");
+    const params = buildSortSearchParams(new URLSearchParams(searchParams), newSortConfig);
 
     setSortConfig(newSortConfig);
-    setExpenses([]);
 
     startTransition(() => {
-      router.push(`/dashboard/expenses?${params.toString()}`);
+      router.replace(`/dashboard/expenses?${params.toString()}`, { scroll: false });
     });
   };
 
@@ -258,10 +236,9 @@ export function useExpensesListState({
     params.delete("sort");
     params.delete("cursor");
     setSortConfig(defaultSort);
-    setExpenses([]);
 
     startTransition(() => {
-      router.push(`/dashboard/expenses?${params.toString()}`);
+      router.replace(`/dashboard/expenses?${params.toString()}`, { scroll: false });
     });
   };
 
@@ -273,10 +250,9 @@ export function useExpensesListState({
     setMinAmount("");
     setMaxAmount("");
     setSortConfig([{ field: "date", direction: "desc" }]);
-    setExpenses([]);
 
     startTransition(() => {
-      router.push("/dashboard/expenses");
+      router.replace("/dashboard/expenses", { scroll: false });
     });
   };
 
@@ -328,6 +304,14 @@ export function useExpensesListState({
       });
 
       if ("error" in result) {
+        if (result.code === "FORBIDDEN_FEATURE") {
+          onUpgradeRequired?.({
+            feature: "csvExport",
+            source: "expenses_export",
+            reason: result.error,
+          });
+          return;
+        }
         toast.error(result.error);
         return;
       }
@@ -398,11 +382,8 @@ export function useExpensesListState({
     Boolean(minAmount) ||
     Boolean(maxAmount);
   const hasSelection = selectedIds.size > 0;
-  const hasCustomSort =
-    sortConfig.length > 1 || sortConfig[0]?.field !== "date" || sortConfig[0]?.direction !== "desc";
-  const selectedCategoryNames = categories
-    .filter((category) => selectedCategories.includes(category.id))
-    .map((category) => category.name);
+  const hasCustomSort = hasCustomSortConfig(sortConfig);
+  const selectedCategoryNames = getSelectedCategoryNames(categories, selectedCategories);
 
   return {
     router,

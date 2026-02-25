@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SpendScope
 
-## Getting Started
+SpendScope is a Next.js 16 expense platform with multi-tenant workflows, role-aware access, Stripe billing, and AI-assisted expense review.
 
-First, run the development server:
+## Tech Stack
+
+- Next.js 16 (App Router)
+- React 19 + TypeScript (`strict: true`)
+- Prisma + PostgreSQL (Neon)
+- NextAuth v5
+- Tailwind CSS 4 + shadcn/ui
+- Jest + ts-jest
+- Playwright (baseline E2E scaffold)
+
+## Prerequisites
+
+- Node.js 20+
+- npm 10+
+- PostgreSQL connection string (for Prisma)
+
+## Local Setup
+
+1. Install dependencies:
+
+```bash
+npm ci
+```
+
+2. Create local environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Generate Prisma client (also runs automatically on install):
+
+```bash
+npx prisma generate
+```
+
+4. Run development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Quality Gates
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run these before opening a PR:
 
-## Learn More
+```bash
+npx tsc --noEmit
+npm run lint
+npm run check:any
+npm test -- --runInBand
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+Notes:
+- `npm run check:any` blocks new explicit `any` usage outside the current allowlist.
+- `npm run test:ci` is the CI coverage run (`jest --runInBand --coverage`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Testing
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Unit/integration tests:
 
-## Deploy on Vercel
+```bash
+npm test -- --runInBand
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Coverage:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run test:coverage
+```
+
+E2E baseline:
+
+```bash
+npm run test:e2e
+```
+
+Quick E2E config validation (no browser run):
+
+```bash
+npm run test:e2e:list
+```
+
+## Deployment Safety
+
+Run policy and secret checks before deployment:
+
+```bash
+npm run deploy:check
+```
+
+`deploy:check` validates required auth env (`NEXTAUTH_URL`, `APP_URL`,
+`NEXTAUTH_SECRET`, Google/GitHub OAuth keys), deploy safety flags, and
+basic Stripe mode consistency when billing is enabled.
+
+Run post-deploy smoke checks:
+
+```bash
+npm run smoke:deploy
+```
+
+## CI Workflows
+
+- `CI`: typecheck, lint, explicit-any regression check, tests with coverage, build, coverage artifact upload.
+- `Deploy Smoke Checks`: manual workflow for deployed environment checks.
+- `E2E (Playwright)`: manual workflow for Playwright browser tests.
+
+## Stripe Helpers
+
+```bash
+npm run stripe:listen
+npm run stripe:listen:secret
+npm run stripe:trigger:checkout
+```

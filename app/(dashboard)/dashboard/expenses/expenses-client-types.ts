@@ -53,10 +53,9 @@ export interface ExpensesClientProps {
     search?: string;
     sort?: MultiSortConfig;
   };
-  currentUserId: string;
-  companyId: string;
   initialSortConfig: MultiSortConfig;
   isAdmin: boolean;
+  billingEnabled: boolean;
   initialCopilotAlerts: ExpenseCopilotAlert[];
   initialPolicyConfig: ExpensePolicyConfigView;
 }

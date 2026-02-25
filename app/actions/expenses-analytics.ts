@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { serializeExpense } from "@/lib/expenses/action-helpers";
+import { buildMonthlyTrend, normalizeAnalyticsDays } from "@/lib/analytics/monthly-trend";
+import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { getCurrentUserCompanyId } from "./expenses-shared";
 
 /**
@@ -222,10 +224,20 @@ export async function getAnalyticsData(days: number = 90) {
       return { error: "User not assigned to company" };
     }
 
+    const analyticsAccess = await checkFeatureLimit(companyId, "analytics");
+    if (!analyticsAccess.allowed) {
+      return {
+        error: analyticsAccess.reason ?? "Advanced analytics is available on the Pro plan",
+        code: "FORBIDDEN_FEATURE" as const,
+      };
+    }
+
+    const normalizedDays = normalizeAnalyticsDays(days, 90);
+
     // Calculate date range
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(endDate.getDate() - days);
+    startDate.setDate(endDate.getDate() - normalizedDays);
 
     // Fetch expenses with relations
     const expenses = await prisma.expense.findMany({
@@ -253,7 +265,7 @@ export async function getAnalyticsData(days: number = 90) {
     if (expenses.length === 0) {
       return {
         data: {
-          monthlyTrend: [],
+          monthlyTrend: buildMonthlyTrend([], endDate, normalizedDays),
           categoryDistribution: [],
           userSpending: [],
           summary: {
@@ -267,28 +279,13 @@ export async function getAnalyticsData(days: number = 90) {
       };
     }
 
-    // Calculate monthly trend
-    const monthlyMap = new Map<string, { month: string; amount: number; monthKey: string }>();
-
-    for (const expense of expenses) {
-      const date = new Date(expense.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const monthName = date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-
-      const existing = monthlyMap.get(monthKey);
-      if (existing) {
-        existing.amount += Number(expense.amount);
-      } else {
-        monthlyMap.set(monthKey, {
-          month: monthName,
-          amount: Number(expense.amount),
-          monthKey,
-        });
-      }
-    }
-
-    const monthlyTrend = Array.from(monthlyMap.values()).sort((a, b) =>
-      a.monthKey.localeCompare(b.monthKey)
+    const monthlyTrend = buildMonthlyTrend(
+      expenses.map((expense) => ({
+        date: new Date(expense.date),
+        amount: Number(expense.amount),
+      })),
+      endDate,
+      normalizedDays
     );
 
     // Calculate category distribution

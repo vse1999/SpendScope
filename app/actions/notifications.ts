@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NotificationType } from "@prisma/client";
+import { getDisplayName, parseAuditRoleChangeMessage } from "@/lib/invitations/utils";
 import { revalidatePath } from "next/cache";
 
 export interface NotificationInput {
@@ -20,6 +21,94 @@ export interface NotificationResult {
   read: boolean;
   actionUrl: string | null;
   createdAt: Date;
+}
+
+interface DisplayUser {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+function formatRoleLabel(role: "ADMIN" | "MEMBER"): string {
+  return role === "ADMIN" ? "Admin" : "Member";
+}
+
+function formatRoleAuditMessageForViewer(
+  parsed: NonNullable<ReturnType<typeof parseAuditRoleChangeMessage>>,
+  currentUserId: string,
+  usersById: Map<string, DisplayUser>
+): string {
+  const actor = usersById.get(parsed.actorUserId);
+  const target = usersById.get(parsed.targetUserId);
+
+  const actorDisplayName = actor ? getDisplayName(actor) : "Someone";
+  const targetDisplayName = target ? getDisplayName(target) : "a team member";
+
+  const fromRole = formatRoleLabel(parsed.fromRole);
+  const toRole = formatRoleLabel(parsed.toRole);
+
+  if (parsed.actorUserId === currentUserId) {
+    return `You changed role for ${targetDisplayName} from ${fromRole} to ${toRole}.`;
+  }
+
+  if (parsed.targetUserId === currentUserId) {
+    return `${actorDisplayName} changed your role from ${fromRole} to ${toRole}.`;
+  }
+
+  return `${actorDisplayName} changed role for ${targetDisplayName} from ${fromRole} to ${toRole}.`;
+}
+
+async function formatNotificationsForDisplay(
+  notifications: NotificationResult[],
+  currentUserId: string
+): Promise<NotificationResult[]> {
+  const parsedByNotificationId = new Map<
+    string,
+    NonNullable<ReturnType<typeof parseAuditRoleChangeMessage>>
+  >();
+  const userIds = new Set<string>();
+
+  for (const notification of notifications) {
+    const parsed = parseAuditRoleChangeMessage(notification.message);
+    if (!parsed) {
+      continue;
+    }
+
+    parsedByNotificationId.set(notification.id, parsed);
+    userIds.add(parsed.actorUserId);
+    userIds.add(parsed.targetUserId);
+  }
+
+  if (parsedByNotificationId.size === 0) {
+    return notifications;
+  }
+
+  const users = await prisma.user.findMany({
+    where: {
+      id: {
+        in: Array.from(userIds),
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+
+  const usersById = new Map(users.map((user) => [user.id, user]));
+
+  return notifications.map((notification) => {
+    const parsed = parsedByNotificationId.get(notification.id);
+    if (!parsed) {
+      return notification;
+    }
+
+    return {
+      ...notification,
+      message: formatRoleAuditMessageForViewer(parsed, currentUserId, usersById),
+    };
+  });
 }
 
 /**
@@ -43,35 +132,15 @@ export async function getUserNotifications(): Promise<{
       take: 50, // Limit to last 50 notifications
     });
 
-    return { success: true, notifications };
+    const formattedNotifications = await formatNotificationsForDisplay(
+      notifications,
+      session.user.id
+    );
+
+    return { success: true, notifications: formattedNotifications };
   } catch (error) {
     console.error("Failed to fetch notifications:", error);
     return { success: false, error: "Failed to fetch notifications" };
-  }
-}
-
-/**
- * Get unread notification count for the current user
- */
-export async function getUnreadNotificationCount(): Promise<{
-  success: boolean;
-  count?: number;
-  error?: string;
-}> {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return { success: false, error: "Not authenticated" };
-    }
-
-    const count = await prisma.notification.count({
-      where: { userId: session.user.id, read: false },
-    });
-
-    return { success: true, count };
-  } catch (error) {
-    console.error("Failed to fetch unread count:", error);
-    return { success: false, error: "Failed to fetch unread count" };
   }
 }
 

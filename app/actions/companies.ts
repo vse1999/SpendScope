@@ -2,8 +2,10 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
+import { getNumericLimits } from "@/lib/subscription/config";
 import { FeatureGateError } from "@/lib/errors";
 import { InvitationStatus, SubscriptionPlan, UserRole } from "@prisma/client";
 import { createNotification } from "@/app/actions/notifications";
@@ -76,35 +78,29 @@ type JoinCompanyResult =
         | "ALREADY_IN_ANOTHER_COMPANY";
     };
 
+function formatPlanLimit(limit: number): string {
+  return Number.isFinite(limit) ? String(limit) : "unlimited";
+}
+
 /**
  * Create a new company and assign the current user as admin
  * Includes CompanyUsage record creation with default limits
  */
 export async function createCompany(formData: FormData): Promise<CreateCompanyResult> {
-  // Apply rate limiting at the start
-  try {
-    // Check action rate limit
-    const actionLimit = await import("@/lib/rate-limit").then((m) => m.checkRateLimit("company-action", { tier: "action" }));
-    if (!actionLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
-    }
-
-    // Check user rate limit
-    const headersList = await import("next/headers").then((m) => m.headers());
-    const userId = headersList.get("x-user-id") ?? "anonymous";
-    const userLimit = await import("@/lib/rate-limit").then((m) => m.checkRateLimit(userId, { tier: "action" }));
-    if (!userLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
-    }
-  } catch {
-    // Continue if rate limiting fails
-  }
-
   try {
     const session = await auth();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
+    }
+
+    const [actionLimit, userLimit] = await Promise.all([
+      checkRateLimit("company-action", { tier: "action" }),
+      checkRateLimit(`company-user:${session.user.id}`, { tier: "action" }),
+    ]);
+
+    if (!actionLimit.allowed || !userLimit.allowed) {
+      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
 
     const name = formData.get("name") as string;
@@ -167,15 +163,16 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
       // Create CompanyUsage record with default limits
       const now = new Date();
       const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+      const freePlanLimits = getNumericLimits(SubscriptionPlan.FREE);
 
       await tx.companyUsage.create({
         data: {
           companyId: company.id,
           currentMonth,
           monthlyExpenses: 0,
-          maxExpenses: 100,
-          maxUsers: 3,
-          maxCategories: 5,
+          maxExpenses: freePlanLimits.maxMonthlyExpenses,
+          maxUsers: freePlanLimits.maxUsers,
+          maxCategories: freePlanLimits.maxCategories,
           version: 0,
         },
       });
@@ -209,30 +206,20 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
  * Join an existing company with invitation and user limit enforcement
  */
 export async function joinCompany(companyId: string): Promise<JoinCompanyResult> {
-  // Apply rate limiting at the start
-  try {
-    // Check action rate limit
-    const actionLimit = await import("@/lib/rate-limit").then((m) => m.checkRateLimit("join-action", { tier: "action" }));
-    if (!actionLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
-    }
-
-    // Check user rate limit
-    const headersList = await import("next/headers").then((m) => m.headers());
-    const userId = headersList.get("x-user-id") ?? "anonymous";
-    const userLimit = await import("@/lib/rate-limit").then((m) => m.checkRateLimit(userId, { tier: "action" }));
-    if (!userLimit.allowed) {
-      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
-    }
-  } catch {
-    // Continue if rate limiting fails
-  }
-
   try {
     const session = await auth();
 
     if (!session?.user?.id || !session.user.email) {
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
+    }
+
+    const [actionLimit, userRateLimit] = await Promise.all([
+      checkRateLimit("join-action", { tier: "action" }),
+      checkRateLimit(`join-user:${session.user.id}`, { tier: "action" }),
+    ]);
+
+    if (!actionLimit.allowed || !userRateLimit.allowed) {
+      return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
 
     const currentUser = await prisma.user.findUnique({
@@ -300,12 +287,12 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
 
     // Check user limit before allowing join
     const plan = company.subscription?.plan ?? SubscriptionPlan.FREE;
-    const userLimit = plan === SubscriptionPlan.PRO ? Infinity : 3;
+    const maxUsersForPlan = getNumericLimits(plan).maxUsers;
 
-    if (company._count.users >= userLimit) {
+    if (company._count.users >= maxUsersForPlan) {
       return {
         success: false,
-        error: `This company has reached the maximum user limit (${userLimit}). Upgrade to Pro for unlimited users.`,
+        error: `This company has reached the maximum user limit (${formatPlanLimit(maxUsersForPlan)}). Upgrade to Pro for unlimited users.`,
         code: "LIMIT_EXCEEDED",
       };
     }
@@ -450,34 +437,3 @@ export async function getUserCompany() {
   }
 }
 
-/**
- * Leave current company
- */
-export async function leaveCompany() {
-  try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return { error: "Not authenticated" };
-    }
-
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        companyId: null,
-        // Prevent role carry-over into a future company.
-        role: UserRole.MEMBER,
-      },
-    });
-
-    revalidatePath("/dashboard");
-    revalidatePath("/onboarding");
-
-    return { success: true };
-  } catch (error) {
-    console.error("Failed to leave company:", error);
-    return {
-      error: error instanceof Error ? error.message : "Failed to leave company",
-    };
-  }
-}

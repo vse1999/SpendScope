@@ -111,7 +111,7 @@ export function ExpenseFiltersCard({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Categories</label>
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full justify-between text-left font-normal">
                 <span className="truncate">

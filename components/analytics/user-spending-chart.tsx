@@ -3,12 +3,10 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/format-utils"
-import { cn } from "@/lib/utils"
 import type { UserSpending } from "@/types/analytics"
 
 interface UserSpendingChartProps {
   data: UserSpending[]
-  onUserClick?: (email: string) => void
 }
 
 interface ProcessedUserData extends UserSpending {
@@ -28,19 +26,18 @@ function getInitials(name: string): string {
 
 function truncateName(name: string, maxLength: number = 18): string {
   if (name.length <= maxLength) return name
-  return name.slice(0, maxLength - 1) + "…"
+  return name.slice(0, maxLength - 1) + "..."
 }
 
-export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps) {
+export function UserSpendingChart({ data }: UserSpendingChartProps) {
   // Process and sort data
-  const { sortedData, totalAmount, maxAmount, hasData } = useMemo(() => {
+  const { sortedData, totalAmount, hasData } = useMemo(() => {
     if (data.length === 0) {
-      return { sortedData: [], totalAmount: 0, maxAmount: 0, hasData: false }
+      return { sortedData: [], totalAmount: 0, hasData: false }
     }
 
     const sorted = [...data].sort((a, b) => b.amount - a.amount)
     const total = data.reduce((sum, d) => sum + d.amount, 0)
-    const max = sorted[0]?.amount ?? 0
 
     const processed: ProcessedUserData[] = sorted.map((user) => ({
       ...user,
@@ -49,7 +46,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
       avgAmount: user.count > 0 ? user.amount / user.count : 0,
     }))
 
-    return { sortedData: processed, totalAmount: total, maxAmount: max, hasData: true }
+    return { sortedData: processed, totalAmount: total, hasData: true }
   }, [data])
 
   // Calculate dynamic height based on member count
@@ -64,7 +61,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
   // Empty state
   if (!hasData) {
     return (
-      <Card className="border-0 shadow-md">
+      <Card className="app-card-strong">
         <CardHeader>
           <CardTitle className="text-lg">Spending by Team Member</CardTitle>
           <CardDescription>No data available</CardDescription>
@@ -97,11 +94,11 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
   }
 
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="app-card-strong">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Spending by Team Member</CardTitle>
         <CardDescription>
-          {data.length} member{data.length !== 1 ? "s" : ""} • {formatCurrency(totalAmount.toString())} total
+          {data.length} member{data.length !== 1 ? "s" : ""} | {formatCurrency(totalAmount.toString())} total
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-2">
@@ -111,20 +108,16 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
         >
           <div className="space-y-3">
             {sortedData.map((user) => {
-              const barWidth = maxAmount > 0 ? (user.amount / maxAmount) * 100 : 0
+              const barWidth = user.percentage
               
               return (
                 <div
                   key={user.email}
-                  className={cn(
-                    "group flex items-center gap-4 py-2",
-                    onUserClick && "cursor-pointer"
-                  )}
-                  onClick={() => onUserClick?.(user.email)}
+                  className="group flex items-center gap-4 py-2"
                 >
                   {/* Avatar with initials */}
-                  <div className="shrink-0 w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
-                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+                  <div className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-semibold text-primary">
                       {user.initials}
                     </span>
                   </div>
@@ -147,10 +140,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
                     <div className="flex items-center gap-3">
                       {/* Progress bar */}
                       <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-linear-to-r from-indigo-500 to-indigo-600 rounded-full"
-                          style={{ width: `${barWidth}%` }}
-                        />
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${barWidth}%` }} />
                       </div>
                       
                       {/* Percentage */}
@@ -164,7 +154,7 @@ export function UserSpendingChart({ data, onUserClick }: UserSpendingChartProps)
                       <span className="text-[11px] text-muted-foreground/70">
                         {user.count} expense{user.count !== 1 ? "s" : ""}
                       </span>
-                      <span className="text-[11px] text-muted-foreground/50">•</span>
+                      <span className="text-[11px] text-muted-foreground/50">|</span>
                       <span className="text-[11px] text-muted-foreground/70">
                         avg {formatCurrency(user.avgAmount)}
                       </span>

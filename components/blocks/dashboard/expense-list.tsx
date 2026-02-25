@@ -28,7 +28,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
   const hasExpenses = expenses.length > 0
 
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="app-card-strong">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <div>
@@ -45,7 +45,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
       <CardContent className="px-0">
         {!hasExpenses ? (
           <div className="text-center py-12 px-6">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-muted flex items-center justify-center mb-4">
               <Building2 className="w-8 h-8 text-muted-foreground/50" />
             </div>
             <p className="text-muted-foreground font-medium">No expenses yet</p>
@@ -55,7 +55,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent border-b border-slate-100 dark:border-slate-800">
+                <TableRow className="hover:bg-transparent border-b border-border/60">
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 pl-6">Date</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Description</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Category</TableHead>
@@ -64,7 +64,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
               </TableHeader>
               <TableBody>
                 {expenses.slice(0, 10).map((expense) => (
-                  <TableRow key={expense.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                  <TableRow key={expense.id} className="hover:bg-muted/35 transition-colors">
                     <TableCell className="text-muted-foreground tabular-nums pl-6">
                       {format(new Date(expense.date), "MMM d, yyyy")}
                     </TableCell>

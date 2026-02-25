@@ -8,12 +8,6 @@ export interface PendingMemberAction {
   action: MemberActionType;
 }
 
-export interface TeamMemberActionRequest {
-  userId: string;
-  memberName: string;
-  action: MemberActionType;
-}
-
 export function resolveRoleTarget(action: MemberActionType): UserRole {
   return action === "PROMOTE" ? UserRole.ADMIN : UserRole.MEMBER;
 }

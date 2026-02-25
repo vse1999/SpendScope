@@ -12,7 +12,7 @@ export function PageHeader({ userName, companyId, userId }: PageHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight bg-linear-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Dashboard
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -20,7 +20,7 @@ export function PageHeader({ userName, companyId, userId }: PageHeaderProps) {
         </p>
       </div>
       {userId && companyId && (
-        <ExpenseForm userId={userId} companyId={companyId} />
+        <ExpenseForm />
       )}
     </div>
   )

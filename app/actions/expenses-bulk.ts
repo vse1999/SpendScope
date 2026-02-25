@@ -6,6 +6,46 @@ import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { decrementResource } from "@/lib/subscription/feature-gate-service";
 
+interface ExpenseBulkActor {
+  userId: string;
+  companyId: string;
+  isAdmin: boolean;
+}
+
+type ExpenseBulkActorResult =
+  | { success: true; actor: ExpenseBulkActor }
+  | { success: false; error: string };
+
+async function getExpenseBulkActor(): Promise<ExpenseBulkActorResult> {
+  const session = await auth();
+
+  if (!session?.user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const userId = session.user.id;
+  const isAdmin = session.user.role === UserRole.ADMIN;
+
+  // Get current user's company
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { companyId: true },
+  });
+
+  if (!user?.companyId) {
+    return { success: false, error: "User not assigned to company" };
+  }
+
+  return {
+    success: true,
+    actor: {
+      userId,
+      companyId: user.companyId,
+      isAdmin,
+    },
+  };
+}
+
 /**
  * Bulk delete multiple expenses
  * Only admins can bulk delete, members can only delete their own
@@ -15,30 +55,17 @@ export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
   | { success: false; error: string }
 > {
   try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return { success: false, error: "Not authenticated" };
+    const actorResult = await getExpenseBulkActor();
+    if (!actorResult.success) {
+      return { success: false, error: actorResult.error };
     }
-
-    const userId = session.user.id;
-    const isAdmin = session.user.role === UserRole.ADMIN;
-
-    // Get current user's company
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { companyId: true },
-    });
-
-    if (!user?.companyId) {
-      return { success: false, error: "User not assigned to company" };
-    }
+    const { userId, isAdmin, companyId } = actorResult.actor;
 
     // Verify all expenses belong to the user's company and check permissions
     const expenses = await prisma.expense.findMany({
       where: {
         id: { in: expenseIds },
-        companyId: user.companyId,
+        companyId,
       },
       select: {
         id: true,
@@ -68,7 +95,7 @@ export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
 
     if (result.count > 0) {
       try {
-        await decrementResource(user.companyId, result.count);
+        await decrementResource(companyId, result.count);
       } catch (usageError) {
         console.error("Failed to decrement usage after bulk deletion:", usageError);
       }
@@ -98,30 +125,17 @@ export async function bulkUpdateCategory(
   | { success: false; error: string }
 > {
   try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return { success: false, error: "Not authenticated" };
+    const actorResult = await getExpenseBulkActor();
+    if (!actorResult.success) {
+      return { success: false, error: actorResult.error };
     }
-
-    const userId = session.user.id;
-    const isAdmin = session.user.role === UserRole.ADMIN;
-
-    // Get current user's company
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { companyId: true },
-    });
-
-    if (!user?.companyId) {
-      return { success: false, error: "User not assigned to company" };
-    }
+    const { userId, isAdmin, companyId } = actorResult.actor;
 
     // Verify category belongs to the company
     const category = await prisma.category.findFirst({
       where: {
         id: categoryId,
-        companyId: user.companyId,
+        companyId,
       },
     });
 
@@ -133,7 +147,7 @@ export async function bulkUpdateCategory(
     const expenses = await prisma.expense.findMany({
       where: {
         id: { in: expenseIds },
-        companyId: user.companyId,
+        companyId,
       },
       select: {
         id: true,
@@ -175,4 +189,3 @@ export async function bulkUpdateCategory(
     };
   }
 }
-
