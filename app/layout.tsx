@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "SpendScope - Enterprise Expense Analytics",
-  description: "Track, analyze, and manage company expenses with AI-powered insights",
+  description: "Track, analyze, and manage company expenses with policy-aware insights",
   icons: {
     icon: [
       { url: "/favicon.ico", type: "image/x-icon" },

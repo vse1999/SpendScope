@@ -10,7 +10,7 @@ import { getHomeRedirectPath } from "@/lib/landing/home-route";
 export const metadata: Metadata = {
   title: "SpendScope | Modern Expense Intelligence for Teams",
   description:
-    "Track spending, enforce controls, and monitor analytics with AI-guided insights built for modern teams.",
+    "Track spending, enforce controls, and monitor analytics with policy-aware insights built for modern teams.",
 };
 
 export default async function HomePage(): Promise<ReactElement> {

@@ -68,7 +68,7 @@ export function ExpenseCopilotPanel({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldAlert className="h-5 w-5 text-amber-600" />
-            Finance Ops Copilot
+            Expense Monitor
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Explainable review alerts. Mark valid, mark false alarm, or request receipt proof.
@@ -90,7 +90,7 @@ export function ExpenseCopilotPanel({
                       </Badge>
                       <Badge variant="outline">Severity {alert.severity}</Badge>
                       <Badge variant="outline">
-                        Confidence {(alert.confidence * 100).toFixed(0)}%
+                        Rule score {(alert.confidence * 100).toFixed(0)}%
                       </Badge>
                     </div>
                     <p className="text-sm font-medium">{alert.reason}</p>
@@ -154,7 +154,7 @@ export function ExpenseCopilotPanel({
               Policy Threshold Controls
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Configure the amount limits used by Copilot policy risk detection.
+              Configure the amount limits used by expense monitor policy risk detection.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">

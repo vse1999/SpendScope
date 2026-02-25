@@ -84,7 +84,7 @@ export function HeroSection({ trustItems, previewData }: HeroSectionProps) {
 
           <TextReveal delay={0.3} type="fade-up">
             <p className="max-w-2xl text-lg text-muted-foreground">
-              SpendScope combines streamlined expense workflows, AI guidance, and
+              SpendScope combines streamlined expense workflows, policy guidance, and
               analytics visibility so companies can move from raw spending data to
               confident decisions.
             </p>

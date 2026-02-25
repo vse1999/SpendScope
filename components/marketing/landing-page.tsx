@@ -73,9 +73,9 @@ const tourSteps = [
     detail: "From first entry to organized ledger in minutes.",
   },
   {
-    title: "Apply AI guidance and policy checks",
+    title: "Apply policy guidance and risk checks",
     description:
-      "Use copilot alerts and budget-aware policies to spot risk patterns before they grow into surprises.",
+      "Use expense monitor alerts and budget-aware policies to spot risk patterns before they grow into surprises.",
     detail: "Prevent drift with explainable decision support.",
   },
   {
@@ -105,7 +105,7 @@ const faqItems = [
   {
     question: "Does SpendScope support policy-aware controls?",
     answer:
-      "Yes. The platform includes budget policy checks and AI-guided alerts to help teams catch risky spend patterns early.",
+      "Yes. The platform includes budget policy checks and expense monitor alerts to help teams catch risky spend patterns early.",
   },
 ] as const;
 

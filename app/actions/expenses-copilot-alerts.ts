@@ -172,10 +172,10 @@ export async function getExpenseCopilotAlerts(): Promise<GetExpenseCopilotAlerts
       alerts: openAlerts,
     };
   } catch (error) {
-    console.error("Failed to get expense copilot alerts:", error);
+    console.error("Failed to get expense monitor alerts:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to get expense copilot alerts",
+      error: error instanceof Error ? error.message : "Failed to get expense monitor alerts",
     };
   }
 }
@@ -202,7 +202,7 @@ export async function resolveExpenseCopilotAlert(
     });
 
     if (!actor?.companyId || actor.role !== UserRole.ADMIN) {
-      return { success: false, error: "Only admins can resolve copilot alerts", code: "UNAUTHORIZED" };
+      return { success: false, error: "Only admins can resolve expense monitor alerts", code: "UNAUTHORIZED" };
     }
 
     const [expenseId, ruleTypeRaw] = alertId.split(":");
@@ -291,11 +291,10 @@ export async function resolveExpenseCopilotAlert(
     revalidatePath("/dashboard/expenses");
     return { success: true, alertId, status: nextStatus };
   } catch (error) {
-    console.error("Failed to resolve expense copilot alert:", error);
+    console.error("Failed to resolve expense monitor alert:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to resolve expense copilot alert",
+      error: error instanceof Error ? error.message : "Failed to resolve expense monitor alert",
     };
   }
 }
-
