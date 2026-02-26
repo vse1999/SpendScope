@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Download, Filter, Loader2, Plus } from "lucide-react";
+import { Download, Filter, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,14 +8,6 @@ import {
   UpgradeToProDialog,
   useUpgradeToProDialog,
 } from "@/components/entitlements";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import ExpenseForm from "@/components/expense-form";
 import { ExpenseBulkActionsBar } from "./components/expense-bulk-actions-bar";
 import { ExpenseCopilotPanel } from "./components/expense-copilot-panel";
@@ -39,7 +30,6 @@ export function ExpensesClient({
   initialCopilotAlerts,
   initialPolicyConfig,
 }: ExpensesClientProps): React.JSX.Element {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState<boolean>(false);
   const {
     open: isUpgradeDialogOpen,
     context: upgradeDialogContext,
@@ -136,28 +126,13 @@ export function ExpensesClient({
             )}
             Export CSV
           </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Expense
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-125">
-              <DialogHeader>
-                <DialogTitle>Add Expense</DialogTitle>
-                <DialogDescription>Create a new expense entry</DialogDescription>
-              </DialogHeader>
-              <ExpenseForm
-                onUpgradeRequired={openUpgradeDialog}
-                onSuccess={() => {
-                  setIsAddDialogOpen(false);
-                  router.refresh();
-                  toast.success("Expense added successfully");
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+          <ExpenseForm
+            onUpgradeRequired={openUpgradeDialog}
+            onSuccess={() => {
+              router.refresh();
+              toast.success("Expense added successfully");
+            }}
+          />
         </div>
       </div>
 
