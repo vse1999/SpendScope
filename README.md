@@ -59,6 +59,21 @@ Open `http://localhost:3000`.
 
 Use `.env.example` as the source of truth.
 
+### Environment matrix
+
+| Variable | Local | Vercel Preview | Vercel Production | Notes |
+| --- | --- | --- | --- | --- |
+| `DATABASE_URL` | Required | Required | Required | Use direct Postgres URL, not placeholder values |
+| `NEXTAUTH_SECRET` | Required | Required | Required | Generate once, keep stable per project |
+| `NEXTAUTH_URL` | `http://localhost:3000` | Preview URL | Production URL | Must match deployed origin |
+| `APP_URL` | `http://localhost:3000` | Preview URL | Production URL | Keep aligned with `NEXTAUTH_URL` |
+| `GOOGLE_CLIENT_ID` | Optional | Required for Google OAuth | Required for Google OAuth | Configure callback URLs per environment |
+| `GOOGLE_CLIENT_SECRET` | Optional | Required for Google OAuth | Required for Google OAuth | Provider secret |
+| `GITHUB_CLIENT_ID` | Optional | Required for GitHub OAuth | Required for GitHub OAuth | Configure callback URLs per environment |
+| `GITHUB_CLIENT_SECRET` | Optional | Required for GitHub OAuth | Required for GitHub OAuth | Provider secret |
+| `NEXT_PUBLIC_ENABLE_BILLING` | Optional | Optional | Optional | Set `true` only when Stripe is configured |
+| `STRIPE_*` billing vars | Optional | Required if billing enabled | Required if billing enabled | Keep test/live keys consistent per environment |
+
 ### Required for local development
 
 - `DATABASE_URL`
@@ -93,6 +108,14 @@ Set `NEXT_PUBLIC_ENABLE_BILLING=true`, then configure:
 - `E2E_LOGIN_BYPASS`
 - `ALLOW_BILLING_RESET`
 - `NEXT_PUBLIC_ALLOW_BILLING_RESET`
+
+### OAuth callback URLs
+
+Use these callback patterns in Google and GitHub provider apps:
+
+- Local: `http://localhost:3000/api/auth/callback/google` and `http://localhost:3000/api/auth/callback/github`
+- Preview: `https://<your-preview-domain>/api/auth/callback/google` and `https://<your-preview-domain>/api/auth/callback/github`
+- Production: `https://<your-production-domain>/api/auth/callback/google` and `https://<your-production-domain>/api/auth/callback/github`
 
 ## Scripts
 
@@ -149,6 +172,21 @@ npm run stripe:trigger:checkout
 
 - Vercel preview deployments run automatically for pushed branches if Git integration is enabled.
 - If you want deployment only from `master`, configure Vercel ignored-build or production-branch policy.
+- Preview deployments are intentionally marked `noindex, nofollow` to avoid SEO dilution on `*.vercel.app`.
+
+### Common deployment failures (quick fixes)
+
+- `redirect_uri_mismatch`:
+  - Add the exact deployed callback URL to Google/GitHub OAuth app settings.
+  - Ensure `NEXTAUTH_URL` and `APP_URL` match the same deployed origin.
+- `auth/error?error=Configuration`:
+  - Verify `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, and OAuth provider keys are set in the active Vercel environment.
+- `Can't reach database server` / Prisma adapter errors:
+  - Confirm `DATABASE_URL` is a valid direct database URL.
+  - Do not mix incompatible Prisma driver adapter + Accelerate URL modes.
+- Stripe checkout/portal failures:
+  - Ensure all Stripe env vars are present and key modes are consistent (all test or all live).
+  - Confirm the configured Stripe price IDs exist in the same Stripe account and mode.
 
 ## Project Docs
 
@@ -156,6 +194,7 @@ npm run stripe:trigger:checkout
 - Engineering standards: `AGENTS.md`
 - Stripe webhook setup: `docs/deployment/stripe-webhook-setup.md`
 - Deployment checklist: `docs/deployment/test-mode-checklist.md`
+- Manual regression checklist: `docs/deployment/manual-regression-checklist.md`
 - Commit workflow: `docs/commands/commit.md`
 
 ## Contributing
