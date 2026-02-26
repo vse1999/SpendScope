@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { LandingPage } from "@/components/marketing/landing-page";
+import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { getHomeRedirectPath } from "@/lib/landing/home-route";
 
 export const metadata: Metadata = {
@@ -21,5 +22,10 @@ export default async function HomePage(): Promise<ReactElement> {
     redirect(redirectPath);
   }
 
-  return <LandingPage />;
+  return (
+    <>
+      <SoftwareApplicationJsonLd />
+      <LandingPage />
+    </>
+  );
 }

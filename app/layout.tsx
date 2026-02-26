@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { OrganizationJsonLd } from "@/components/seo/json-ld";
+import { getSiteUrlObject } from "@/lib/seo/site-url";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +17,50 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SpendScope - Enterprise Expense Analytics",
+  metadataBase: getSiteUrlObject(),
+  title: {
+    default: "SpendScope - Enterprise Expense Analytics",
+    template: "%s | SpendScope",
+  },
   description: "Track, analyze, and manage company expenses with policy-aware insights",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "SpendScope",
+    title: "SpendScope - Enterprise Expense Analytics",
+    description:
+      "Track, analyze, and manage company expenses with policy-aware insights",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "SpendScope",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SpendScope - Enterprise Expense Analytics",
+    description:
+      "Track, analyze, and manage company expenses with policy-aware insights",
+    images: ["/twitter-image"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
       { url: "/favicon.ico", type: "image/x-icon" },
@@ -45,6 +89,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange={true}
         >
+          <OrganizationJsonLd />
           {children}
           <Toaster />
         </ThemeProvider>
