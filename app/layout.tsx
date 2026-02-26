@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { OrganizationJsonLd } from "@/components/seo/json-ld";
+import { shouldAllowIndexing } from "@/lib/seo/deployment-environment";
 import { getSiteUrlObject } from "@/lib/seo/site-url";
 
 const geistSans = Geist({
@@ -15,6 +16,8 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+const allowIndexing = shouldAllowIndexing();
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrlObject(),
@@ -50,11 +53,11 @@ export const metadata: Metadata = {
     images: ["/twitter-image"],
   },
   robots: {
-    index: true,
-    follow: true,
+    index: allowIndexing,
+    follow: allowIndexing,
     googleBot: {
-      index: true,
-      follow: true,
+      index: allowIndexing,
+      follow: allowIndexing,
       "max-image-preview": "large",
       "max-snippet": -1,
       "max-video-preview": -1,
