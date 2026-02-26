@@ -118,7 +118,7 @@ function PricingCard({ plan }: { readonly plan: PricingPlanPresentation }) {
               variant={plan.isPopular ? "default" : "outline"}
               size="lg"
             >
-              <Link href="/login?intent=signup">
+              <Link href="/signup">
                 {plan.cta}
               </Link>
             </Button>

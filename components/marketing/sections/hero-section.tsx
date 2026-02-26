@@ -84,9 +84,9 @@ export function HeroSection({ trustItems, previewData }: HeroSectionProps) {
 
           <TextReveal delay={0.3} type="fade-up">
             <p className="max-w-2xl text-lg text-muted-foreground">
-              SpendScope combines streamlined expense workflows, policy guidance, and
-              analytics visibility so companies can move from raw spending data to
-              confident decisions.
+              SpendScope delivers expense control for modern teams with streamlined workflows,
+              policy guidance, and analytics visibility. Teams gain speed, clarity, and
+              confidence from raw spending data through final decisions.
             </p>
           </TextReveal>
 
@@ -98,8 +98,8 @@ export function HeroSection({ trustItems, previewData }: HeroSectionProps) {
                 size="lg"
                 className="bg-gradient-brand border-0 text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30"
               >
-                <Link href="/login?intent=signup">
-                  Start Free
+                <Link href="/signup">
+                  Create Free Workspace
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>

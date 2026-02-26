@@ -157,8 +157,8 @@ function Header() {
               asChild
               className="bg-gradient-brand text-white shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30"
             >
-              <Link href="/login?intent=signup">
-                Start Free
+              <Link href="/signup">
+                Start Free Plan
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -204,8 +204,8 @@ function Header() {
                       asChild
                       className="w-full bg-gradient-brand text-white shadow-md shadow-indigo-500/20"
                     >
-                      <Link href="/login?intent=signup">
-                        Start Free
+                      <Link href="/signup">
+                        Open Free Workspace
                         <ArrowRight className="size-4" />
                       </Link>
                     </Button>

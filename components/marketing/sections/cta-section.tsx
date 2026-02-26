@@ -50,8 +50,8 @@ export function CTASection() {
                   size="lg"
                   className="bg-gradient-brand text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30"
                 >
-                  <Link href="/login?intent=signup">
-                    Start Free
+                  <Link href="/signup">
+                    Start with Free Tier
                     <ArrowRight className="size-4" />
                   </Link>
                 </Button>

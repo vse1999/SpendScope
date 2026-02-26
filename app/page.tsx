@@ -9,9 +9,9 @@ import { SoftwareApplicationJsonLd } from "@/components/seo/json-ld";
 import { getHomeRedirectPath } from "@/lib/landing/home-route";
 
 export const metadata: Metadata = {
-  title: "SpendScope | Modern Expense Intelligence for Teams",
+  title: "SpendScope | Expense Control for Modern Teams",
   description:
-    "Track spending, enforce controls, and monitor analytics with policy-aware insights built for modern teams.",
+    "Expense control for modern teams with fast capture, clear policy guidance, and confident analytics decisions.",
 };
 
 export default async function HomePage(): Promise<ReactElement> {
