@@ -1,11 +1,22 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getInvitationByToken } from "@/app/actions/team";
 import { AcceptInvitationForm } from "@/components/invitations/accept-invitation-form";
+
+export const metadata: Metadata = {
+  title: "Accept Invitation",
+  description: "Accept a team invitation in SpendScope.",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
+};
 
 interface AcceptInvitePageProps {
   searchParams: Promise<{

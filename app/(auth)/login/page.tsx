@@ -1,6 +1,12 @@
 import { LoginForm } from "@/components/blocks/auth"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+    title: "Sign In",
+    description: "Sign in to SpendScope to manage your team expenses.",
+}
 
 interface LoginPageProps {
     searchParams: Promise<{ error?: string; redirectTo?: string }>

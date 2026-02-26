@@ -2,10 +2,19 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { UserRole } from "@prisma/client"
+import type { Metadata } from "next"
 import { getCachedUserCompany } from "@/lib/queries/get-user-company"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { NotificationProvider } from "@/components/notifications/notification-provider"
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
+}
 
 export default async function DashboardLayout({
   children,
