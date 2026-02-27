@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { displayFont } from "@/lib/fonts";
 import { TextReveal, StaggerContainer, StaggerItem } from "@/components/marketing/animations";
-import { SpotlightCard } from "@/components/marketing/animations";
 
 interface FAQItem {
   readonly question: string;
@@ -29,54 +28,44 @@ function FAQAccordion({
   readonly onToggle: () => void;
 }) {
   return (
-    <SpotlightCard
-      className="w-full"
-      spotlightColor="rgba(99, 102, 241, 0.06)"
-      borderColor="rgba(99, 102, 241, 0.12)"
-    >
-      <div className="rounded-xl border border-border/80 bg-card/80">
-        <button
-          onClick={onToggle}
-          className="flex w-full cursor-pointer items-center justify-between gap-4 p-5 text-left font-medium text-foreground transition-colors hover:text-indigo-600 dark:hover:text-indigo-400"
-          aria-expanded={isOpen}
-          aria-controls={`faq-content-${index}`}
-        >
-          <span className="flex items-center gap-4">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
-            >
-              {index + 1}
-            </span>
-            {item.question}
-          </span>
-          <motion.div
-            className="shrink-0"
-            animate={{ rotate: isOpen ? 45 : 0 }}
-            transition={{ duration: 0.2 }}
+    <div className="w-full rounded-xl border border-border/80 bg-card/80">
+      <button
+        onClick={onToggle}
+        className="flex w-full cursor-pointer items-center justify-between gap-4 p-5 text-left font-medium text-foreground transition-colors hover:text-indigo-600 dark:hover:text-indigo-400"
+        aria-expanded={isOpen}
+        aria-controls={`faq-content-${index}`}
+      >
+        <span className="flex items-center gap-4">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
           >
-            <Plus className="size-5 text-muted-foreground transition-colors duration-300" />
-          </motion.div>
-        </button>
-        
-        <AnimatePresence initial={false}>
-          {isOpen && (
-            <motion.div
-              id={`faq-content-${index}`}
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden"
-            >
-              <div className="border-t border-border/50 px-5 pb-5 pt-4">
-                <p className="pl-12 text-sm leading-relaxed text-muted-foreground">
-                  {item.answer}
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {index + 1}
+          </span>
+          {item.question}
+        </span>
+        <motion.div
+          className="shrink-0"
+          animate={{ rotate: isOpen ? 45 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Plus className="size-5 text-muted-foreground transition-colors duration-300" />
+        </motion.div>
+      </button>
+
+      <div
+        id={`faq-content-${index}`}
+        aria-hidden={!isOpen}
+        className={cn(
+          "grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ease-out",
+          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        )}
+      >
+        <div className="min-h-0 border-t border-border/50 px-5 pb-5 pt-4">
+          <p className="pl-12 text-sm leading-relaxed text-muted-foreground">
+            {item.answer}
+          </p>
+        </div>
       </div>
-    </SpotlightCard>
+    </div>
   );
 }
 
