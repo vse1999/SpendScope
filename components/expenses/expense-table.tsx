@@ -132,7 +132,7 @@ export function ExpenseTable({
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Description</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Category</TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 text-right">Amount</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 w-[100px] pr-6">Actions</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 w-25 pr-6">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -141,7 +141,7 @@ export function ExpenseTable({
                       <TableCell className="text-muted-foreground tabular-nums pl-6">
                         {format(new Date(expense.date), "MMM d, yyyy")}
                       </TableCell>
-                      <TableCell className="font-medium max-w-[250px] truncate">
+                      <TableCell className="font-medium max-w-62.5 truncate">
                         {expense.description}
                       </TableCell>
                       <TableCell>
