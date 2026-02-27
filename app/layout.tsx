@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { OrganizationJsonLd } from "@/components/seo/json-ld";
 import { shouldAllowIndexing } from "@/lib/seo/deployment-environment";
 import { getSiteUrlObject } from "@/lib/seo/site-url";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -96,6 +97,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
