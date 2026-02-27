@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -16,72 +14,48 @@
 /test-results
 /blob-report
 
-# next.js
+# build outputs
 /.next/
 /out/
-
-# production
 /build
+*.tsbuildinfo
+next-env.d.ts
+/lib/generated/prisma
 
-# misc
-.DS_Store
-*.pem
-/nul
+# local env and secrets
+.env
+.env.local
+.env.local.*
+.env.*.local
+.env.development
+.env.test
+.env.production
+.env.sentry-build-plugin
+!.env.example
+!.env*.example
 
-# debug
+# debug and logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 dev.log
 
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
+# platform / local artifacts
+.DS_Store
+*.pem
+/nul
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-/lib/generated/prisma
-
-# Internal/process markdown files (not for production)
+# internal/process markdown files (not for production)
 AGENTS.md
-ARCHITECTURE.md
-ARCHITECTURE_PATTERNS.md
-GIT_ALIAS_SETUP.md
-IMPLEMENTATION_PLAN.md
-IMPLEMENTATION_STATUS.md
-TECH_DEBT.md
-PHASE3_ROADMAP.md
-TODO.md
-TODO*.md
-PLAN.md
-PLAN*.md
-IMPLEMENTATION_*.md
-DRAFT.md
-DRAFT*.md
-PROMPT.md
-PROMPT*.md
-*.todo.md
-*.draft.md
-*.plan.md
-*.prompt.md
-notes/*.md
-drafts/*.md
 
-# Local helper scripts (not for production)
-.git-commit-ai.ps1
-scripts/git-commit-ai.sh
-
-# Private AI command/prompt docs (never commit)
+# private AI command/prompt docs (never commit)
 git-commit-prompt.md
-git\ commit\ prompt.md
-docs/
-docs/commit-philosophy.md
 docs/commands/
+docs/logo-generation-prompt.md
 
-# Sentry Config File
-.env.sentry-build-plugin
+# unpublished local artifacts (intentionally not committed yet)
+.env.example
+docs/deployment/stripe-webhook-setup.md
+docs/deployment/test-mode-checklist.md
