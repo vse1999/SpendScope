@@ -165,15 +165,17 @@ export function ExpenseTable({
                         {formatCurrency(expense.amount)}
                       </TableCell>
                       <TableCell className="pr-6">
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-0.5">
                           {canEdit(expense) && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 rounded-lg"
                               onClick={() => handleEdit(expense)}
+                              aria-label={`Edit expense: ${expense.description}`}
                             >
                               <Pencil className="h-3.5 w-3.5" />
+                              <span className="sr-only">Edit expense</span>
                             </Button>
                           )}
                           {canDelete() && (
@@ -182,8 +184,10 @@ export function ExpenseTable({
                               size="icon"
                               className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
                               onClick={() => setDeletingExpense(expense)}
+                              aria-label={`Delete expense: ${expense.description}`}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
+                              <span className="sr-only">Delete expense</span>
                             </Button>
                           )}
                         </div>
