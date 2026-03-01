@@ -10,6 +10,7 @@ interface SummaryCardsProps {
   readonly totalCount: number;
   readonly userCount: number;
   readonly monthlyTrend: readonly MonthlyTrend[];
+  readonly motionPolicy?: "enhanced" | "static";
 }
 
 interface StatCardProps {
@@ -19,9 +20,31 @@ interface StatCardProps {
   readonly icon: React.ReactNode;
   readonly gradient: string;
   readonly delay: number;
+  readonly motionEnabled: boolean;
 }
 
-function StatCard({ title, value, subtitle, icon, gradient, delay }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  gradient,
+  delay,
+  motionEnabled,
+}: StatCardProps): React.JSX.Element {
+  if (!motionEnabled) {
+    return (
+      <div className="relative overflow-hidden rounded-xl border border-indigo-200/70 bg-white/90 p-3 shadow-lg backdrop-blur-sm dark:border-indigo-900/50 dark:bg-slate-900/90">
+        <div className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shadow-md`}>
+          {icon}
+        </div>
+        <p className="text-xs text-muted-foreground">{title}</p>
+        <p className="mt-0.5 text-lg font-bold tracking-tight">{value}</p>
+        <p className="text-[10px] text-muted-foreground">{subtitle}</p>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -40,10 +63,17 @@ function StatCard({ title, value, subtitle, icon, gradient, delay }: StatCardPro
   );
 }
 
-export function SummaryCards({ totalAmount, totalCount, userCount, monthlyTrend }: SummaryCardsProps) {
+export function SummaryCards({
+  totalAmount,
+  totalCount,
+  userCount,
+  monthlyTrend,
+  motionPolicy = "enhanced",
+}: SummaryCardsProps): React.JSX.Element {
   const latestMonth = monthlyTrend[monthlyTrend.length - 1];
   const previousMonth = monthlyTrend[monthlyTrend.length - 2];
   const thisMonthAmount = latestMonth?.amount ?? 0;
+  const motionEnabled = motionPolicy === "enhanced";
   const monthOverMonthChangeText =
     previousMonth && previousMonth.amount > 0
       ? `${thisMonthAmount >= previousMonth.amount ? "+" : ""}${(
@@ -61,6 +91,7 @@ export function SummaryCards({ totalAmount, totalCount, userCount, monthlyTrend 
         icon={<TrendingUp className="h-3.5 w-3.5 text-white" />}
         gradient="from-blue-500 to-blue-600"
         delay={0.6}
+        motionEnabled={motionEnabled}
       />
       <StatCard
         title="This Month"
@@ -69,6 +100,7 @@ export function SummaryCards({ totalAmount, totalCount, userCount, monthlyTrend 
         icon={<PieChart className="h-3.5 w-3.5 text-white" />}
         gradient="from-emerald-500 to-emerald-600"
         delay={0.7}
+        motionEnabled={motionEnabled}
       />
       <StatCard
         title="Team Members"
@@ -77,6 +109,7 @@ export function SummaryCards({ totalAmount, totalCount, userCount, monthlyTrend 
         icon={<Users className="h-3.5 w-3.5 text-white" />}
         gradient="from-violet-500 to-violet-600"
         delay={0.8}
+        motionEnabled={motionEnabled}
       />
     </div>
   );

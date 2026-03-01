@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
+
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 import { cn } from "@/lib/utils";
 import { displayFont } from "@/lib/fonts";
 import { TextReveal, StaggerContainer, StaggerItem } from "@/components/marketing/animations";
@@ -27,6 +29,8 @@ function FAQAccordion({
   readonly isOpen: boolean;
   readonly onToggle: () => void;
 }) {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
   return (
     <div className="w-full rounded-xl border border-border/80 bg-card/80">
       <button
@@ -44,8 +48,8 @@ function FAQAccordion({
         </span>
         <motion.div
           className="shrink-0"
-          animate={{ rotate: isOpen ? 45 : 0 }}
-          transition={{ duration: 0.2 }}
+          animate={allowEnhancedMotion ? { rotate: isOpen ? 45 : 0 } : undefined}
+          transition={allowEnhancedMotion ? { duration: 0.2 } : undefined}
         >
           <Plus className="size-5 text-muted-foreground transition-colors duration-300" />
         </motion.div>

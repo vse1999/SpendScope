@@ -12,8 +12,12 @@ import {
   SheetContent,
   SheetTrigger,
   SheetClose,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { MagneticButton } from "@/components/marketing/animations";
+import { MarketingDeviceProfileProvider } from "@/components/marketing/hooks/use-marketing-device-profile";
 import {
   HeroSection,
   TechStackSection,
@@ -125,7 +129,7 @@ function BrandWordmark({ className }: { className?: string }) {
   );
 }
 
-function Header() {
+function Header(): React.JSX.Element {
   return (
     <header className="sticky top-0 z-50 border-b border-indigo-100/80 bg-background/80 backdrop-blur-md dark:border-indigo-900/40">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
@@ -167,16 +171,22 @@ function Header() {
 
         {/* Mobile Menu */}
         <div className="flex items-center gap-2 md:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Open menu">
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-75 sm:w-100">
-              <div className="flex flex-col gap-6 py-4">
-                {/* Mobile Navigation Links */}
-                <nav className="flex flex-col gap-4">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Open menu">
+                  <Menu className="size-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-75 sm:w-100">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Navigation menu</SheetTitle>
+                  <SheetDescription>
+                    Browse the landing page sections and authentication actions.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="flex flex-col gap-6 py-4">
+                  {/* Mobile Navigation Links */}
+                  <nav className="flex flex-col gap-4">
                   {navigationItems.map((item) => (
                     <SheetClose asChild key={item.href}>
                       <Link
@@ -220,7 +230,7 @@ function Header() {
   );
 }
 
-function Footer() {
+function Footer(): React.JSX.Element {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -233,29 +243,39 @@ function Footer() {
   );
 }
 
-export function LandingPage() {
+interface LandingPageProps {
+  readonly defaultIsMobileViewport?: boolean;
+}
+
+export function LandingPage({
+  defaultIsMobileViewport = false,
+}: LandingPageProps): React.JSX.Element {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-background">
-      <Header />
+    <MarketingDeviceProfileProvider
+      defaultIsMobileViewport={defaultIsMobileViewport}
+    >
+      <div className="relative min-h-screen overflow-x-hidden bg-background">
+        <Header />
 
-      <main className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6">
-        <HeroSection
-          trustItems={trustItems}
-          previewData={{
-            monthlyTrend: MARKETING_ANALYTICS_DATA.monthlyTrend,
-            summary: MARKETING_ANALYTICS_DATA.summary,
-            userSpending: MARKETING_ANALYTICS_DATA.userSpending,
-          }}
-        />
-        <TechStackSection technologies={technologies} />
-        <FeaturesSection analyticsData={MARKETING_ANALYTICS_DATA} />
-        <TourSection tourSteps={tourSteps} />
-        <PricingSection plans={PRICING_PLANS} />
-        <FAQSection faqItems={faqItems} />
-        <CTASection />
-      </main>
+        <main className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6">
+          <HeroSection
+            trustItems={trustItems}
+            previewData={{
+              monthlyTrend: MARKETING_ANALYTICS_DATA.monthlyTrend,
+              summary: MARKETING_ANALYTICS_DATA.summary,
+              userSpending: MARKETING_ANALYTICS_DATA.userSpending,
+            }}
+          />
+          <TechStackSection technologies={technologies} />
+          <FeaturesSection analyticsData={MARKETING_ANALYTICS_DATA} />
+          <TourSection tourSteps={tourSteps} />
+          <PricingSection plans={PRICING_PLANS} />
+          <FAQSection faqItems={faqItems} />
+          <CTASection />
+        </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </MarketingDeviceProfileProvider>
   );
 }

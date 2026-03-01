@@ -3,6 +3,8 @@
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import { useRef, type ReactNode } from "react";
 
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
+
 interface SpotlightCardProps {
   readonly children: ReactNode;
   readonly className?: string;
@@ -11,26 +13,16 @@ interface SpotlightCardProps {
   readonly showBorder?: boolean;
 }
 
-export function SpotlightCard({
+function EnhancedSpotlightCard({
   children,
   className = "",
   spotlightColor = "rgba(99, 102, 241, 0.15)",
   borderColor = "rgba(99, 102, 241, 0.3)",
   showBorder = true,
-}: SpotlightCardProps) {
+}: SpotlightCardProps): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null);
-
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-
-    const rect = ref.current.getBoundingClientRect();
-    mouseX.set(event.clientX - rect.left);
-    mouseY.set(event.clientY - rect.top);
-  };
-
   const background = useMotionTemplate`
     radial-gradient(
       650px circle at ${mouseX}px ${mouseY}px,
@@ -38,7 +30,6 @@ export function SpotlightCard({
       transparent 80%
     )
   `;
-
   const border = useMotionTemplate`
     radial-gradient(
       400px circle at ${mouseX}px ${mouseY}px,
@@ -46,6 +37,16 @@ export function SpotlightCard({
       transparent 100%
     )
   `;
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>): void => {
+    if (!ref.current) {
+      return;
+    }
+
+    const rect = ref.current.getBoundingClientRect();
+    mouseX.set(event.clientX - rect.left);
+    mouseY.set(event.clientY - rect.top);
+  };
 
   return (
     <motion.div
@@ -71,5 +72,30 @@ export function SpotlightCard({
       />
       <div className="relative z-10">{children}</div>
     </motion.div>
+  );
+}
+
+export function SpotlightCard({
+  children,
+  className = "",
+  spotlightColor = "rgba(99, 102, 241, 0.15)",
+  borderColor = "rgba(99, 102, 241, 0.3)",
+  showBorder = true,
+}: SpotlightCardProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
+  if (!allowEnhancedMotion) {
+    return <div className={`relative overflow-hidden ${className}`}>{children}</div>;
+  }
+
+  return (
+    <EnhancedSpotlightCard
+      className={className}
+      spotlightColor={spotlightColor}
+      borderColor={borderColor}
+      showBorder={showBorder}
+    >
+      {children}
+    </EnhancedSpotlightCard>
   );
 }

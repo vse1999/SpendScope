@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Check, Sparkles, X } from "lucide-react";
+
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -24,6 +26,8 @@ interface PricingSectionProps {
 }
 
 function PricingCard({ plan }: { readonly plan: PricingPlanPresentation }) {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
   return (
     <StaggerItem>
       <SpotlightCard
@@ -32,8 +36,12 @@ function PricingCard({ plan }: { readonly plan: PricingPlanPresentation }) {
         borderColor={plan.isPopular ? "rgba(99, 102, 241, 0.4)" : "rgba(99, 102, 241, 0.1)"}
       >
         <motion.div
-          whileHover={{ y: -6 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          whileHover={allowEnhancedMotion ? { y: -6 } : undefined}
+          transition={
+            allowEnhancedMotion
+              ? { type: "spring", stiffness: 400, damping: 17 }
+              : undefined
+          }
           className={cn("grid h-full grid-rows-[auto_auto_auto_1fr_auto] p-6", getPricingCardClassName(Boolean(plan.isPopular)))}
         >
           {/* Row 1: Title + Badge */}
@@ -44,9 +52,13 @@ function PricingCard({ plan }: { readonly plan: PricingPlanPresentation }) {
               </h3>
               {plan.isPopular && (
                 <motion.div
-                  initial={{ rotate: 0 }}
-                  animate={{ rotate: [0, 15, -15, 0] }}
-                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                  initial={allowEnhancedMotion ? { rotate: 0 } : undefined}
+                  animate={allowEnhancedMotion ? { rotate: [0, 15, -15, 0] } : undefined}
+                  transition={
+                    allowEnhancedMotion
+                      ? { duration: 2, repeat: Infinity, repeatDelay: 3 }
+                      : undefined
+                  }
                 >
                   <Sparkles className="size-5 text-indigo-400" />
                 </motion.div>
@@ -55,14 +67,20 @@ function PricingCard({ plan }: { readonly plan: PricingPlanPresentation }) {
             <div className="h-6">
               {plan.badge && (
                 <motion.div
-                  animate={{ 
-                    boxShadow: [
-                      "0 0 0 rgba(99, 102, 241, 0)",
-                      "0 0 20px rgba(99, 102, 241, 0.3)",
-                      "0 0 0 rgba(99, 102, 241, 0)"
-                    ]
-                  }}
-                  transition={{ duration: 2, repeat: Infinity }}
+                  animate={
+                    allowEnhancedMotion
+                      ? {
+                          boxShadow: [
+                            "0 0 0 rgba(99, 102, 241, 0)",
+                            "0 0 20px rgba(99, 102, 241, 0.3)",
+                            "0 0 0 rgba(99, 102, 241, 0)",
+                          ],
+                        }
+                      : undefined
+                  }
+                  transition={
+                    allowEnhancedMotion ? { duration: 2, repeat: Infinity } : undefined
+                  }
                 >
                   <Badge 
                     className={getPricingBadgeClassName(Boolean(plan.isPopular))}
@@ -92,10 +110,10 @@ function PricingCard({ plan }: { readonly plan: PricingPlanPresentation }) {
                 <motion.li
                   key={`${plan.name}-${feature.text}`}
                   className="flex items-start gap-3 text-sm"
-                  initial={{ opacity: 0, x: -10 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: featureIndex * 0.1 }}
+                  initial={allowEnhancedMotion ? { opacity: 0, x: -10 } : undefined}
+                  whileInView={allowEnhancedMotion ? { opacity: 1, x: 0 } : undefined}
+                  viewport={allowEnhancedMotion ? { once: true } : undefined}
+                  transition={allowEnhancedMotion ? { delay: featureIndex * 0.1 } : undefined}
                 >
                   <div className={getPricingFeatureIconContainerClassName(feature.included)}>
                     {feature.included ? (

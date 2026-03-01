@@ -1,20 +1,51 @@
 "use client";
 
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
+
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 import { cn } from "@/lib/utils";
 import { displayFont } from "@/lib/fonts";
 import { TextReveal, StaggerContainer, StaggerItem } from "@/components/marketing/animations";
-import {
-  CategoryDistributionChart,
-  UserSpendingChart,
-} from "@/components/analytics";
+import { MobileFeatureSummaries } from "./mobile-feature-summaries";
 import type { AnalyticsData } from "@/types/analytics";
+
+const DesktopCategoryDistributionChart = dynamic(
+  () =>
+    import("@/components/analytics/category-distribution-chart").then(
+      (module) => module.CategoryDistributionChart
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[380px] rounded-2xl border border-border/60 bg-card/60" />
+    ),
+  }
+);
+
+const DesktopUserSpendingChart = dynamic(
+  () =>
+    import("@/components/analytics/user-spending-chart").then(
+      (module) => module.UserSpendingChart
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[380px] rounded-2xl border border-border/60 bg-card/60" />
+    ),
+  }
+);
 
 interface FeaturesSectionProps {
   readonly analyticsData: AnalyticsData;
 }
 
-export function FeaturesSection({ analyticsData }: FeaturesSectionProps) {
+export function FeaturesSection({
+  analyticsData,
+}: FeaturesSectionProps): React.JSX.Element {
+  const { allowEnhancedMotion, useMobileOptimizedContent } =
+    useMarketingDeviceProfile();
+
   return (
     <section
       id="product"
@@ -38,23 +69,44 @@ export function FeaturesSection({ analyticsData }: FeaturesSectionProps) {
         </div>
       </TextReveal>
 
-      <StaggerContainer
-        className="grid gap-6 lg:grid-cols-2"
-        staggerDelay={0.12}
-        delayChildren={0.15}
-      >
-        <StaggerItem>
-          <motion.div whileHover={{ y: -2 }} transition={{ type: "spring", stiffness: 340, damping: 24 }}>
-            <CategoryDistributionChart data={analyticsData.categoryDistribution} />
-          </motion.div>
-        </StaggerItem>
+      {useMobileOptimizedContent ? (
+        <MobileFeatureSummaries
+          categoryDistribution={analyticsData.categoryDistribution}
+          userSpending={analyticsData.userSpending}
+        />
+      ) : (
+        <StaggerContainer
+          className="grid gap-6 lg:grid-cols-2"
+          staggerDelay={0.12}
+          delayChildren={0.15}
+        >
+          <StaggerItem>
+            <motion.div
+              whileHover={allowEnhancedMotion ? { y: -2 } : undefined}
+              transition={
+                allowEnhancedMotion
+                  ? { type: "spring", stiffness: 340, damping: 24 }
+                  : undefined
+              }
+            >
+              <DesktopCategoryDistributionChart data={analyticsData.categoryDistribution} />
+            </motion.div>
+          </StaggerItem>
 
-        <StaggerItem>
-          <motion.div whileHover={{ y: -2 }} transition={{ type: "spring", stiffness: 340, damping: 24 }}>
-            <UserSpendingChart data={analyticsData.userSpending} />
-          </motion.div>
-        </StaggerItem>
-      </StaggerContainer>
+          <StaggerItem>
+            <motion.div
+              whileHover={allowEnhancedMotion ? { y: -2 } : undefined}
+              transition={
+                allowEnhancedMotion
+                  ? { type: "spring", stiffness: 340, damping: 24 }
+                  : undefined
+              }
+            >
+              <DesktopUserSpendingChart data={analyticsData.userSpending} />
+            </motion.div>
+          </StaggerItem>
+        </StaggerContainer>
+      )}
     </section>
   );
 }

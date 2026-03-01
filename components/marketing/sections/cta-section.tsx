@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Download } from "lucide-react";
+
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -10,7 +12,9 @@ import { displayFont } from "@/lib/fonts";
 import { TextReveal } from "@/components/marketing/animations";
 import { MeshGradient } from "@/components/marketing/effects";
 
-export function CTASection() {
+export function CTASection(): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
   return (
     <section className="relative py-16">
       <TextReveal>
@@ -42,8 +46,8 @@ export function CTASection() {
             
             <CardContent className="flex flex-wrap items-center justify-center gap-4">
               <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={allowEnhancedMotion ? { scale: 1.02 } : undefined}
+                whileTap={allowEnhancedMotion ? { scale: 0.98 } : undefined}
               >
                 <Button
                   asChild
@@ -58,8 +62,8 @@ export function CTASection() {
               </motion.div>
               
               <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={allowEnhancedMotion ? { scale: 1.02 } : undefined}
+                whileTap={allowEnhancedMotion ? { scale: 0.98 } : undefined}
               >
                 <Button asChild size="lg" variant="outline" className="glass-card"
                 >

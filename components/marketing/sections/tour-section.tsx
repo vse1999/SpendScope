@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -18,7 +20,9 @@ interface TourSectionProps {
   readonly tourSteps: readonly TourStep[];
 }
 
-export function TourSection({ tourSteps }: TourSectionProps) {
+export function TourSection({ tourSteps }: TourSectionProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
   return (
     <section id="tour" aria-labelledby="tour-heading" className="scroll-mt-24 py-16">
       <TextReveal>
@@ -47,10 +51,19 @@ export function TourSection({ tourSteps }: TourSectionProps) {
               <div className="relative flex gap-6 md:items-start">
                 <motion.div
                   className="relative z-10 hidden shrink-0 md:block"
-                  initial={{ scale: 0 }}
-                  whileInView={{ scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20, delay: index * 0.1 }}
+                  initial={allowEnhancedMotion ? { scale: 0 } : undefined}
+                  whileInView={allowEnhancedMotion ? { scale: 1 } : undefined}
+                  viewport={allowEnhancedMotion ? { once: true } : undefined}
+                  transition={
+                    allowEnhancedMotion
+                      ? {
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 20,
+                          delay: index * 0.1,
+                        }
+                      : undefined
+                  }
                 >
                   <div className="flex size-10 items-center justify-center rounded-full border-2 border-indigo-500 bg-background shadow-lg shadow-indigo-500/20">
                     <span className="text-sm font-semibold text-indigo-600">{index + 1}</span>

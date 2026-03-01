@@ -1,16 +1,18 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useMemo, useSyncExternalStore } from "react";
 
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
+
 interface Particle {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  duration: number;
-  delay: number;
-  opacity: number;
+  readonly id: number;
+  readonly x: number;
+  readonly y: number;
+  readonly size: number;
+  readonly duration: number;
+  readonly delay: number;
+  readonly opacity: number;
 }
 
 interface ParticleFieldProps {
@@ -19,61 +21,43 @@ interface ParticleFieldProps {
   readonly color?: string;
 }
 
-// Seeded random number generator for consistent SSR/client hydration
 function seededRandom(seed: number): number {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
 }
 
 function generateParticles(count: number): Particle[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    x: seededRandom(i * 1000) * 100,
-    y: seededRandom(i * 2000) * 100,
-    size: seededRandom(i * 3000) * 3 + 1,
-    duration: seededRandom(i * 4000) * 20 + 15,
-    delay: seededRandom(i * 5000) * 5,
-    opacity: seededRandom(i * 6000) * 0.3 + 0.1,
+  return Array.from({ length: count }, (_, index) => ({
+    id: index,
+    x: Number((seededRandom(index * 1000) * 100).toFixed(4)),
+    y: Number((seededRandom(index * 2000) * 100).toFixed(4)),
+    size: Number((seededRandom(index * 3000) * 3 + 1).toFixed(5)),
+    duration: Number((seededRandom(index * 4000) * 20 + 15).toFixed(4)),
+    delay: Number((seededRandom(index * 5000) * 5).toFixed(4)),
+    opacity: Number((seededRandom(index * 6000) * 0.3 + 0.1).toFixed(6)),
   }));
 }
 
-// Hook to detect if we're on the client (hydration-safe)
-function useIsClient(): boolean {
-  return useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
-}
-
-export function ParticleField({ 
-  className = "", 
+function EnhancedParticleField({
+  className = "",
   particleCount = 30,
-  color = "rgba(99, 102, 241, 0.4)"
-}: ParticleFieldProps) {
-  const isClient = useIsClient();
-  const shouldReduceMotion = useReducedMotion();
-  
-  // Use lazy initialization with seeded random for consistent results
+  color = "rgba(99, 102, 241, 0.4)",
+}: ParticleFieldProps): React.JSX.Element {
   const particles = useMemo(() => generateParticles(particleCount), [particleCount]);
-
-  // On server or during hydration, render container only (no particles)
-  // After hydration on client, check reduced motion preference
-  const showParticles = isClient && !shouldReduceMotion;
 
   return (
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
-      {showParticles && particles.map((particle) => (
+      {particles.map((particle) => (
         <motion.div
           key={particle.id}
           className="absolute rounded-full"
           style={{
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-            width: particle.size,
-            height: particle.size,
+            left: `${particle.x.toFixed(4)}%`,
+            top: `${particle.y.toFixed(4)}%`,
+            width: `${particle.size.toFixed(5)}px`,
+            height: `${particle.size.toFixed(5)}px`,
             backgroundColor: color,
-            opacity: particle.opacity,
+            opacity: particle.opacity.toFixed(6),
           }}
           animate={{
             y: [-20, 20, -20],
@@ -89,5 +73,30 @@ export function ParticleField({
         />
       ))}
     </div>
+  );
+}
+
+export function ParticleField({
+  className = "",
+  particleCount = 30,
+  color = "rgba(99, 102, 241, 0.4)",
+}: ParticleFieldProps): React.JSX.Element | null {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+  const hasHydrated = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false
+  );
+
+  if (!allowEnhancedMotion || !hasHydrated) {
+    return null;
+  }
+
+  return (
+    <EnhancedParticleField
+      className={className}
+      particleCount={particleCount}
+      color={color}
+    />
   );
 }

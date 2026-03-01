@@ -1,28 +1,16 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
-import { useSyncExternalStore } from "react";
+import { motion } from "framer-motion";
+
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 
 interface MeshGradientProps {
   readonly className?: string;
 }
 
-// Hook to detect if we're on the client (hydration-safe)
-function useIsClient(): boolean {
-  return useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
-}
-
-export function MeshGradient({ className = "" }: MeshGradientProps) {
-  const isClient = useIsClient();
-  const shouldReduceMotion = useReducedMotion();
-
-  // On server/during hydration: render static orbs (always safe)
-  // After hydration on client: use actual reduced motion preference
-  const useAnimatedOrbs = isClient && !shouldReduceMotion;
+export function MeshGradient({ className = "" }: MeshGradientProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+  const useAnimatedOrbs = allowEnhancedMotion;
 
   return (
     <div className={`absolute inset-0 overflow-hidden ${className}`}>

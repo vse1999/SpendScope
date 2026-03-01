@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
+
 interface TextRevealProps {
   readonly children: ReactNode;
   readonly delay?: number;
@@ -68,7 +70,20 @@ export function TextReveal({
   duration = 0.5,
   className = "",
   type = "fade-up",
-}: TextRevealProps) {
+}: TextRevealProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
+  if (!allowEnhancedMotion) {
+    if (
+      (type === "word-by-word" || type === "letter-by-letter") &&
+      typeof children === "string"
+    ) {
+      return <span className={className}>{children}</span>;
+    }
+
+    return <div className={className}>{children}</div>;
+  }
+
   if (type === "word-by-word" && typeof children === "string") {
     const words = children.split(" ");
     
@@ -186,7 +201,13 @@ export function StaggerContainer({
   className = "",
   staggerDelay = 0.1,
   delayChildren = 0,
-}: StaggerContainerProps) {
+}: StaggerContainerProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
+  if (!allowEnhancedMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={className}
@@ -215,6 +236,12 @@ interface StaggerItemProps {
 }
 
 export function StaggerItem({ children, className = "" }: StaggerItemProps) {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
+  if (!allowEnhancedMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={className}

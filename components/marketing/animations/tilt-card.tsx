@@ -1,7 +1,15 @@
 "use client";
 
-import { motion, useMotionTemplate, useMotionValue, useSpring, useTransform } from "framer-motion";
+import {
+  motion,
+  useMotionTemplate,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import { useRef, type ReactNode } from "react";
+
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 
 interface TiltCardProps {
   readonly children: ReactNode;
@@ -13,7 +21,7 @@ interface TiltCardProps {
   readonly showGlow?: boolean;
 }
 
-export function TiltCard({
+function EnhancedTiltCard({
   children,
   className = "",
   tiltAmount = 10,
@@ -21,20 +29,15 @@ export function TiltCard({
   scale = 1.02,
   glowColor = "rgba(99, 102, 241, 0.3)",
   showGlow = true,
-}: TiltCardProps) {
+}: TiltCardProps): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null);
-
   const x = useMotionValue(0.5);
   const y = useMotionValue(0.5);
-
   const springConfig = { stiffness: 300, damping: 30 };
   const xSpring = useSpring(x, springConfig);
   const ySpring = useSpring(y, springConfig);
-
   const rotateX = useTransform(ySpring, [0, 1], [tiltAmount, -tiltAmount]);
   const rotateY = useTransform(xSpring, [0, 1], [-tiltAmount, tiltAmount]);
-
-  // Reactive glow background that follows cursor position
   const background = useMotionTemplate`
     radial-gradient(
       600px circle at ${useTransform(xSpring, [0, 1], [0, 100])}% ${useTransform(ySpring, [0, 1], [0, 100])}%,
@@ -43,8 +46,10 @@ export function TiltCard({
     )
   `;
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>): void => {
+    if (!ref.current) {
+      return;
+    }
 
     const rect = ref.current.getBoundingClientRect();
     const xPos = (event.clientX - rect.left) / rect.width;
@@ -54,7 +59,7 @@ export function TiltCard({
     y.set(yPos);
   };
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = (): void => {
     x.set(0.5);
     y.set(0.5);
   };
@@ -91,5 +96,34 @@ export function TiltCard({
         )}
       </motion.div>
     </motion.div>
+  );
+}
+
+export function TiltCard({
+  children,
+  className = "",
+  tiltAmount = 10,
+  perspective = 1000,
+  scale = 1.02,
+  glowColor = "rgba(99, 102, 241, 0.3)",
+  showGlow = true,
+}: TiltCardProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
+  if (!allowEnhancedMotion) {
+    return <div className={`relative ${className}`}>{children}</div>;
+  }
+
+  return (
+    <EnhancedTiltCard
+      className={className}
+      tiltAmount={tiltAmount}
+      perspective={perspective}
+      scale={scale}
+      glowColor={glowColor}
+      showGlow={showGlow}
+    >
+      {children}
+    </EnhancedTiltCard>
   );
 }

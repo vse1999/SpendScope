@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
+
 interface FloatingElementProps {
   readonly children: ReactNode;
   readonly className?: string;
@@ -17,7 +19,13 @@ export function FloatingElement({
   duration = 3,
   distance = 10,
   delay = 0,
-}: FloatingElementProps) {
+}: FloatingElementProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
+  if (!allowEnhancedMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={className}
@@ -49,7 +57,13 @@ export function PulseGlow({
   className = "",
   duration = 2,
   glowColor = "rgba(99, 102, 241, 0.5)",
-}: PulseGlowProps) {
+}: PulseGlowProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
+  if (!allowEnhancedMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={className}
@@ -80,7 +94,13 @@ interface MagneticButtonProps {
 export function MagneticButton({
   children,
   className = "",
-}: MagneticButtonProps) {
+}: MagneticButtonProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+
+  if (!allowEnhancedMotion) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={className}

@@ -1,8 +1,10 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { useSyncExternalStore } from "react";
+
+import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 import { cn } from "@/lib/utils";
 import { TextReveal } from "@/components/marketing/animations";
 
@@ -17,30 +19,22 @@ interface TechStackSectionProps {
   readonly technologies: readonly TechnologyItem[];
 }
 
-// Hook to detect if we're on the client (hydration-safe)
-function useIsClient(): boolean {
-  return useSyncExternalStore(
-    () => () => {},
+export function TechStackSection({
+  technologies,
+}: TechStackSectionProps): React.JSX.Element {
+  const { allowEnhancedMotion } = useMarketingDeviceProfile();
+  const hasHydrated = useSyncExternalStore(
+    () => () => undefined,
     () => true,
     () => false
   );
-}
-
-export function TechStackSection({ technologies }: TechStackSectionProps) {
-  const isClient = useIsClient();
-  const shouldReduceMotion = useReducedMotion();
-  
-  // Double the array for seamless infinite scroll
+  const shouldRenderAnimatedMarquee = allowEnhancedMotion && hasHydrated;
   const duplicatedTechnologies = [...technologies, ...technologies];
   
   // Calculate actual scroll distance: item width (160px) + gap (48px) = 208px per item
   const itemWidth = 160; // w-40 = 10rem = 160px
   const gapWidth = 48;   // gap-12 = 3rem = 48px
   const totalSetWidth = (itemWidth + gapWidth) * technologies.length;
-
-  // On server/during hydration: render static grid (always safe)
-  // After hydration on client: use actual reduced motion preference
-  const useAnimatedMarquee = isClient && !shouldReduceMotion;
 
   return (
     <section className="relative py-10">
@@ -56,7 +50,7 @@ export function TechStackSection({ technologies }: TechStackSectionProps) {
         <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-24 bg-gradient-to-r from-background to-transparent" />
         <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-24 bg-gradient-to-l from-background to-transparent" />
 
-        {useAnimatedMarquee ? (
+        {shouldRenderAnimatedMarquee ? (
           // Animated marquee with correct scroll distance
           <motion.div
             className="flex gap-12 py-8"
@@ -92,12 +86,12 @@ export function TechStackSection({ technologies }: TechStackSectionProps) {
             ))}
           </motion.div>
         ) : (
-          // Static grid for reduced motion or during SSR/hydration
-          <div className="flex justify-center gap-12 py-8 px-24">
+          // Static grid for mobile and reduced-motion modes
+          <div className="grid grid-cols-2 gap-4 px-4 py-6 sm:grid-cols-4 sm:px-8">
             {technologies.map((technology) => (
               <div
                 key={technology.name}
-                className="group flex h-14 w-40 shrink-0 items-center justify-center rounded-xl bg-white/50 px-4 transition-all duration-300 hover:bg-white dark:bg-slate-900/50 dark:hover:bg-slate-800/50"
+                className="group flex h-14 min-w-0 items-center justify-center rounded-xl bg-white/50 px-4 transition-all duration-300 hover:bg-white dark:bg-slate-900/50 dark:hover:bg-slate-800/50"
               >
                 <Image
                   src={technology.logoPath}
