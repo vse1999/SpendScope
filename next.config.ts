@@ -9,7 +9,14 @@ const securityHeaders: Array<{ key: string; value: string }> = [
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
 ];
 
+const allowedDevOrigins: string[] = process.env.ALLOWED_DEV_ORIGINS
+  ? process.env.ALLOWED_DEV_ORIGINS.split(",")
+      .map((origin: string) => origin.trim())
+      .filter((origin: string) => origin.length > 0)
+  : [];
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins,
   poweredByHeader: false,
   images: {
     remotePatterns: [
