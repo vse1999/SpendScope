@@ -34,16 +34,16 @@ export function ExpenseBulkActionsBar({
   onClearSelection,
 }: ExpenseBulkActionsBarProps): React.JSX.Element {
   return (
-    <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-4">
+    <div className="flex flex-col gap-3 rounded-lg border bg-muted/50 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-2">
         <CheckSquare className="h-5 w-5 text-primary" />
         <span className="font-medium">
           {selectedCount} expense{selectedCount !== 1 ? "s" : ""} selected
         </span>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
         <Select onValueChange={(value) => { void onBulkUpdateCategory(value); }}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <Tag className="mr-2 h-4 w-4" />
             <SelectValue placeholder="Change Category" />
           </SelectTrigger>
@@ -59,35 +59,37 @@ export function ExpenseBulkActionsBar({
           </SelectContent>
         </Select>
 
-        <Dialog open={isDeleteDialogOpen} onOpenChange={onDeleteDialogOpenChange}>
-          <DialogTrigger asChild>
-            <Button variant="destructive" size="sm">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Delete Expenses</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete {selectedCount} expense{selectedCount !== 1 ? "s" : ""}?
-                This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onDeleteDialogOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={() => { void onBulkDelete(); }}>
+        <div className="grid grid-cols-[1fr_auto] gap-2 sm:flex sm:items-center">
+          <Dialog open={isDeleteDialogOpen} onOpenChange={onDeleteDialogOpenChange}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="w-full justify-center">
+                <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Expenses</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete {selectedCount} expense{selectedCount !== 1 ? "s" : ""}?
+                  This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => onDeleteDialogOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" onClick={() => { void onBulkDelete(); }}>
+                  Delete
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-        <Button variant="ghost" size="sm" onClick={onClearSelection}>
-          <X className="h-4 w-4" />
-        </Button>
+          <Button variant="ghost" size="sm" onClick={onClearSelection} className="justify-center">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

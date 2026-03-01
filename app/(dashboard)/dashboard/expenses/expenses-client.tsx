@@ -109,7 +109,7 @@ export function ExpensesClient({
   });
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -117,7 +117,7 @@ export function ExpensesClient({
           </h1>
           <p className="text-muted-foreground">Manage and analyze your expenses</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
           <Button variant="outline" onClick={handleExport} disabled={isExporting || expenses.length === 0}>
             {isExporting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

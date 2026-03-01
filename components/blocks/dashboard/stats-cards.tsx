@@ -38,7 +38,9 @@ export function StatsCards({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap">{formatCurrency(totalExpenses)}</div>
+          <div className="text-2xl font-bold tracking-tight break-words tabular-nums whitespace-normal sm:text-3xl sm:whitespace-nowrap">
+            {formatCurrency(totalExpenses)}
+          </div>
           <p className="text-sm text-muted-foreground mt-2">
             {expenseCount === 0
               ? "No expenses recorded"
@@ -56,7 +58,9 @@ export function StatsCards({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap">{formatCurrency(thisMonth)}</div>
+          <div className="text-2xl font-bold tracking-tight break-words tabular-nums whitespace-normal sm:text-3xl sm:whitespace-nowrap">
+            {formatCurrency(thisMonth)}
+          </div>
           <div className="flex items-center gap-1.5 mt-2">
             <div className={cn(
               "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold",

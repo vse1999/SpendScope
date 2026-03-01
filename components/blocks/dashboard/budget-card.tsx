@@ -193,12 +193,15 @@ export function BudgetCard({ summary, settings, currentUserRole }: BudgetCardPro
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        {summary.hasBudget && summary.remaining !== null ? (
-          <>
-            <div className={cn("text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap", summary.remaining < 0 ? "text-destructive" : "text-foreground")}>
-              {formatCurrency(summary.remaining)}
-            </div>
+        <CardContent>
+          {summary.hasBudget && summary.remaining !== null ? (
+            <>
+              <div className={cn(
+                "text-2xl font-bold tracking-tight break-words tabular-nums whitespace-normal sm:text-3xl sm:whitespace-nowrap",
+                summary.remaining < 0 ? "text-destructive" : "text-foreground"
+              )}>
+                {formatCurrency(summary.remaining)}
+              </div>
             <p className="mt-1 line-clamp-1 text-xs text-muted-foreground" title={policyLabel}>
               {policyLabel}
             </p>

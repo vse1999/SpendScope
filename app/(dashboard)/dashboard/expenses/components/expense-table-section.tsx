@@ -31,6 +31,13 @@ interface ExpenseTableSectionProps {
   onLoadMore: () => Promise<void>;
 }
 
+const MOBILE_SORT_OPTIONS: Array<{ field: SortField; label: string }> = [
+  { field: "date", label: "Date" },
+  { field: "category", label: "Category" },
+  { field: "user", label: "User" },
+  { field: "amount", label: "Amount" },
+];
+
 function renderSortIcon(field: SortField, sortConfig: MultiSortConfig): React.JSX.Element {
   const sortIndex = sortConfig.findIndex((sort) => sort.field === field);
 
@@ -57,6 +64,36 @@ function renderSortIcon(field: SortField, sortConfig: MultiSortConfig): React.JS
   );
 }
 
+function MobileSortButton({
+  field,
+  label,
+  sortConfig,
+  isRefreshing,
+  onSort,
+}: {
+  field: SortField;
+  label: string;
+  sortConfig: MultiSortConfig;
+  isRefreshing: boolean;
+  onSort: (field: SortField) => void;
+}): React.JSX.Element {
+  const isActive = sortConfig.some((sort) => sort.field === field);
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className={`w-full justify-between ${isActive ? "border-primary/40 bg-primary/10" : ""}`}
+      disabled={isRefreshing}
+      onClick={() => onSort(field)}
+    >
+      <span>{label}</span>
+      {renderSortIcon(field, sortConfig)}
+    </Button>
+  );
+}
+
 export function ExpenseTableSection({
   expenses,
   selectedIds,
@@ -70,6 +107,8 @@ export function ExpenseTableSection({
   onSort,
   onLoadMore,
 }: ExpenseTableSectionProps): React.JSX.Element {
+  const allVisibleSelected = expenses.length > 0 && selectedIds.size === expenses.length;
+
   return (
     <Card className="relative">
       {isRefreshing && (
@@ -79,105 +118,188 @@ export function ExpenseTableSection({
         </div>
       )}
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[40px]">
-                <Checkbox
-                  checked={expenses.length > 0 && selectedIds.size === expenses.length}
-                  onCheckedChange={onToggleSelectAll}
-                />
-              </TableHead>
-              <TableHead
-                className={`cursor-pointer select-none transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
-                onClick={(event) => onSort("date", event as unknown as React.MouseEvent)}
-              >
-                <div className="flex items-center gap-1">
-                  Date
-                  {renderSortIcon("date", sortConfig)}
-                </div>
-              </TableHead>
-              <TableHead>Item</TableHead>
-              <TableHead
-                className={`cursor-pointer select-none transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
-                onClick={(event) => onSort("category", event as unknown as React.MouseEvent)}
-              >
-                <div className="flex items-center gap-1">
-                  Category
-                  {renderSortIcon("category", sortConfig)}
-                </div>
-              </TableHead>
-              <TableHead
-                className={`cursor-pointer select-none transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
-                onClick={(event) => onSort("user", event as unknown as React.MouseEvent)}
-              >
-                <div className="flex items-center gap-1">
-                  User
-                  {renderSortIcon("user", sortConfig)}
-                </div>
-              </TableHead>
-              <TableHead
-                className={`cursor-pointer select-none text-right transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
-                onClick={(event) => onSort("amount", event as unknown as React.MouseEvent)}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Amount
-                  {renderSortIcon("amount", sortConfig)}
-                </div>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {expenses.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center">
-                  <div className="flex flex-col items-center justify-center text-muted-foreground">
-                    <Calendar className="mb-2 h-8 w-8" />
-                    <p>No expenses found</p>
-                    {hasFilters && <p className="text-sm">Try adjusting your filters</p>}
+        {expenses.length === 0 ? (
+          <div className="flex h-32 flex-col items-center justify-center px-4 text-center text-muted-foreground">
+            <Calendar className="mb-2 h-8 w-8" />
+            <p>No expenses found</p>
+            {hasFilters && <p className="text-sm">Try adjusting your filters</p>}
+          </div>
+        ) : (
+          <>
+            <div className="border-b p-4 md:hidden">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium">Visible rows</p>
+                    <p className="text-xs text-muted-foreground">Select all expenses in the current list</p>
                   </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              expenses.map((expense) => (
-                <TableRow key={expense.id}>
-                  <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={allVisibleSelected}
+                      onCheckedChange={onToggleSelectAll}
+                      aria-label="Select all visible expenses"
+                    />
+                    <span className="text-xs font-medium text-muted-foreground">All</span>
+                  </div>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {MOBILE_SORT_OPTIONS.map((option) => (
+                    <MobileSortButton
+                      key={option.field}
+                      field={option.field}
+                      label={option.label}
+                      sortConfig={sortConfig}
+                      isRefreshing={isRefreshing}
+                      onSort={(field) => onSort(field)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="divide-y md:hidden">
+              {expenses.map((expense) => (
+                <div key={expense.id} className="px-4 py-4">
+                  <div className="flex items-start gap-3">
                     <Checkbox
                       checked={selectedIds.has(expense.id)}
                       onCheckedChange={() => onToggleSelect(expense.id)}
+                      aria-label={`Select expense: ${expense.description}`}
                     />
-                  </TableCell>
-                  <TableCell>{format(new Date(expense.date), "MMM d, yyyy")}</TableCell>
-                  <TableCell className="font-medium">{expense.description}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      style={{
-                        borderColor: expense.category?.color || "#888888",
-                        color: expense.category?.color || "#888888",
-                      }}
-                    >
-                      {expense.category?.name || "Uncategorized"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs">
-                        {expense.user?.name?.charAt(0) || expense.user?.email?.charAt(0) || "?"}
+
+                    <div className="min-w-0 flex-1 space-y-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium leading-tight break-words">
+                            {expense.description}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {format(new Date(expense.date), "MMM d, yyyy")}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold tabular-nums">
+                          ${expense.amount.toLocaleString()}
+                        </p>
                       </div>
-                      <span className="text-sm text-muted-foreground">
-                        {expense.user?.name || expense.user?.email || "Unknown"}
-                      </span>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          style={{
+                            borderColor: expense.category?.color || "#888888",
+                            color: expense.category?.color || "#888888",
+                          }}
+                        >
+                          {expense.category?.name || "Uncategorized"}
+                        </Badge>
+
+                        <div className="flex min-w-0 items-center gap-2 rounded-full bg-muted/50 px-2.5 py-1">
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs">
+                            {expense.user?.name?.charAt(0) || expense.user?.email?.charAt(0) || "?"}
+                          </div>
+                          <span className="truncate text-xs text-muted-foreground">
+                            {expense.user?.name || expense.user?.email || "Unknown"}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    ${expense.amount.toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]">
+                      <Checkbox
+                        checked={allVisibleSelected}
+                        onCheckedChange={onToggleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead
+                      className={`cursor-pointer select-none transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
+                      onClick={(event) => onSort("date", event as unknown as React.MouseEvent)}
+                    >
+                      <div className="flex items-center gap-1">
+                        Date
+                        {renderSortIcon("date", sortConfig)}
+                      </div>
+                    </TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead
+                      className={`cursor-pointer select-none transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
+                      onClick={(event) => onSort("category", event as unknown as React.MouseEvent)}
+                    >
+                      <div className="flex items-center gap-1">
+                        Category
+                        {renderSortIcon("category", sortConfig)}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className={`cursor-pointer select-none transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
+                      onClick={(event) => onSort("user", event as unknown as React.MouseEvent)}
+                    >
+                      <div className="flex items-center gap-1">
+                        User
+                        {renderSortIcon("user", sortConfig)}
+                      </div>
+                    </TableHead>
+                    <TableHead
+                      className={`cursor-pointer select-none text-right transition-colors hover:bg-muted/50 ${isRefreshing ? "pointer-events-none opacity-70" : ""}`}
+                      onClick={(event) => onSort("amount", event as unknown as React.MouseEvent)}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Amount
+                        {renderSortIcon("amount", sortConfig)}
+                      </div>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {expenses.map((expense) => (
+                    <TableRow key={expense.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(expense.id)}
+                          onCheckedChange={() => onToggleSelect(expense.id)}
+                        />
+                      </TableCell>
+                      <TableCell>{format(new Date(expense.date), "MMM d, yyyy")}</TableCell>
+                      <TableCell className="font-medium">{expense.description}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          style={{
+                            borderColor: expense.category?.color || "#888888",
+                            color: expense.category?.color || "#888888",
+                          }}
+                        >
+                          {expense.category?.name || "Uncategorized"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs">
+                            {expense.user?.name?.charAt(0) || expense.user?.email?.charAt(0) || "?"}
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {expense.user?.name || expense.user?.email || "Unknown"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        ${expense.amount.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
 
         {(nextCursor || isLoadingMore) && (
           <div className="flex items-center justify-center border-t p-4">

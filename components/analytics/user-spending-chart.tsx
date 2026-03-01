@@ -103,7 +103,7 @@ export function UserSpendingChart({ data }: UserSpendingChartProps) {
       </CardHeader>
       <CardContent className="pt-2">
         <div 
-          className="overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent"
+          className="overflow-y-auto pr-0 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent sm:pr-2"
           style={{ maxHeight: chartHeight }}
         >
           <div className="space-y-3">
@@ -113,51 +113,58 @@ export function UserSpendingChart({ data }: UserSpendingChartProps) {
               return (
                 <div
                   key={user.email}
-                  className="group flex items-center gap-4 py-2"
+                  className="group rounded-lg border border-border/60 px-3 py-3 sm:flex sm:items-center sm:gap-4 sm:border-transparent sm:px-0 sm:py-2"
                 >
-                  {/* Avatar with initials */}
-                  <div className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-xs font-semibold text-primary">
-                      {user.initials}
-                    </span>
-                  </div>
-
-                  {/* Name and amount */}
-                  <div className="shrink-0 w-32 sm:w-40">
-                    <p 
-                      className="text-sm font-medium text-foreground truncate"
-                      title={user.name}
-                    >
-                      {truncateName(user.name)}
-                    </p>
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                      {formatCurrency(user.amount)}
-                    </p>
-                  </div>
-
-                  {/* Bar and percentage */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3">
-                      {/* Progress bar */}
-                      <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full" style={{ width: `${barWidth}%` }} />
-                      </div>
-                      
-                      {/* Percentage */}
-                      <span className="shrink-0 text-xs font-semibold text-muted-foreground tabular-nums w-9 text-right">
-                        {user.percentage}%
+                  <div className="flex items-start gap-3 sm:w-full sm:items-center sm:gap-4">
+                    {/* Avatar with initials */}
+                    <div className="shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-xs font-semibold text-primary">
+                        {user.initials}
                       </span>
                     </div>
-                    
-                    {/* Secondary info: expense count and average */}
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] text-muted-foreground/70">
-                        {user.count} expense{user.count !== 1 ? "s" : ""}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground/50">|</span>
-                      <span className="text-[11px] text-muted-foreground/70">
-                        avg {formatCurrency(user.avgAmount)}
-                      </span>
+
+                    {/* Name and amount */}
+                    <div className="min-w-0 flex-1 sm:w-40 sm:flex-none">
+                      <div className="flex flex-wrap items-start justify-between gap-2 sm:block">
+                        <p 
+                          className="min-w-0 flex-1 truncate text-sm font-medium text-foreground sm:flex-none"
+                          title={user.name}
+                        >
+                          {truncateName(user.name)}
+                        </p>
+                        <span className="shrink-0 text-xs font-semibold text-muted-foreground tabular-nums sm:hidden">
+                          {user.percentage}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        {formatCurrency(user.amount)}
+                      </p>
+                    </div>
+
+                    {/* Bar and percentage */}
+                    <div className="mt-3 w-full sm:mt-0 sm:min-w-0 sm:flex-1">
+                      <div className="flex items-center gap-3">
+                        {/* Progress bar */}
+                        <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full" style={{ width: `${barWidth}%` }} />
+                        </div>
+                        
+                        {/* Percentage */}
+                        <span className="hidden shrink-0 w-9 text-right text-xs font-semibold text-muted-foreground tabular-nums sm:inline">
+                          {user.percentage}%
+                        </span>
+                      </div>
+
+                      {/* Secondary info: expense count and average */}
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="text-[11px] text-muted-foreground/70">
+                          {user.count} expense{user.count !== 1 ? "s" : ""}
+                        </span>
+                        <span className="hidden text-[11px] text-muted-foreground/50 sm:inline">|</span>
+                        <span className="text-[11px] text-muted-foreground/70">
+                          avg {formatCurrency(user.avgAmount)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

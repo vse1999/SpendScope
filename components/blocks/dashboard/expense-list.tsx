@@ -26,11 +26,12 @@ interface ExpenseListProps {
 
 export function ExpenseList({ expenses }: ExpenseListProps) {
   const hasExpenses = expenses.length > 0
+  const visibleExpenses = expenses.slice(0, 10)
 
   return (
     <Card className="app-card-strong">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="text-lg">Recent Expenses</CardTitle>
             <CardDescription>Your latest transactions</CardDescription>
@@ -49,53 +50,96 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
               <Building2 className="w-8 h-8 text-muted-foreground/50" />
             </div>
             <p className="text-muted-foreground font-medium">No expenses yet</p>
-            <p className="text-sm text-muted-foreground/70 mt-1">Add your first expense to get started!</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent border-b border-border/60">
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 pl-6">Date</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Description</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Category</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 text-right pr-6">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenses.slice(0, 10).map((expense) => (
-                  <TableRow key={expense.id} className="hover:bg-muted/35 transition-colors">
-                    <TableCell className="text-muted-foreground tabular-nums pl-6">
-                      {format(new Date(expense.date), "MMM d, yyyy")}
-                    </TableCell>
-                    <TableCell className="font-medium max-w-[250px] truncate">
-                      {expense.description}
-                    </TableCell>
-                    <TableCell>
-                      {expense.category ? (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs font-medium border"
-                          style={{
-                            backgroundColor: expense.category.color + "12",
-                            color: expense.category.color,
-                            borderColor: expense.category.color + "30",
-                          }}
-                        >
-                          {expense.category.name}
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">Uncategorized</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold tabular-nums pr-6">
+              <p className="text-sm text-muted-foreground/70 mt-1">Add your first expense to get started!</p>
+            </div>
+          ) : (
+          <>
+            <div className="space-y-3 px-4 md:hidden">
+              {visibleExpenses.map((expense) => (
+                <div
+                  key={expense.id}
+                  className="rounded-xl border border-border/70 px-4 py-3"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium leading-tight break-words">
+                        {expense.description}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {format(new Date(expense.date), "MMM d, yyyy")}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold tabular-nums">
                       {formatCurrency(expense.amount)}
-                    </TableCell>
+                    </p>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {expense.category ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-xs font-medium border"
+                        style={{
+                          backgroundColor: expense.category.color + "12",
+                          color: expense.category.color,
+                          borderColor: expense.category.color + "30",
+                        }}
+                      >
+                        {expense.category.name}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">Uncategorized</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent border-b border-border/60">
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 pl-6">Date</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Description</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Category</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 text-right pr-6">Amount</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {visibleExpenses.map((expense) => (
+                    <TableRow key={expense.id} className="hover:bg-muted/35 transition-colors">
+                      <TableCell className="text-muted-foreground tabular-nums pl-6">
+                        {format(new Date(expense.date), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell className="font-medium max-w-[250px] truncate">
+                        {expense.description}
+                      </TableCell>
+                      <TableCell>
+                        {expense.category ? (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs font-medium border"
+                            style={{
+                              backgroundColor: expense.category.color + "12",
+                              color: expense.category.color,
+                              borderColor: expense.category.color + "30",
+                            }}
+                          >
+                            {expense.category.name}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">Uncategorized</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold tabular-nums pr-6">
+                        {formatCurrency(expense.amount)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

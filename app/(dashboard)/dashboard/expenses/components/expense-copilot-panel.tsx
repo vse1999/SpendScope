@@ -102,10 +102,11 @@ export function ExpenseCopilotPanel({
                   </div>
                 </div>
                 {isAdmin ? (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                     <Button
                       size="sm"
                       variant="default"
+                      className="w-full justify-center sm:w-auto"
                       disabled={resolvingAlerts[alert.id] === true}
                       onClick={() => onResolveAlert(alert.id, "APPROVE")}
                     >
@@ -119,6 +120,7 @@ export function ExpenseCopilotPanel({
                     <Button
                       size="sm"
                       variant="outline"
+                      className="w-full justify-center sm:w-auto"
                       disabled={resolvingAlerts[alert.id] === true}
                       onClick={() => onResolveAlert(alert.id, "DISMISS")}
                     >
@@ -128,6 +130,7 @@ export function ExpenseCopilotPanel({
                     <Button
                       size="sm"
                       variant="secondary"
+                      className="w-full justify-center sm:w-auto"
                       disabled={resolvingAlerts[alert.id] === true}
                       onClick={() => onResolveAlert(alert.id, "REQUEST_RECEIPT")}
                     >

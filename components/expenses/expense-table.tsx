@@ -102,7 +102,7 @@ export function ExpenseTable({
     <>
       <Card className="app-card-strong">
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="text-lg">Recent Expenses</CardTitle>
               <CardDescription>Your latest transactions</CardDescription>
@@ -124,27 +124,32 @@ export function ExpenseTable({
               <p className="text-sm text-muted-foreground/70 mt-1">Add your first expense to get started!</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent border-b border-border/60">
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 pl-6">Date</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Description</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Category</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 text-right">Amount</TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 w-25 pr-6">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {expenses.map((expense) => (
-                    <TableRow key={expense.id} className="group hover:bg-muted/35 transition-colors">
-                      <TableCell className="text-muted-foreground tabular-nums pl-6">
-                        {format(new Date(expense.date), "MMM d, yyyy")}
-                      </TableCell>
-                      <TableCell className="font-medium max-w-62.5 truncate">
-                        {expense.description}
-                      </TableCell>
-                      <TableCell>
+            <>
+              <div className="space-y-3 px-4 md:hidden">
+                {expenses.map((expense) => {
+                  const showDeleteAction = canDelete()
+                  const showEditAction = canEdit(expense)
+
+                  return (
+                    <div
+                      key={expense.id}
+                      className="rounded-xl border border-border/70 px-4 py-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium leading-tight break-words">
+                            {expense.description}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {format(new Date(expense.date), "MMM d, yyyy")}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {formatCurrency(expense.amount)}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         {expense.category ? (
                           <Badge
                             variant="secondary"
@@ -160,43 +165,115 @@ export function ExpenseTable({
                         ) : (
                           <Badge variant="secondary" className="text-xs">Uncategorized</Badge>
                         )}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold tabular-nums">
-                        {formatCurrency(expense.amount)}
-                      </TableCell>
-                      <TableCell className="pr-6">
-                        <div className="flex items-center gap-0.5">
-                          {canEdit(expense) && (
+                      </div>
+
+                      {(showEditAction || showDeleteAction) && (
+                        <div className={`mt-4 grid gap-2 ${showEditAction && showDeleteAction ? "grid-cols-2" : "grid-cols-1"}`}>
+                          {showEditAction ? (
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-lg"
+                              variant="outline"
+                              size="sm"
+                              className="w-full justify-center"
                               onClick={() => handleEdit(expense)}
                               aria-label={`Edit expense: ${expense.description}`}
                             >
                               <Pencil className="h-3.5 w-3.5" />
-                              <span className="sr-only">Edit expense</span>
+                              Edit
                             </Button>
-                          )}
-                          {canDelete() && (
+                          ) : null}
+                          {showDeleteAction ? (
                             <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
+                              variant="outline"
+                              size="sm"
+                              className="w-full justify-center text-destructive hover:text-destructive"
                               onClick={() => setDeletingExpense(expense)}
                               aria-label={`Delete expense: ${expense.description}`}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
-                              <span className="sr-only">Delete expense</span>
+                              Delete
                             </Button>
-                          )}
+                          ) : null}
                         </div>
-                      </TableCell>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-b border-border/60">
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 pl-6">Date</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Description</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70">Category</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 text-right">Amount</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 w-25 pr-6">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {expenses.map((expense) => (
+                      <TableRow key={expense.id} className="group hover:bg-muted/35 transition-colors">
+                        <TableCell className="text-muted-foreground tabular-nums pl-6">
+                          {format(new Date(expense.date), "MMM d, yyyy")}
+                        </TableCell>
+                        <TableCell className="font-medium max-w-62.5 truncate">
+                          {expense.description}
+                        </TableCell>
+                        <TableCell>
+                          {expense.category ? (
+                            <Badge
+                              variant="secondary"
+                              className="text-xs font-medium border"
+                              style={{
+                                backgroundColor: expense.category.color + "12",
+                                color: expense.category.color,
+                                borderColor: expense.category.color + "30",
+                              }}
+                            >
+                              {expense.category.name}
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">Uncategorized</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold tabular-nums">
+                          {formatCurrency(expense.amount)}
+                        </TableCell>
+                        <TableCell className="pr-6">
+                          <div className="flex items-center gap-0.5">
+                            {canEdit(expense) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg"
+                                onClick={() => handleEdit(expense)}
+                                aria-label={`Edit expense: ${expense.description}`}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                <span className="sr-only">Edit expense</span>
+                              </Button>
+                            )}
+                            {canDelete() && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
+                                onClick={() => setDeletingExpense(expense)}
+                                aria-label={`Delete expense: ${expense.description}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                <span className="sr-only">Delete expense</span>
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

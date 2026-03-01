@@ -120,7 +120,7 @@ export function AnalyticsClient({
   }
 
   return (
-    <div className="space-y-8" id="analytics-container" aria-busy={isPending}>
+    <div className="min-w-0 space-y-8" id="analytics-container" aria-busy={isPending}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -130,7 +130,7 @@ export function AnalyticsClient({
             Insights into your company&apos;s spending patterns
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:items-center sm:justify-end">
           <DateRangePicker value={days} onChange={handleDaysChange} disabled={isPending} />
           <ExportButton data={data} filename={`analytics-${days}days`} />
           {isPending && (
@@ -193,7 +193,9 @@ function SummaryCard({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold tracking-tight tabular-nums whitespace-nowrap">{value}</div>
+        <div className="text-2xl font-bold tracking-tight break-words tabular-nums whitespace-normal sm:text-3xl sm:whitespace-nowrap">
+          {value}
+        </div>
         <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{subtitle}</p>
       </CardContent>
     </Card>

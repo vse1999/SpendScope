@@ -67,17 +67,17 @@ export default async function DashboardLayout({
 
   return (
     <NotificationProvider>
-      <div id="dashboard-root" className="min-h-screen app-shell" suppressHydrationWarning>
+      <div id="dashboard-root" className="min-h-screen min-w-0 app-shell" suppressHydrationWarning>
         <DashboardSidebar user={user} defaultOpen={sidebarOpen}>
-          <div className="flex flex-col min-h-screen w-full">
+          <div className="flex min-h-screen w-full min-w-0 flex-col">
             {/* Header with breadcrumbs - Desktop only (mobile handled by sidebar) */}
             <DashboardHeader
               user={user}
             />
 
             {/* Page Content */}
-            <div className="flex-1 p-4 md:p-6 lg:p-8 w-full">
-              <div className="max-w-7xl mx-auto">
+            <div className="flex-1 w-full min-w-0 p-4 md:p-6 lg:p-8">
+              <div className="mx-auto w-full min-w-0 max-w-7xl">
                 {children}
               </div>
             </div>
