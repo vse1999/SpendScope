@@ -205,7 +205,7 @@ export function TeamClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <TeamMembersCard
         members={members}
         isAdmin={isAdmin}

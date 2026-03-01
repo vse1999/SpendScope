@@ -110,7 +110,7 @@ export function TeamMembersCard({
 }: TeamMembersCardProps): React.JSX.Element {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -128,7 +128,7 @@ export function TeamMembersCard({
         {isAdmin && (
           <Dialog open={isInviteDialogOpen} onOpenChange={onOpenInviteDialog}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Invite Member
               </Button>
@@ -203,115 +203,216 @@ export function TeamMembersCard({
         )}
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Member</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Joined</TableHead>
-              {isAdmin && <TableHead className="text-right">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {members.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={isAdmin ? 4 : 3} className="py-8 text-center text-muted-foreground">
-                  No team members found
-                </TableCell>
-              </TableRow>
-            ) : (
-              members.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
+        {members.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">
+            No team members found
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3 md:hidden">
+              {members.map((member) => {
+                const isCurrentUser = member.id === currentUserId;
+                const isLastAdmin = member.role === UserRole.ADMIN && adminCount <= 1;
+
+                return (
+                  <div key={member.id} className="rounded-xl border border-border/70 p-4">
+                    <div className="flex items-start gap-3">
                       <Avatar>
                         <AvatarImage src={member.image || undefined} alt={member.name || member.email} />
                         <AvatarFallback>{getInitials(member.name, member.email)}</AvatarFallback>
                       </Avatar>
-                      <div>
-                        <div className="font-medium">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium break-words">
                           {member.name || "Unnamed User"}
-                          {member.id === currentUserId && (
+                          {isCurrentUser && (
                             <span className="ml-2 text-xs text-muted-foreground">(You)</span>
                           )}
                         </div>
-                        <div className="text-sm text-muted-foreground">{member.email}</div>
+                        <div className="mt-1 break-all text-sm text-muted-foreground">{member.email}</div>
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getRoleBadgeVariant(member.role)}>
-                      {member.role === UserRole.ADMIN ? (
-                        <Shield className="mr-1 h-3 w-3" />
-                      ) : (
-                        <User className="mr-1 h-3 w-3" />
-                      )}
-                      {member.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(member.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </TableCell>
-                  {isAdmin && (
-                    <TableCell className="text-right">
-                      {member.id !== currentUserId ? (
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                      <Badge variant={getRoleBadgeVariant(member.role)}>
+                        {member.role === UserRole.ADMIN ? (
+                          <Shield className="mr-1 h-3 w-3" />
+                        ) : (
+                          <User className="mr-1 h-3 w-3" />
+                        )}
+                        {member.role}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        Joined{" "}
+                        {new Date(member.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+
+                    {isAdmin && (
+                      <div className="mt-4">
+                        {isCurrentUser ? (
+                          <p className="text-xs text-muted-foreground">Current user</p>
+                        ) : (
+                          <div className="grid gap-2">
                             {member.role === UserRole.MEMBER ? (
-                              <DropdownMenuItem
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-center"
                                 disabled={hasPendingMutation}
-                                onSelect={() =>
+                                onClick={() =>
                                   onMemberAction(member.id, member.name || member.email, "PROMOTE")
                                 }
                               >
                                 <Shield className="mr-2 h-4 w-4" />
                                 Promote to Admin
-                              </DropdownMenuItem>
+                              </Button>
                             ) : (
-                              <DropdownMenuItem
-                                disabled={adminCount <= 1 || hasPendingMutation}
-                                onSelect={() =>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-center"
+                                disabled={isLastAdmin || hasPendingMutation}
+                                onClick={() =>
                                   onMemberAction(member.id, member.name || member.email, "DEMOTE")
                                 }
                               >
                                 <User className="mr-2 h-4 w-4" />
                                 Change to Member
-                              </DropdownMenuItem>
+                              </Button>
                             )}
-                            <DropdownMenuItem
-                              variant="destructive"
-                              className="text-destructive"
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full justify-center text-destructive hover:text-destructive"
                               disabled={hasPendingMutation}
-                              onSelect={() => onMemberAction(member.id, member.name || member.email, "REMOVE")}
+                              onClick={() => onMemberAction(member.id, member.name || member.email, "REMOVE")}
                             >
                               <UserX className="mr-2 h-4 w-4" />
                               Remove Member
-                            </DropdownMenuItem>
-                            {member.role === UserRole.ADMIN && adminCount <= 1 && (
-                              <DropdownMenuItem disabled>Last admin cannot be demoted</DropdownMenuItem>
+                            </Button>
+                            {isLastAdmin && (
+                              <p className="text-xs text-muted-foreground">
+                                Last admin cannot be demoted
+                              </p>
                             )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">-</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Member</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Joined</TableHead>
+                    {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {members.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={member.image || undefined} alt={member.name || member.email} />
+                            <AvatarFallback>{getInitials(member.name, member.email)}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">
+                              {member.name || "Unnamed User"}
+                              {member.id === currentUserId && (
+                                <span className="ml-2 text-xs text-muted-foreground">(You)</span>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">{member.email}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(member.role)}>
+                          {member.role === UserRole.ADMIN ? (
+                            <Shield className="mr-1 h-3 w-3" />
+                          ) : (
+                            <User className="mr-1 h-3 w-3" />
+                          )}
+                          {member.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(member.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-right">
+                          {member.id !== currentUserId ? (
+                            <DropdownMenu modal={false}>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                  <span className="sr-only">Actions</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {member.role === UserRole.MEMBER ? (
+                                  <DropdownMenuItem
+                                    disabled={hasPendingMutation}
+                                    onSelect={() =>
+                                      onMemberAction(member.id, member.name || member.email, "PROMOTE")
+                                    }
+                                  >
+                                    <Shield className="mr-2 h-4 w-4" />
+                                    Promote to Admin
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    disabled={adminCount <= 1 || hasPendingMutation}
+                                    onSelect={() =>
+                                      onMemberAction(member.id, member.name || member.email, "DEMOTE")
+                                    }
+                                  >
+                                    <User className="mr-2 h-4 w-4" />
+                                    Change to Member
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  variant="destructive"
+                                  className="text-destructive"
+                                  disabled={hasPendingMutation}
+                                  onSelect={() => onMemberAction(member.id, member.name || member.email, "REMOVE")}
+                                >
+                                  <UserX className="mr-2 h-4 w-4" />
+                                  Remove Member
+                                </DropdownMenuItem>
+                                {member.role === UserRole.ADMIN && adminCount <= 1 && (
+                                  <DropdownMenuItem disabled>Last admin cannot be demoted</DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                       )}
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
