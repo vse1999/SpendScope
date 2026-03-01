@@ -41,7 +41,7 @@ export function ThemeToggle({
   className,
 }: ThemeToggleProps): React.JSX.Element {
   const { theme, setTheme, resolvedTheme } = useTheme()
-  const isClient = useSyncExternalStore(
+  const hasMounted = useSyncExternalStore(
     () => () => {},
     () => true,
     () => false
@@ -49,7 +49,7 @@ export function ThemeToggle({
   const activeTheme: ThemeOption = isThemeOption(theme) ? theme : "system"
   const activeThemeLabel = getThemeLabel(activeTheme)
 
-  if (!isClient) {
+  if (!hasMounted) {
     return (
       <Button
         variant="ghost"
@@ -68,7 +68,7 @@ export function ThemeToggle({
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild id="theme-toggle-trigger">
         <Button
           variant="ghost"
           size={showLabel ? "sm" : "icon"}
