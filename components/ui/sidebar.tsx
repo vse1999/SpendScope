@@ -5,7 +5,6 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { PanelLeftIcon } from "lucide-react"
 import { Slot } from "radix-ui"
 
-import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +30,7 @@ const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
+const DEFAULT_SIDEBAR_MOBILE_BREAKPOINT = 768
 
 type SidebarContextProps = {
   state: "expanded" | "collapsed"
@@ -39,10 +39,52 @@ type SidebarContextProps = {
   openMobile: boolean
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
+  mobileBreakpoint: number
   toggleSidebar: () => void
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
+
+function subscribeToSidebarBreakpoint(
+  query: string,
+  onStoreChange: () => void
+): () => void {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return () => undefined
+  }
+
+  const mediaQueryList = window.matchMedia(query)
+  const handleChange = (): void => {
+    onStoreChange()
+  }
+
+  mediaQueryList.addEventListener("change", handleChange)
+
+  return (): void => {
+    mediaQueryList.removeEventListener("change", handleChange)
+  }
+}
+
+function getSidebarBreakpointSnapshot(query: string): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false
+  }
+
+  return window.matchMedia(query).matches
+}
+
+function useSidebarBreakpoint(breakpoint: number): boolean {
+  const mediaQuery = React.useMemo(
+    () => `(max-width: ${Math.max(breakpoint - 1, 0)}px)`,
+    [breakpoint]
+  )
+
+  return React.useSyncExternalStore(
+    (onStoreChange) => subscribeToSidebarBreakpoint(mediaQuery, onStoreChange),
+    () => getSidebarBreakpointSnapshot(mediaQuery),
+    () => false
+  )
+}
 
 function useSidebar() {
   const context = React.useContext(SidebarContext)
@@ -55,6 +97,7 @@ function useSidebar() {
 
 function SidebarProvider({
   defaultOpen = true,
+  mobileBreakpoint = DEFAULT_SIDEBAR_MOBILE_BREAKPOINT,
   open: openProp,
   onOpenChange: setOpenProp,
   className,
@@ -63,10 +106,11 @@ function SidebarProvider({
   ...props
 }: React.ComponentProps<"div"> & {
   defaultOpen?: boolean
+  mobileBreakpoint?: number
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  const isMobile = useIsMobile()
+  const isMobile = useSidebarBreakpoint(mobileBreakpoint)
   const [openMobile, setOpenMobile] = React.useState(false)
 
   // This is the internal state of the sidebar.
@@ -119,11 +163,21 @@ function SidebarProvider({
       open,
       setOpen,
       isMobile,
+      mobileBreakpoint,
       openMobile,
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [
+      state,
+      open,
+      setOpen,
+      isMobile,
+      mobileBreakpoint,
+      openMobile,
+      setOpenMobile,
+      toggleSidebar,
+    ]
   )
 
   return (
@@ -139,7 +193,7 @@ function SidebarProvider({
             } as React.CSSProperties
           }
           className={cn(
-            "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
+            "group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full min-w-0",
             className
           )}
           {...props}
@@ -163,7 +217,12 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, mobileBreakpoint } =
+    useSidebar()
+  const desktopVisibilityClass =
+    mobileBreakpoint > DEFAULT_SIDEBAR_MOBILE_BREAKPOINT ? "hidden lg:block" : "hidden md:block"
+  const desktopContainerVisibilityClass =
+    mobileBreakpoint > DEFAULT_SIDEBAR_MOBILE_BREAKPOINT ? "hidden lg:flex" : "hidden md:flex"
 
   if (collapsible === "none") {
     return (
@@ -207,7 +266,7 @@ function Sidebar({
 
   return (
     <div
-      className="group peer text-sidebar-foreground hidden md:block"
+      className={cn("group peer text-sidebar-foreground", desktopVisibilityClass)}
       data-state={state}
       data-collapsible={state === "collapsed" ? collapsible : ""}
       data-variant={variant}
@@ -229,7 +288,8 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+          "fixed inset-y-0 z-10 h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear",
+          desktopContainerVisibilityClass,
           side === "left"
             ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -309,7 +369,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
     <main
       data-slot="sidebar-inset"
       className={cn(
-        "bg-background relative flex w-full flex-1 flex-col",
+        "bg-background relative flex w-full min-w-0 flex-1 flex-col",
         "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
         className
       )}

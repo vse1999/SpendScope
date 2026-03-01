@@ -47,6 +47,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { useNotifications } from "@/hooks/use-notifications"
+import { getDashboardRouteLabel } from "@/components/dashboard/navigation-config"
 
 // ============================================================================
 // Types & Interfaces
@@ -82,17 +83,6 @@ interface DashboardHeaderProps {
 // ============================================================================
 // Constants & Configuration
 // ============================================================================
-
-const breadcrumbNames: Record<string, string> = {
-  dashboard: "Dashboard",
-  expenses: "Expenses",
-  categories: "Categories",
-  analytics: "Analytics",
-  team: "Team Members",
-  billing: "Billing",
-  settings: "Settings",
-  profile: "Profile",
-}
 
 const ROLE_DISPLAY_NAMES: Record<UserRole, string> = {
   ADMIN: "Admin",
@@ -166,9 +156,7 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
     }
 
     const isLast = index === segments.length - 1
-    const label =
-      breadcrumbNames[segment] ||
-      segment.charAt(0).toUpperCase() + segment.slice(1)
+    const label = getDashboardRouteLabel(segment)
 
     breadcrumbs.push({
       label,
@@ -325,7 +313,7 @@ function NotificationsButton(): React.JSX.Element {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild id="dashboard-header-notifications-trigger">
         <Button
           variant="ghost"
           size="icon"
@@ -537,7 +525,7 @@ function UserMenu({ user }: { user: DashboardHeaderProps["user"] }): React.JSX.E
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild id="dashboard-header-user-menu-trigger">
         <Button
           variant="ghost"
           className="relative h-8 w-8 rounded-full p-0"
