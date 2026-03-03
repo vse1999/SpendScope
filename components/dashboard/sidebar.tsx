@@ -514,7 +514,7 @@ function MobileTopBar(): React.JSX.Element {
   const pageTitle = getDashboardPageTitle(pathname)
 
   return (
-    <div className="flex h-16 items-center justify-between border-b border-border/70 bg-background px-4 lg:hidden">
+    <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border/70 bg-background px-4 lg:hidden">
       <div className="flex min-w-0 items-center gap-3">
         <SidebarTrigger className="-ml-1 shrink-0" />
         <div className="min-w-0">
