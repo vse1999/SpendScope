@@ -1,12 +1,9 @@
-import { auth } from "@/auth"
-import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
-import { UserRole } from "@prisma/client"
 import type { Metadata } from "next"
-import { getCachedUserCompany } from "@/lib/queries/get-user-company"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { NotificationProvider } from "@/components/notifications/notification-provider"
+import { requireDashboardRequestContext } from "@/lib/dashboard/request-context"
 
 export const metadata: Metadata = {
   robots: {
@@ -21,44 +18,8 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect("/login")
-  }
-
-  // Fetch company data for sidebar display
-  const userCompanyResult = await getCachedUserCompany()
-
-  // Redirect to onboarding if user has no company
-  if (!userCompanyResult.hasCompany) {
-    redirect("/onboarding")
-  }
-
-  // Extract company data
-  const companyData = userCompanyResult.hasCompany && "company" in userCompanyResult
-    ? userCompanyResult.company
-    : null
-
-  const company = companyData ? {
-    id: companyData.id,
-    name: companyData.name,
-  } : null
-
-  const userRole =
-    userCompanyResult.hasCompany && "userRole" in userCompanyResult
-      ? userCompanyResult.userRole
-      : UserRole.MEMBER
-
-  // Build user object in the format expected by the sidebar
-  const user = {
-    id: session.user.id,
-    name: session.user.name,
-    email: session.user.email,
-    image: session.user.image,
-    role: userRole,
-    company,
-  }
+  const context = await requireDashboardRequestContext()
+  const { user } = context
 
   // Read sidebar state cookie for consistent server/client rendering
   const cookieStore = await cookies()

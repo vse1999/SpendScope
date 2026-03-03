@@ -1,8 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { serializeExpense } from "@/lib/expenses/action-helpers";
 import { buildMonthlyTrend, normalizeAnalyticsDays } from "@/lib/analytics/monthly-trend";
+import { getDashboardStatsForCompany } from "@/lib/dashboard/queries";
 import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { getCurrentUserCompanyId } from "./expenses-shared";
 
@@ -87,123 +87,7 @@ export async function getDashboardStats() {
     if (!companyId) {
       return { error: "User not assigned to company" };
     }
-
-    // Get start of current and previous month for trend calculation
-    const now = new Date();
-    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-    // Run all queries in parallel using DB aggregation
-    const [
-      totalAgg,
-      totalCount,
-      thisMonthAgg,
-      previousMonthAgg,
-      categoryGroups,
-      recentExpenses,
-      largestExpenseAgg,
-    ] = await Promise.all([
-      // Total amount across all expenses
-      prisma.expense.aggregate({
-        where: { companyId },
-        _sum: { amount: true },
-      }),
-      // Total count of expenses
-      prisma.expense.count({
-        where: { companyId },
-      }),
-      // This month's total
-      prisma.expense.aggregate({
-        where: { companyId, date: { gte: startOfCurrentMonth } },
-        _sum: { amount: true },
-      }),
-      // Previous month's total (for trend calculation)
-      prisma.expense.aggregate({
-        where: {
-          companyId,
-          date: { gte: startOfPreviousMonth, lt: startOfCurrentMonth },
-        },
-        _sum: { amount: true },
-      }),
-      // Group by category for breakdown
-      prisma.expense.groupBy({
-        by: ["categoryId"],
-        where: { companyId },
-        _sum: { amount: true },
-      }),
-      // Recent 10 expenses for the table
-      prisma.expense.findMany({
-        where: { companyId },
-        include: {
-          category: true,
-          user: { select: { name: true, email: true } },
-        },
-        orderBy: { date: "desc" },
-        take: 10,
-      }),
-      // Largest single expense
-      prisma.expense.aggregate({
-        where: { companyId },
-        _max: { amount: true },
-      }),
-    ]);
-
-    // Resolve category names for the breakdown
-    const categoryIds = categoryGroups.map((g) => g.categoryId);
-    const categories = categoryIds.length > 0
-      ? await prisma.category.findMany({
-        where: { id: { in: categoryIds } },
-        select: { id: true, name: true, color: true },
-      })
-      : [];
-
-    const categoryMap = new Map(categories.map((c) => [c.id, c]));
-
-    const byCategory = categoryGroups
-      .map((g) => {
-        const cat = categoryMap.get(g.categoryId);
-        return {
-          name: cat?.name || "Uncategorized",
-          color: cat?.color || "#888888",
-          amount: Number(g._sum.amount ?? 0),
-        };
-      })
-      .sort((a, b) => b.amount - a.amount);
-
-    // Compute stats
-    const totalExpenses = Number(totalAgg._sum.amount ?? 0);
-    const thisMonth = Number(thisMonthAgg._sum.amount ?? 0);
-    const previousMonth = Number(previousMonthAgg._sum.amount ?? 0);
-    const averageExpense = totalCount > 0 ? totalExpenses / totalCount : 0;
-    const largestExpense = Number(largestExpenseAgg._max.amount ?? 0);
-
-    // Compute trend
-    const monthlyTrend: "up" | "down" = thisMonth >= previousMonth ? "up" : "down";
-    const monthlyChangePercent =
-      previousMonth > 0
-        ? Math.abs(((thisMonth - previousMonth) / previousMonth) * 100).toFixed(1) + "%"
-        : totalCount > 0
-          ? "N/A"
-          : "0%";
-
-    // Serialize recent expenses
-    const serializedExpenses = recentExpenses.map(serializeExpense);
-
-    return {
-      data: {
-        totalExpenses,
-        thisMonth,
-        previousMonth,
-        monthlyTrend,
-        monthlyChangePercent,
-        expenseCount: totalCount,
-        averageExpense,
-        largestExpense,
-        byCategory,
-        recentExpenses: serializedExpenses,
-        categoryCount: byCategory.length,
-      },
-    };
+    return getDashboardStatsForCompany(companyId);
   } catch (error) {
     console.error("Failed to fetch dashboard stats:", error);
     return {

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { resolveCursorId, serializeExpense } from "@/lib/expenses/action-helpers";
+import { getCategoriesForCompany } from "@/lib/dashboard/queries";
 import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, getCurrentUserCompanyId } from "./expenses-shared";
 import type {
   GetExpensesResult,
@@ -133,13 +134,7 @@ export async function getCategories() {
     if (!companyId) {
       return { error: "User not assigned to company" };
     }
-
-    const categories = await prisma.category.findMany({
-      where: { companyId },
-      orderBy: { name: "asc" },
-    });
-
-    return categories;
+    return getCategoriesForCompany(companyId);
   } catch (error) {
     console.error("Failed to fetch categories:", error);
     return {
@@ -147,4 +142,3 @@ export async function getCategories() {
     };
   }
 }
-

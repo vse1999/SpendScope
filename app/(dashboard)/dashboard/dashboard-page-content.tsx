@@ -1,7 +1,3 @@
-import { auth } from "@/auth"
-import { getDashboardStats, getCategories } from "@/app/actions/expenses"
-import { getCompanyBudgetState } from "@/app/actions/budget"
-import { getCachedUserCompany } from "@/lib/queries/get-user-company"
 import {
   PageHeader,
   ErrorAlert,
@@ -10,24 +6,23 @@ import {
   QuickStats,
 } from "@/components/blocks/dashboard"
 import { ExpenseTable } from "@/components/expenses/expense-table"
+import {
+  getCategoriesForCompany,
+  getCompanyBudgetStateForCompany,
+  getDashboardStatsForCompany,
+} from "@/lib/dashboard/queries"
+import { requireDashboardRequestContext } from "@/lib/dashboard/request-context"
 
 export async function DashboardPageContent(): Promise<React.JSX.Element> {
-  // session.user is guaranteed by (dashboard)/layout.tsx auth guard
-  const session = await auth()
-  const user = session!.user!
+  const context = await requireDashboardRequestContext()
+  const { user } = context
+  const companyId = user.company.id
+  const currentUserRole = user.role
 
-  // Get companyId - user is guaranteed to have a company by layout guard
-  const userCompanyResult = await getCachedUserCompany()
-  const companyId = userCompanyResult.company!.id
-  const currentUserRole = userCompanyResult.hasCompany
-    ? userCompanyResult.userRole
-    : user.role
-
-  // Fetch data - single efficient call replaces getExpensesByCompany + getExpenseStats
   const [dashboardResult, categoriesResult, budgetResult] = await Promise.all([
-    getDashboardStats(),
-    getCategories(),
-    getCompanyBudgetState(),
+    getDashboardStatsForCompany(companyId),
+    getCategoriesForCompany(companyId),
+    getCompanyBudgetStateForCompany(companyId),
   ])
 
   // Extract errors

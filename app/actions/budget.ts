@@ -5,7 +5,6 @@ import { UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import {
   getBudgetSummary,
-  getCompanyBudgetSettings,
   upsertCompanyBudgetSettings,
 } from "@/lib/budget/service";
 import {
@@ -14,6 +13,7 @@ import {
   type BudgetSummary,
   type CompanyBudgetSettings,
 } from "@/lib/budget/types";
+import { getCompanyBudgetStateForCompany } from "@/lib/dashboard/queries";
 import { prisma } from "@/lib/prisma";
 
 type BudgetActionErrorCode = "UNAUTHORIZED" | "VALIDATION_ERROR";
@@ -87,13 +87,7 @@ export async function getCompanyBudgetState(): Promise<GetBudgetSettingsResult> 
     if (!context) {
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
     }
-
-    const [settings, summary] = await Promise.all([
-      getCompanyBudgetSettings(context.companyId),
-      getBudgetSummary(context.companyId),
-    ]);
-
-    return { success: true, settings, summary };
+    return getCompanyBudgetStateForCompany(context.companyId);
   } catch (error) {
     return {
       success: false,
