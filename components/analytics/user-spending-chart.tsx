@@ -125,16 +125,13 @@ export function UserSpendingChart({ data }: UserSpendingChartProps) {
 
                     {/* Name and amount */}
                     <div className="min-w-0 flex-1 sm:w-40 sm:flex-none">
-                      <div className="flex flex-wrap items-start justify-between gap-2 sm:block">
+                      <div className="flex flex-wrap items-start gap-2 sm:block">
                         <p 
                           className="min-w-0 flex-1 truncate text-sm font-medium text-foreground sm:flex-none"
                           title={user.name}
                         >
                           {truncateName(user.name)}
                         </p>
-                        <span className="shrink-0 text-xs font-semibold text-muted-foreground tabular-nums sm:hidden">
-                          {user.percentage}%
-                        </span>
                       </div>
                       <p className="text-xs text-muted-foreground tabular-nums">
                         {formatCurrency(user.amount)}
@@ -150,17 +147,30 @@ export function UserSpendingChart({ data }: UserSpendingChartProps) {
                         </div>
                         
                         {/* Percentage */}
-                        <span className="hidden shrink-0 w-9 text-right text-xs font-semibold text-muted-foreground tabular-nums sm:inline">
+                        <span className="hidden shrink-0 w-10 text-right text-xs font-semibold text-muted-foreground tabular-nums sm:inline">
                           {user.percentage}%
                         </span>
                       </div>
 
                       {/* Secondary info: expense count and average */}
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <div className="mt-1 space-y-1 sm:hidden">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[11px] text-muted-foreground/70">
+                            {user.count} expense{user.count !== 1 ? "s" : ""}
+                          </span>
+                          <span className="shrink-0 text-[11px] font-semibold text-muted-foreground tabular-nums">
+                            {user.percentage}%
+                          </span>
+                        </div>
+                        <span className="block text-[11px] text-muted-foreground/70">
+                          avg {formatCurrency(user.avgAmount)}
+                        </span>
+                      </div>
+                      <div className="mt-1 hidden flex-wrap items-center gap-x-2 gap-y-1 sm:flex">
                         <span className="text-[11px] text-muted-foreground/70">
                           {user.count} expense{user.count !== 1 ? "s" : ""}
                         </span>
-                        <span className="hidden text-[11px] text-muted-foreground/50 sm:inline">|</span>
+                        <span className="text-[11px] text-muted-foreground/50">|</span>
                         <span className="text-[11px] text-muted-foreground/70">
                           avg {formatCurrency(user.avgAmount)}
                         </span>
