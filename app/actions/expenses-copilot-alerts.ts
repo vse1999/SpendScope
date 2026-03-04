@@ -15,6 +15,7 @@ import type {
   ResolveExpenseCopilotAction,
   ResolveExpenseCopilotAlertResult,
 } from "./expenses-copilot-types";
+import { getCurrentUserCompanyAccess } from "./expenses-shared";
 
 const COPILOT_LOOKBACK_DAYS = 120;
 const COPILOT_MAX_ALERTS = 25;
@@ -37,29 +38,23 @@ function toCopilotStatus(action: ResolveExpenseCopilotAction): ExpenseAnomalySta
 
 export async function getExpenseCopilotAlerts(): Promise<GetExpenseCopilotAlertsResult> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const access = await getCurrentUserCompanyAccess();
+
+    if (access.state === "unauthenticated") {
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
     }
 
-    const userContext = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        companyId: true,
-      },
-    });
-
-    if (!userContext?.companyId) {
+    if (access.state !== "ready") {
       return { success: false, error: "User not assigned to company", code: "UNAUTHORIZED" };
     }
+    const { companyId } = access;
 
     const lookbackStart = new Date();
     lookbackStart.setDate(lookbackStart.getDate() - COPILOT_LOOKBACK_DAYS);
 
     const expenses = await prisma.expense.findMany({
       where: {
-        companyId: userContext.companyId,
+        companyId,
         date: { gte: lookbackStart },
       },
       select: {
@@ -86,7 +81,7 @@ export async function getExpenseCopilotAlerts(): Promise<GetExpenseCopilotAlerts
       userDisplayName: expense.user.name ?? expense.user.email ?? "Unknown",
     }));
 
-    const policyConfig = await getExpensePolicyConfig(userContext.companyId);
+    const policyConfig = await getExpensePolicyConfig(companyId);
     const candidates = detectExpenseAnomalies(signals, {
       globalThresholdUsd: policyConfig.globalThresholdUsd,
       categoryThresholds: policyConfig.categoryThresholds,

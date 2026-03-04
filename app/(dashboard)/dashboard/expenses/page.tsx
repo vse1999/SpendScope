@@ -1,14 +1,16 @@
-import { auth } from "@/auth";
-import { getCachedUserCompany } from "@/lib/queries/get-user-company";
+import { Suspense } from "react";
+import { requireDashboardRequestContext } from "@/lib/dashboard/request-context";
 import { isBillingEnabled } from "@/lib/stripe/config";
 import {
   getCategories,
-  getExpenseCopilotAlerts,
-  getExpensePolicyConfigForCompany,
   getExpensesWithFilters,
   getExpensesSummary,
 } from "@/app/actions/expenses";
 import { parseMultiSort, type MultiSortConfig } from "@/lib/expense-sorting";
+import {
+  ExpensesCopilotSection,
+  ExpensesCopilotSectionSkeleton,
+} from "./expenses-copilot-section";
 import { ExpensesClient } from "./expenses-client";
 
 export const metadata = {
@@ -30,15 +32,8 @@ interface ExpensesPageProps {
 }
 
 export default async function ExpensesPage({ searchParams }: ExpensesPageProps): Promise<React.JSX.Element> {
-  // session.user and company are guaranteed by (dashboard)/layout.tsx guards
-  const session = await auth();
-  const user = session!.user!
-
-  // Get companyId from database (not session, to handle stale JWT)
-  const userCompanyResult = await getCachedUserCompany();
-  const isAdmin = userCompanyResult.hasCompany
-    ? userCompanyResult.userRole === "ADMIN"
-    : user.role === "ADMIN";
+  const { user } = await requireDashboardRequestContext();
+  const isAdmin = user.role === "ADMIN";
   const billingEnabled = isBillingEnabled();
 
   // Parse search params
@@ -59,12 +54,10 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
   };
 
   // Fetch data in parallel
-  const [expensesResult, categoriesResult, summaryResult, copilotAlertsResult, policyResult] = await Promise.all([
+  const [expensesResult, categoriesResult, summaryResult] = await Promise.all([
     getExpensesWithFilters(filters, { cursor: params.cursor }),
     getCategories(),
     getExpensesSummary(filters),
-    getExpenseCopilotAlerts(),
-    getExpensePolicyConfigForCompany(),
   ]);
 
   const expenses = "error" in expensesResult ? { items: [], pageInfo: { endCursor: null } } : expensesResult;
@@ -74,11 +67,6 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
     count: summaryRaw.count,
     total: summaryRaw.totalAmount,
   };
-  const copilotAlerts = copilotAlertsResult.success ? copilotAlertsResult.alerts : [];
-  const policyConfig = policyResult.success
-    ? policyResult.config
-    : { globalThresholdUsd: 1000, categoryThresholds: {} };
-
   // Convert amount strings to numbers for client
   const normalizedExpenses = expenses.items.map(item => ({
     ...item,
@@ -95,8 +83,10 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
       initialSortConfig={sortConfig}
       isAdmin={isAdmin}
       billingEnabled={billingEnabled}
-      initialCopilotAlerts={copilotAlerts}
-      initialPolicyConfig={policyConfig}
-    />
+    >
+      <Suspense fallback={<ExpensesCopilotSectionSkeleton isAdmin={isAdmin} />}>
+        <ExpensesCopilotSection categories={categories} isAdmin={isAdmin} />
+      </Suspense>
+    </ExpensesClient>
   );
 }

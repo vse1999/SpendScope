@@ -170,6 +170,7 @@ model ExpenseHistory {
   expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
   @@index([expenseId])
+  @@index([expenseId, changeType], map: "idx_expense_history_expense_change_type")
   @@index([editedBy])
   @@index([editedAt])
   @@map("expense_history")

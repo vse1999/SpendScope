@@ -1,7 +1,3 @@
-import type {
-  ExpenseCopilotAlert,
-  ExpensePolicyConfigView,
-} from "@/app/actions/expenses";
 import type { MultiSortConfig, ExpenseSortField } from "@/lib/expense-sorting";
 
 export interface Expense {
@@ -39,6 +35,7 @@ export interface ExpensesClientProps {
   initialExpenses: Expense[];
   initialNextCursor: string | null;
   categories: Category[];
+  children?: React.ReactNode;
   summary: {
     count: number;
     total: number;
@@ -56,8 +53,6 @@ export interface ExpensesClientProps {
   initialSortConfig: MultiSortConfig;
   isAdmin: boolean;
   billingEnabled: boolean;
-  initialCopilotAlerts: ExpenseCopilotAlert[];
-  initialPolicyConfig: ExpensePolicyConfigView;
 }
 
 export type SortField = ExpenseSortField;

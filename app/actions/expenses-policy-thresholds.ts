@@ -15,6 +15,7 @@ import type {
   GetExpensePolicyConfigResult,
   UpdateExpensePolicyResult,
 } from "./expenses-copilot-types";
+import { getCurrentUserCompanyAccess } from "./expenses-shared";
 
 interface AdminActorContext {
   id: string;
@@ -48,25 +49,20 @@ async function getAdminActorContext(): Promise<AdminActorContext | null> {
 
 export async function getExpensePolicyConfigForCompany(): Promise<GetExpensePolicyConfigResult> {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const access = await getCurrentUserCompanyAccess();
+
+    if (access.state === "unauthenticated") {
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
     }
 
-    const userContext = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        companyId: true,
-      },
-    });
-
-    if (!userContext?.companyId) {
+    if (access.state !== "ready") {
       return { success: false, error: "User not assigned to company", code: "UNAUTHORIZED" };
     }
+    const { companyId } = access;
 
     const [config, rules] = await Promise.all([
-      getExpensePolicyConfig(userContext.companyId),
-      listExpensePolicyRules(userContext.companyId),
+      getExpensePolicyConfig(companyId),
+      listExpensePolicyRules(companyId),
     ]);
 
     return {
@@ -199,4 +195,3 @@ export async function deleteCategoryExpensePolicyThreshold(
     };
   }
 }
-

@@ -1,10 +1,47 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { buildMonthlyTrend, normalizeAnalyticsDays } from "@/lib/analytics/monthly-trend";
 import { getDashboardStatsForCompany } from "@/lib/dashboard/queries";
 import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { getCurrentUserCompanyId } from "./expenses-shared";
+
+interface AnalyticsMonthlyTotalRow {
+  monthStart: Date;
+  totalAmount: Prisma.Decimal | number | string | null;
+}
+
+interface AnalyticsCategoryDistributionRow {
+  amount: Prisma.Decimal | number | string | null;
+  color: string | null;
+  name: string;
+}
+
+interface AnalyticsUserSpendingRow {
+  amount: Prisma.Decimal | number | string | null;
+  count: number | bigint;
+  email: string;
+  name: string;
+}
+
+function toNumericValue(
+  value: Prisma.Decimal | number | string | bigint | null | undefined
+): number {
+  if (value === null || value === undefined) {
+    return 0;
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "bigint") {
+    return Number(value);
+  }
+
+  return Number(value);
+}
 
 /**
  * Get expense statistics for the current user's company
@@ -122,31 +159,70 @@ export async function getAnalyticsData(days: number = 90) {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(endDate.getDate() - normalizedDays);
+    const whereClause = {
+      companyId,
+      date: {
+        gte: startDate,
+        lte: endDate,
+      },
+    };
+    const monthBucketSql = Prisma.sql`date_trunc('month', "date" AT TIME ZONE 'UTC')`;
 
-    // Fetch expenses with relations
-    const expenses = await prisma.expense.findMany({
-      where: {
-        companyId,
-        date: {
-          gte: startDate,
-          lte: endDate,
+    // Keep the output shape identical, but aggregate in the database instead of
+    // materializing every expense row and related record in Node.js.
+    const [summaryResult, monthlyTotalRows, categoryDistributionRows, userSpendingRows] = await Promise.all([
+      prisma.expense.aggregate({
+        where: whereClause,
+        _count: {
+          _all: true,
         },
-      },
-      include: {
-        category: true,
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
+        _sum: {
+          amount: true,
         },
-      },
-      orderBy: {
-        date: "desc",
-      },
-    });
+      }),
+      prisma.$queryRaw<AnalyticsMonthlyTotalRow[]>(Prisma.sql`
+        SELECT
+          ${monthBucketSql} AS "monthStart",
+          COALESCE(SUM("amount"), 0) AS "totalAmount"
+        FROM "Expense"
+        WHERE "companyId" = ${companyId}
+          AND "date" >= ${startDate}
+          AND "date" <= ${endDate}
+        GROUP BY ${monthBucketSql}
+        ORDER BY ${monthBucketSql} ASC
+      `),
+      prisma.$queryRaw<AnalyticsCategoryDistributionRow[]>(Prisma.sql`
+        SELECT
+          c."name" AS "name",
+          c."color" AS "color",
+          COALESCE(SUM(e."amount"), 0) AS "amount"
+        FROM "Expense" e
+        INNER JOIN "Category" c ON c."id" = e."categoryId"
+        WHERE e."companyId" = ${companyId}
+          AND e."date" >= ${startDate}
+          AND e."date" <= ${endDate}
+        GROUP BY c."id", c."name", c."color"
+        ORDER BY "amount" DESC, c."name" ASC
+      `),
+      prisma.$queryRaw<AnalyticsUserSpendingRow[]>(Prisma.sql`
+        SELECT
+          COALESCE(u."name", u."email", 'unknown') AS "name",
+          COALESCE(u."email", 'unknown') AS "email",
+          COALESCE(SUM(e."amount"), 0) AS "amount",
+          COUNT(*)::int AS "count"
+        FROM "Expense" e
+        LEFT JOIN "User" u ON u."id" = e."userId"
+        WHERE e."companyId" = ${companyId}
+          AND e."date" >= ${startDate}
+          AND e."date" <= ${endDate}
+        GROUP BY u."id", u."name", u."email"
+        ORDER BY "amount" DESC, "email" ASC
+      `),
+    ]);
+    const totalCount = summaryResult._count._all;
+    const totalAmount = Number(summaryResult._sum.amount ?? 0);
 
-    if (expenses.length === 0) {
+    if (totalCount === 0) {
       return {
         data: {
           monthlyTrend: buildMonthlyTrend([], endDate, normalizedDays),
@@ -164,62 +240,24 @@ export async function getAnalyticsData(days: number = 90) {
     }
 
     const monthlyTrend = buildMonthlyTrend(
-      expenses.map((expense) => ({
-        date: new Date(expense.date),
-        amount: Number(expense.amount),
+      monthlyTotalRows.map((row) => ({
+        date: new Date(row.monthStart),
+        amount: toNumericValue(row.totalAmount),
       })),
       endDate,
       normalizedDays
     );
-
-    // Calculate category distribution
-    const categoryMap = new Map<string, { name: string; color: string; amount: number }>();
-
-    for (const expense of expenses) {
-      const categoryName = expense.category?.name || "Uncategorized";
-      const categoryColor = expense.category?.color || "#888888";
-
-      const existing = categoryMap.get(categoryName);
-      if (existing) {
-        existing.amount += Number(expense.amount);
-      } else {
-        categoryMap.set(categoryName, {
-          name: categoryName,
-          color: categoryColor,
-          amount: Number(expense.amount),
-        });
-      }
-    }
-
-    const categoryDistribution = Array.from(categoryMap.values()).sort(
-      (a, b) => b.amount - a.amount
-    );
-
-    // Calculate user spending
-    const userMap = new Map<string, { name: string; email: string; amount: number; count: number }>();
-
-    for (const expense of expenses) {
-      const email = expense.user?.email || "unknown";
-      const name = expense.user?.name || email;
-
-      const existing = userMap.get(email);
-      if (existing) {
-        existing.amount += Number(expense.amount);
-        existing.count += 1;
-      } else {
-        userMap.set(email, {
-          name,
-          email,
-          amount: Number(expense.amount),
-          count: 1,
-        });
-      }
-    }
-
-    const userSpending = Array.from(userMap.values()).sort((a, b) => b.amount - a.amount);
-
-    // Calculate summary
-    const totalAmount = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    const categoryDistribution = categoryDistributionRows.map((row) => ({
+      name: row.name,
+      color: row.color ?? "#888888",
+      amount: toNumericValue(row.amount),
+    }));
+    const userSpending = userSpendingRows.map((row) => ({
+      name: row.name,
+      email: row.email,
+      amount: toNumericValue(row.amount),
+      count: toNumericValue(row.count),
+    }));
 
     return {
       data: {
@@ -228,8 +266,8 @@ export async function getAnalyticsData(days: number = 90) {
         userSpending,
         summary: {
           totalAmount,
-          totalCount: expenses.length,
-          averageExpense: totalAmount / expenses.length,
+          totalCount,
+          averageExpense: totalAmount / totalCount,
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
         },

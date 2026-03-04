@@ -15,12 +15,18 @@ interface NotificationProviderProps {
   children: ReactNode
 }
 
+type IdleCapableWindow = Window & {
+  cancelIdleCallback?: (handle: number) => void
+  requestIdleCallback?: (callback: () => void) => number
+}
+
 export const NotificationContext = createContext<NotificationContextValue | undefined>(undefined)
 
 export function NotificationProvider({ children }: NotificationProviderProps): React.JSX.Element {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [lastRefresh, setLastRefresh] = useState<number>(Date.now())
+  const [lastRefresh, setLastRefresh] = useState<number>(0)
+  const idleLoadRef = useRef<number | null>(null)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
   const pollingInFlightRef = useRef<boolean>(false)
   const isMountedRef = useRef(true)
@@ -62,10 +68,29 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
   // Initial load
   useEffect(() => {
     isMountedRef.current = true
-    loadNotifications(true)
+    const idleWindow = window as IdleCapableWindow
+
+    if (typeof idleWindow.requestIdleCallback === "function") {
+      idleLoadRef.current = idleWindow.requestIdleCallback(() => {
+        void loadNotifications(true)
+      })
+    } else {
+      idleLoadRef.current = window.setTimeout(() => {
+        void loadNotifications(true)
+      }, 0)
+    }
     
     return () => {
       isMountedRef.current = false
+
+      if (idleLoadRef.current !== null) {
+        if (typeof idleWindow.cancelIdleCallback === "function") {
+          idleWindow.cancelIdleCallback(idleLoadRef.current)
+        } else {
+          window.clearTimeout(idleLoadRef.current)
+        }
+        idleLoadRef.current = null
+      }
     }
   }, [loadNotifications])
 

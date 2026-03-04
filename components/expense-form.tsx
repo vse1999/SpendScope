@@ -47,18 +47,25 @@ import {
   parseExpenseDateInput,
 } from "@/lib/expenses/date-serialization";
 
+interface ExpenseFormCategory {
+  id: string;
+  name: string;
+}
+
 interface ExpenseFormProps {
+  initialCategories?: ExpenseFormCategory[];
   onSuccess?: () => void;
   onUpgradeRequired?: (context: UpgradeDialogContext) => void;
 }
 
 export default function ExpenseForm({
+  initialCategories,
   onSuccess,
   onUpgradeRequired,
 }: ExpenseFormProps) {
   const [open, setOpen] = useState(false);
-  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
-  const [isCategoriesLoading, setIsCategoriesLoading] = useState<boolean>(true);
+  const [categories, setCategories] = useState<ExpenseFormCategory[]>(() => initialCategories ?? []);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState<boolean>(initialCategories === undefined);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
 
   const form = useForm<ExpenseFormInput>({
@@ -72,6 +79,13 @@ export default function ExpenseForm({
   });
 
   useEffect(() => {
+    if (initialCategories !== undefined) {
+      setCategories(initialCategories);
+      setIsCategoriesLoading(false);
+      setCategoriesError(null);
+      return;
+    }
+
     async function loadCategories(): Promise<void> {
       setIsCategoriesLoading(true);
       setCategoriesError(null);
@@ -101,7 +115,7 @@ export default function ExpenseForm({
       }
     }
     loadCategories();
-  }, []);
+  }, [initialCategories]);
 
   async function onSubmit(data: ExpenseFormInput) {
     const formData = new FormData();

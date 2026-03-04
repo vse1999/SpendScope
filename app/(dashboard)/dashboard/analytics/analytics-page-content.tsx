@@ -1,7 +1,6 @@
 import { AlertCircle } from "lucide-react"
-import { auth } from "@/auth"
 import { getAnalyticsData } from "@/app/actions/expenses"
-import { getCachedUserCompany } from "@/lib/queries/get-user-company"
+import { requireDashboardRequestContext } from "@/lib/dashboard/request-context"
 import { isBillingEnabled } from "@/lib/stripe/config"
 import { AnalyticsUpgradeGate } from "@/components/entitlements"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -17,11 +16,8 @@ export async function AnalyticsPageContent({
   searchParams,
 }: AnalyticsPageContentProps): Promise<React.JSX.Element> {
   const resolvedSearchParams = await searchParams
-  // session.user is guaranteed by (dashboard)/layout.tsx auth guard
-  const session = await auth()
-  const user = session!.user!
-  const userCompanyResult = await getCachedUserCompany()
-  const userRole = userCompanyResult.hasCompany ? userCompanyResult.userRole : user.role
+  const { user } = await requireDashboardRequestContext()
+  const userRole = user.role
   const billingEnabled = isBillingEnabled()
   const isAdmin = userRole === "ADMIN"
 

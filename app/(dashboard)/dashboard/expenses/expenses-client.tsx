@@ -10,11 +10,9 @@ import {
 } from "@/components/entitlements";
 import ExpenseForm from "@/components/expense-form";
 import { ExpenseBulkActionsBar } from "./components/expense-bulk-actions-bar";
-import { ExpenseCopilotPanel } from "./components/expense-copilot-panel";
 import { ExpenseFiltersCard } from "./components/expense-filters-card";
 import { ExpenseSortSummaryCard } from "./components/expense-sort-summary-card";
 import { ExpenseTableSection } from "./components/expense-table-section";
-import { useExpensesCopilotPolicyState } from "./use-expenses-copilot-policy-state";
 import { useExpensesListState } from "./use-expenses-list-state";
 import type { ExpensesClientProps } from "./expenses-client-types";
 
@@ -27,8 +25,7 @@ export function ExpensesClient({
   initialSortConfig,
   isAdmin,
   billingEnabled,
-  initialCopilotAlerts,
-  initialPolicyConfig,
+  children,
 }: ExpensesClientProps): React.JSX.Element {
   const {
     open: isUpgradeDialogOpen,
@@ -86,28 +83,6 @@ export function ExpensesClient({
     onUpgradeRequired: openUpgradeDialog,
   });
 
-  const {
-    copilotAlerts,
-    resolvingAlerts,
-    globalPolicyThreshold,
-    selectedPolicyCategoryId,
-    selectedPolicyThreshold,
-    isSavingGlobalPolicy,
-    isSavingCategoryPolicy,
-    categoryPolicyOverrides,
-    setGlobalPolicyThreshold,
-    setSelectedPolicyThreshold,
-    handleSelectedPolicyCategoryChange,
-    resolveCopilotAlert,
-    handleSaveGlobalPolicyThreshold,
-    handleSaveCategoryPolicyThreshold,
-    handleDeleteCategoryPolicyThreshold,
-  } = useExpensesCopilotPolicyState({
-    categories,
-    initialCopilotAlerts,
-    initialPolicyConfig,
-  });
-
   return (
     <div className="min-w-0 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -127,6 +102,7 @@ export function ExpensesClient({
             Export CSV
           </Button>
           <ExpenseForm
+            initialCategories={categories}
             onUpgradeRequired={openUpgradeDialog}
             onSuccess={() => {
               router.refresh();
@@ -170,25 +146,7 @@ export function ExpensesClient({
         )}
       </div>
 
-      <ExpenseCopilotPanel
-        isAdmin={isAdmin}
-        alerts={copilotAlerts}
-        resolvingAlerts={resolvingAlerts}
-        onResolveAlert={resolveCopilotAlert}
-        globalPolicyThreshold={globalPolicyThreshold}
-        onGlobalPolicyThresholdChange={setGlobalPolicyThreshold}
-        onSaveGlobalPolicyThreshold={handleSaveGlobalPolicyThreshold}
-        isSavingGlobalPolicy={isSavingGlobalPolicy}
-        categories={categories}
-        selectedPolicyCategoryId={selectedPolicyCategoryId}
-        onSelectedPolicyCategoryChange={handleSelectedPolicyCategoryChange}
-        selectedPolicyThreshold={selectedPolicyThreshold}
-        onSelectedPolicyThresholdChange={setSelectedPolicyThreshold}
-        onSaveCategoryPolicyThreshold={handleSaveCategoryPolicyThreshold}
-        isSavingCategoryPolicy={isSavingCategoryPolicy}
-        categoryPolicyOverrides={categoryPolicyOverrides}
-        onDeleteCategoryPolicyThreshold={handleDeleteCategoryPolicyThreshold}
-      />
+      {children}
 
       {hasCustomSort && (
         <ExpenseSortSummaryCard
