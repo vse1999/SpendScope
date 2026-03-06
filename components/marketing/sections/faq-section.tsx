@@ -1,13 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
 
 import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 import { cn } from "@/lib/utils";
 import { displayFont } from "@/lib/fonts";
-import { TextReveal, StaggerContainer, StaggerItem } from "@/components/marketing/animations";
+
+// Lazy load animation components
+const TextReveal = dynamic(
+  () => import("@/components/marketing/animations").then((m) => m.TextReveal),
+  { ssr: false, loading: () => <div /> }
+);
+
+const StaggerContainer = dynamic(
+  () => import("@/components/marketing/animations").then((m) => m.StaggerContainer),
+  { ssr: false, loading: () => <div /> }
+);
+
+const StaggerItem = dynamic(
+  () => import("@/components/marketing/animations").then((m) => m.StaggerItem),
+  { ssr: false, loading: () => <div /> }
+);
 
 interface FAQItem {
   readonly question: string;
@@ -29,8 +44,6 @@ function FAQAccordion({
   readonly isOpen: boolean;
   readonly onToggle: () => void;
 }) {
-  const { allowEnhancedMotion } = useMarketingDeviceProfile();
-
   return (
     <div className="w-full rounded-xl border border-border/80 bg-card/80">
       <button
@@ -40,19 +53,14 @@ function FAQAccordion({
         aria-controls={`faq-content-${index}`}
       >
         <span className="flex items-center gap-4">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
-          >
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
             {index + 1}
           </span>
           {item.question}
         </span>
-        <motion.div
-          className="shrink-0"
-          animate={allowEnhancedMotion ? { rotate: isOpen ? 45 : 0 } : undefined}
-          transition={allowEnhancedMotion ? { duration: 0.2 } : undefined}
-        >
-          <Plus className="size-5 text-muted-foreground transition-colors duration-300" />
-        </motion.div>
+        <div className={cn("shrink-0 transition-transform duration-200", isOpen && "rotate-45")}>
+          <Plus className="size-5 text-muted-foreground" />
+        </div>
       </button>
 
       <div
@@ -73,36 +81,61 @@ function FAQAccordion({
   );
 }
 
+// Section header
+function SectionHeader() {
+  return (
+    <div className="mb-10 text-center">
+      <h2
+        id="faq-heading"
+        className={cn(displayFont.className, "text-3xl font-semibold tracking-tight sm:text-4xl")}
+      >
+        Frequently asked <span className="text-gradient">questions</span>
+      </h2>
+    </div>
+  );
+}
+
 export function FAQSection({ faqItems }: FAQSectionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const { useMobileOptimizedContent } = useMarketingDeviceProfile();
 
   const handleToggle = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
 
+  // Mobile: static content
+  if (useMobileOptimizedContent) {
+    return (
+      <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-24 py-16">
+        <SectionHeader />
+        <div className="space-y-4">
+          {faqItems.map((item, index) => (
+            <FAQAccordion
+              key={item.question}
+              item={item}
+              index={index}
+              isOpen={openIndex === index}
+              onToggle={() => handleToggle(index)}
+            />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  // Desktop: with animations
   return (
     <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-24 py-16">
       <TextReveal>
-        <div className="mb-10 text-center">
-          <h2
-            id="faq-heading"
-            className={cn(
-              displayFont.className,
-              "text-3xl font-semibold tracking-tight sm:text-4xl"
-            )}
-          >
-            Frequently asked{" "}
-            <span className="text-gradient">questions</span>
-          </h2>
-        </div>
+        <SectionHeader />
       </TextReveal>
 
       <StaggerContainer className="space-y-4" staggerDelay={0.1} delayChildren={0.2}>
         {faqItems.map((item, index) => (
           <StaggerItem key={item.question}>
-            <FAQAccordion 
-              item={item} 
-              index={index} 
+            <FAQAccordion
+              item={item}
+              index={index}
               isOpen={openIndex === index}
               onToggle={() => handleToggle(index)}
             />

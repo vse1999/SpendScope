@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   ArrowRight,
   Menu,
@@ -16,8 +17,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { MagneticButton } from "@/components/marketing/animations";
-import { MarketingDeviceProfileProvider } from "@/components/marketing/hooks/use-marketing-device-profile";
+import { MarketingDeviceProfileProvider, useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
+
+// Lazy load MagneticButton to avoid loading framer-motion on initial render
+const MagneticButton = dynamic(
+  () => import("@/components/marketing/animations").then((m) => m.MagneticButton),
+  { ssr: false, loading: () => <div /> }
+);
 import {
   HeroSection,
   TechStackSection,
