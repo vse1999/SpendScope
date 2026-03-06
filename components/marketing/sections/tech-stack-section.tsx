@@ -1,12 +1,22 @@
 "use client";
 
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useSyncExternalStore } from "react";
 
 import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
 import { cn } from "@/lib/utils";
-import { TextReveal } from "@/components/marketing/animations";
+
+// Lazy load animation components
+const TextReveal = dynamic(
+  () => import("@/components/marketing/animations").then((m) => m.TextReveal),
+  { ssr: false, loading: () => <div /> }
+);
+
+const MotionDiv = dynamic(
+  () => import("framer-motion").then((m) => m.motion.div),
+  { ssr: false }
+);
 
 interface TechnologyItem {
   readonly name: string;
@@ -52,7 +62,7 @@ export function TechStackSection({
 
         {shouldRenderAnimatedMarquee ? (
           // Animated marquee with correct scroll distance
-          <motion.div
+          <MotionDiv
             className="flex gap-12 py-8"
             animate={{
               x: [0, -totalSetWidth],
@@ -67,10 +77,9 @@ export function TechStackSection({
             }}
           >
             {duplicatedTechnologies.map((technology, index) => (
-              <motion.div
+              <div
                 key={`${technology.name}-${index}`}
-                className="group flex h-14 w-40 shrink-0 items-center justify-center rounded-xl bg-white/50 px-4 transition-all duration-300 hover:bg-white dark:bg-slate-900/50 dark:hover:bg-slate-800/50"
-                whileHover={{ scale: 1.05 }}
+                className="group flex h-14 w-40 shrink-0 items-center justify-center rounded-xl bg-white/50 px-4 transition-all duration-300 hover:bg-white hover:scale-105 dark:bg-slate-900/50 dark:hover:bg-slate-800/50"
               >
                 <Image
                   src={technology.logoPath}
@@ -82,9 +91,9 @@ export function TechStackSection({
                     technology.colorModeClassName
                   )}
                 />
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </MotionDiv>
         ) : (
           // Static grid for mobile and reduced-motion modes
           <div className="grid grid-cols-2 gap-4 px-4 py-6 sm:grid-cols-4 sm:px-8">

@@ -1,9 +1,15 @@
 "use client";
 
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { TrendingUp, PieChart, Users } from "lucide-react";
 import { formatCurrency } from "@/lib/format-utils";
 import type { MonthlyTrend } from "@/types/analytics";
+
+// Lazy load motion component - only needed for desktop
+const MotionDiv = dynamic(
+  () => import("framer-motion").then((m) => m.motion.div),
+  { ssr: false }
+);
 
 interface SummaryCardsProps {
   readonly totalAmount: number;
@@ -23,6 +29,26 @@ interface StatCardProps {
   readonly motionEnabled: boolean;
 }
 
+// Static stat card content
+function StatCardContent({
+  title,
+  value,
+  subtitle,
+  icon,
+  gradient,
+}: Omit<StatCardProps, "delay" | "motionEnabled">) {
+  return (
+    <>
+      <div className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shadow-md`}>
+        {icon}
+      </div>
+      <p className="text-xs text-muted-foreground">{title}</p>
+      <p className="mt-0.5 text-lg font-bold tracking-tight">{value}</p>
+      <p className="text-[10px] text-muted-foreground">{subtitle}</p>
+    </>
+  );
+}
+
 function StatCard({
   title,
   value,
@@ -32,34 +58,26 @@ function StatCard({
   delay,
   motionEnabled,
 }: StatCardProps): React.JSX.Element {
+  const cardClassName = "relative overflow-hidden rounded-xl border border-indigo-200/70 bg-white/90 p-3 shadow-lg backdrop-blur-sm dark:border-indigo-900/50 dark:bg-slate-900/90";
+
   if (!motionEnabled) {
     return (
-      <div className="relative overflow-hidden rounded-xl border border-indigo-200/70 bg-white/90 p-3 shadow-lg backdrop-blur-sm dark:border-indigo-900/50 dark:bg-slate-900/90">
-        <div className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shadow-md`}>
-          {icon}
-        </div>
-        <p className="text-xs text-muted-foreground">{title}</p>
-        <p className="mt-0.5 text-lg font-bold tracking-tight">{value}</p>
-        <p className="text-[10px] text-muted-foreground">{subtitle}</p>
+      <div className={cardClassName}>
+        <StatCardContent title={title} value={value} subtitle={subtitle} icon={icon} gradient={gradient} />
       </div>
     );
   }
 
   return (
-    <motion.div
+    <MotionDiv
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="relative overflow-hidden rounded-xl border border-indigo-200/70 bg-white/90 p-3 shadow-lg backdrop-blur-sm dark:border-indigo-900/50 dark:bg-slate-900/90"
+      className={cardClassName}
     >
-      <div className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${gradient} shadow-md`}>
-        {icon}
-      </div>
-      <p className="text-xs text-muted-foreground">{title}</p>
-      <p className="mt-0.5 text-lg font-bold tracking-tight">{value}</p>
-      <p className="text-[10px] text-muted-foreground">{subtitle}</p>
-    </motion.div>
+      <StatCardContent title={title} value={value} subtitle={subtitle} icon={icon} gradient={gradient} />
+    </MotionDiv>
   );
 }
 
