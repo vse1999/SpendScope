@@ -5,6 +5,7 @@ import { getNumericLimits } from "@/lib/subscription/config";
 const mockAuth = jest.fn();
 const mockCheckRateLimit = jest.fn();
 const mockRevalidatePath = jest.fn();
+const mockInvalidateCompanyCategoryReadModels = jest.fn();
 const mockCompanyFindUnique = jest.fn();
 const mockPrismaTransaction = jest.fn();
 
@@ -58,6 +59,11 @@ jest.mock("@/lib/subscription/feature-gate-service", () => ({
 
 jest.mock("next/cache", () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
+}));
+
+jest.mock("@/lib/cache/company-read-model-cache", () => ({
+  invalidateCompanyCategoryReadModels: (...args: unknown[]) =>
+    mockInvalidateCompanyCategoryReadModels(...args),
 }));
 
 jest.mock("@/app/actions/notifications", () => ({
@@ -116,6 +122,7 @@ describe("createCompany", () => {
         role: UserRole.ADMIN,
       },
     });
+    expect(mockInvalidateCompanyCategoryReadModels).toHaveBeenCalledWith("company-1");
   });
 
   it("initializes company usage limits from canonical FREE plan config", async (): Promise<void> => {

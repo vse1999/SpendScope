@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { encode } from "next-auth/jwt"
 import { UserRole } from "@prisma/client"
+import {
+  invalidateCompanyCategoryReadModels,
+  invalidateCompanyExpenseReadModels,
+} from "@/lib/cache/company-read-model-cache"
 import { prisma } from "@/lib/prisma"
 import { areTestEndpointsEnabled } from "@/lib/runtime/test-endpoints"
 
@@ -145,6 +149,8 @@ async function ensureBaseData(): Promise<{
     })
   }
 
+  invalidateCompanyCategoryReadModels(company.id)
+
   return { user, member, companyId: company.id }
 }
 
@@ -215,6 +221,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     if (shouldSeed) {
       await reseedExpenses(companyId, [user.id, member.id])
+      invalidateCompanyExpenseReadModels(companyId)
     }
 
     const cookieName = getAuthCookieName(url)

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
+import { invalidateCompanyCategoryReadModels } from "@/lib/cache/company-read-model-cache";
 import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { getNumericLimits } from "@/lib/subscription/config";
 import { FeatureGateError } from "@/lib/errors";
@@ -191,6 +192,7 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
 
     revalidatePath("/dashboard");
     revalidatePath("/onboarding");
+    invalidateCompanyCategoryReadModels(result.id);
 
     return { success: true, company: result };
   } catch (error) {
