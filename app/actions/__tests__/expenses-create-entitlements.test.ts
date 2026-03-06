@@ -12,6 +12,7 @@ const mockRevalidatePath = jest.fn();
 const mockCreateNotification = jest.fn();
 const mockSerializeExpense = jest.fn();
 const mockCreateExpenseSchemaSafeParse = jest.fn();
+const mockInvalidateCompanyExpenseReadModels = jest.fn();
 
 const mockPrismaCategoryFindFirst = jest.fn();
 const mockPrismaUserFindMany = jest.fn();
@@ -46,6 +47,11 @@ jest.mock("@/lib/expenses/action-helpers", () => ({
 
 jest.mock("@/app/actions/notifications", () => ({
   createNotification: (...args: unknown[]) => mockCreateNotification(...args),
+}));
+
+jest.mock("@/lib/cache/company-read-model-cache", () => ({
+  invalidateCompanyExpenseReadModels: (...args: unknown[]) =>
+    mockInvalidateCompanyExpenseReadModels(...args),
 }));
 
 jest.mock("next/cache", () => ({
@@ -207,5 +213,6 @@ describe("createExpense entitlement hardening", () => {
     expect(mockTxExpenseCreate).toHaveBeenCalledTimes(1);
     expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard");
     expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard/expenses");
+    expect(mockInvalidateCompanyExpenseReadModels).toHaveBeenCalledWith("company-1");
   });
 });

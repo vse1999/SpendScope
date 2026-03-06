@@ -39,7 +39,7 @@ export const metadata: Metadata = {
       "Track, analyze, and manage company expenses with policy-aware insights",
     images: [
       {
-        url: "/opengraph-image",
+        url: "/api/og?variant=home",
         width: 1200,
         height: 630,
         alt: "SpendScope",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     title: "SpendScope - Enterprise Expense Analytics",
     description:
       "Track, analyze, and manage company expenses with policy-aware insights",
-    images: ["/twitter-image"],
+    images: ["/api/twitter?variant=home"],
   },
   robots: {
     index: allowIndexing,

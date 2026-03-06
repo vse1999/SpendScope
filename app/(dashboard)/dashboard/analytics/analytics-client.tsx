@@ -71,7 +71,6 @@ export function AnalyticsClient({
       try {
         const response = await fetch(`/api/analytics?days=${newDays}`, {
           method: "GET",
-          cache: "no-store",
           headers: {
             Accept: "application/json",
           },

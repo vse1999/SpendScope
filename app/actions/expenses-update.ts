@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { createNotification } from "@/app/actions/notifications";
 import { evaluateBudgetPolicyForExpenseChange } from "@/lib/budget/service";
+import { invalidateCompanyExpenseReadModels } from "@/lib/cache/company-read-model-cache";
 import { serializeExpense } from "@/lib/expenses/action-helpers";
 
 /**
@@ -159,6 +160,7 @@ export async function updateExpense(id: string, formData: FormData) {
     });
 
     revalidatePath("/dashboard");
+    invalidateCompanyExpenseReadModels(existingExpense.companyId);
 
     console.log(`[AUDIT] Expense ${id} updated by ${userName} (${userRole})`);
 

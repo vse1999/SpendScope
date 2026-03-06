@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createExpenseSchema } from "@/lib/schemas";
 import { revalidatePath } from "next/cache";
+import { invalidateCompanyExpenseReadModels } from "@/lib/cache/company-read-model-cache";
 import {
   checkFeatureLimit,
   consumeResource,
@@ -173,6 +174,7 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/expenses");
+    invalidateCompanyExpenseReadModels(companyId);
 
     // Notify all company members about the new expense
     try {

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "@/app/actions/notifications";
+import { invalidateCompanyExpenseReadModels } from "@/lib/cache/company-read-model-cache";
 import { decrementResource } from "@/lib/subscription/feature-gate-service";
 import type { ExpenseChangeValues } from "@/types/expense-history";
 import { getCurrentUserCompanyId } from "./expenses-shared";
@@ -120,6 +121,7 @@ export async function deleteExpense(id: string) {
     }
 
     revalidatePath("/dashboard");
+    invalidateCompanyExpenseReadModels(expense.companyId);
 
     // Notify expense owner if admin deleted their expense
     if (!isOwner && isAdmin) {
@@ -144,4 +146,3 @@ export async function deleteExpense(id: string) {
     };
   }
 }
-

@@ -149,6 +149,10 @@ model Expense {
   @@index([userId])
   @@index([categoryId])
   @@index([date])
+  @@index([companyId, date(sort: Desc), id(sort: Desc)], map: "idx_expenses_company_date_cursor")
+  @@index([companyId, categoryId, date(sort: Desc)], map: "idx_expenses_company_category_date")
+  @@index([companyId, userId, date(sort: Desc)], map: "idx_expenses_company_user_date")
+  @@index([companyId, date], map: "idx_expenses_company_date_range")
 }
 
 // Enterprise Audit Trail: Full history of all expense changes

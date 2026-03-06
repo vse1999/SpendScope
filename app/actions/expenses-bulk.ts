@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
+import { invalidateCompanyExpenseReadModels } from "@/lib/cache/company-read-model-cache";
 import { decrementResource } from "@/lib/subscription/feature-gate-service";
 
 interface ExpenseBulkActor {
@@ -102,6 +103,7 @@ export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
     }
 
     revalidatePath("/dashboard/expenses");
+    invalidateCompanyExpenseReadModels(companyId);
 
     return { success: true, deletedCount: result.count };
   } catch (error) {
@@ -179,6 +181,7 @@ export async function bulkUpdateCategory(
     });
 
     revalidatePath("/dashboard/expenses");
+    invalidateCompanyExpenseReadModels(companyId);
 
     return { success: true, updatedCount: updatableIds.length };
   } catch (error) {

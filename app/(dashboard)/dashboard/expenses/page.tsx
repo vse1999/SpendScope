@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { requireDashboardRequestContext } from "@/lib/dashboard/request-context";
 import { isBillingEnabled } from "@/lib/stripe/config";
 import {
@@ -13,9 +14,15 @@ import {
 } from "./expenses-copilot-section";
 import { ExpensesClient } from "./expenses-client";
 
-export const metadata = {
-  title: "Expenses | SpendScope",
+export const metadata: Metadata = {
+  title: "Expenses",
   description: "Manage and analyze your expenses",
+  openGraph: {
+    images: ["/api/og?variant=expenses"],
+  },
+  twitter: {
+    images: ["/api/twitter?variant=expenses"],
+  },
 };
 
 interface ExpensesPageProps {
