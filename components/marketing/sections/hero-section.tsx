@@ -13,12 +13,6 @@ import { cn } from "@/lib/utils";
 import { displayFont } from "@/lib/fonts";
 import type { AnalyticsData } from "@/types/analytics";
 
-// Lazy load heavy animation components - only loaded when enhanced motion is enabled
-const LazyMotionWrapper = dynamic(
-  () => import("@/components/marketing/animations/lazy-motion-wrapper").then((m) => m.LazyMotionWrapper),
-  { ssr: false }
-);
-
 const TextReveal = dynamic(
   () => import("@/components/marketing/animations").then((m) => m.TextReveal),
   { ssr: false, loading: () => <div /> }

@@ -217,6 +217,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     }
 
     const { user, member, companyId } = await ensureBaseData()
+    const requestedRole = url.searchParams.get("role")
+    const sessionUser = requestedRole === "member" ? member : user
     const shouldSeed = url.searchParams.get("seed") === "1"
 
     if (shouldSeed) {
@@ -227,11 +229,11 @@ export async function GET(request: Request): Promise<NextResponse> {
     const cookieName = getAuthCookieName(url)
     const token = await encode({
       token: {
-        sub: user.id,
-        name: user.name,
-        email: user.email,
-        picture: user.image,
-        role: user.role,
+        sub: sessionUser.id,
+        name: sessionUser.name,
+        email: sessionUser.email,
+        picture: sessionUser.image,
+        role: sessionUser.role,
         companyId,
       },
       secret: nextAuthSecret,

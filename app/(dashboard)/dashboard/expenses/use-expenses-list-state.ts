@@ -28,6 +28,7 @@ import type { UpgradeDialogContext } from "@/components/entitlements";
 import type {
   Category,
   Expense,
+  ExpenseSummary,
   ExpensesClientProps,
   ServerExpenseItem,
   SortField,
@@ -36,6 +37,7 @@ import type {
 interface UseExpensesListStateArgs {
   initialExpenses: Expense[];
   initialNextCursor: string | null;
+  initialSummary: ExpenseSummary;
   filters: ExpensesClientProps["filters"];
   initialSortConfig: MultiSortConfig;
   categories: Category[];
@@ -43,9 +45,9 @@ interface UseExpensesListStateArgs {
 }
 
 interface UseExpensesListStateResult {
-  router: ReturnType<typeof useRouter>;
   isPending: boolean;
   expenses: Expense[];
+  summary: ExpenseSummary;
   nextCursor: string | null;
   isLoadingMore: boolean;
   selectedIds: Set<string>;
@@ -78,10 +80,12 @@ interface UseExpensesListStateResult {
   removeSort: (field: SortField) => void;
   clearAllSorts: () => void;
   clearFilters: () => void;
+  addExpense: (expense: Expense) => void;
   handleBulkDelete: () => Promise<void>;
   handleBulkUpdateCategory: (categoryId: string) => Promise<void>;
   handleExport: () => Promise<void>;
   loadMore: () => Promise<void>;
+  reconcileWithServer: () => void;
 }
 
 function getNextSortConfig(
@@ -113,6 +117,7 @@ function getNextSortConfig(
 export function useExpensesListState({
   initialExpenses,
   initialNextCursor,
+  initialSummary,
   filters,
   initialSortConfig,
   categories,
@@ -123,6 +128,7 @@ export function useExpensesListState({
   const [isPending, startTransition] = useTransition();
 
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [summary, setSummary] = useState<ExpenseSummary>(initialSummary);
   const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -139,9 +145,10 @@ export function useExpensesListState({
 
   useEffect(() => {
     setExpenses(initialExpenses);
+    setSummary(initialSummary);
     setNextCursor(initialNextCursor);
     setIsLoadingMore(false);
-  }, [initialExpenses, initialNextCursor]);
+  }, [initialExpenses, initialNextCursor, initialSummary]);
 
   useEffect(() => {
     setSearch(filters.search || "");
@@ -155,6 +162,52 @@ export function useExpensesListState({
       setSortConfig(filters.sort);
     }
   }, [filters]);
+
+  const reconcileWithServer = (): void => {
+    startTransition(() => {
+      router.refresh();
+    });
+  };
+
+  const addExpense = (expense: Expense): void => {
+    const normalizedSearch = search.trim().toLowerCase();
+    const expenseDescription = expense.description.toLowerCase();
+    const expenseCategoryId = expense.category?.id;
+    const expenseDate = expense.date instanceof Date ? expense.date : new Date(expense.date);
+    const parsedMinAmount = minAmount ? Number.parseFloat(minAmount) : null;
+    const parsedMaxAmount = maxAmount ? Number.parseFloat(maxAmount) : null;
+    const parsedFromDate = fromDate ? new Date(fromDate) : null;
+    const parsedToDate = toDate ? new Date(toDate) : null;
+
+    if (parsedToDate) {
+      parsedToDate.setHours(23, 59, 59, 999);
+    }
+
+    const searchMatch = normalizedSearch.length === 0 || expenseDescription.includes(normalizedSearch);
+    const categoryMatch = selectedCategories.length === 0 ||
+      (expenseCategoryId !== undefined && selectedCategories.includes(expenseCategoryId));
+    const minAmountMatch = parsedMinAmount === null || expense.amount >= parsedMinAmount;
+    const maxAmountMatch = parsedMaxAmount === null || expense.amount <= parsedMaxAmount;
+    const fromDateMatch = parsedFromDate === null || expenseDate >= parsedFromDate;
+    const toDateMatch = parsedToDate === null || expenseDate <= parsedToDate;
+    const matchesCurrentFilters =
+      searchMatch &&
+      categoryMatch &&
+      minAmountMatch &&
+      maxAmountMatch &&
+      fromDateMatch &&
+      toDateMatch;
+
+    if (!matchesCurrentFilters) {
+      return;
+    }
+
+    setExpenses((previous) => [expense, ...previous.filter((item) => item.id !== expense.id)]);
+    setSummary((previous) => ({
+      count: previous.count + 1,
+      total: Number((previous.total + expense.amount).toFixed(2)),
+    }));
+  };
 
   const toggleSelectAll = (): void => {
     if (selectedIds.size === expenses.length) {
@@ -261,17 +314,36 @@ export function useExpensesListState({
       return;
     }
 
-    const result = await bulkDeleteExpenses(Array.from(selectedIds));
+    const selectedExpenseIds = Array.from(selectedIds);
+    const result = await bulkDeleteExpenses(selectedExpenseIds);
 
     if ("error" in result) {
       toast.error(result.error);
       return;
     }
 
+    const deletedIdSet = new Set(result.deletedIds);
+    const removedAmountTotal = expenses.reduce((total, expense) => {
+      if (!deletedIdSet.has(expense.id)) {
+        return total;
+      }
+      return total + expense.amount;
+    }, 0);
+
     toast.success(`Deleted ${result.deletedCount} expenses`);
-    setExpenses(expenses.filter((expense) => !selectedIds.has(expense.id)));
+    setExpenses((previous) => previous.filter((expense) => !deletedIdSet.has(expense.id)));
+    setSummary((previous) => ({
+      count: Math.max(0, previous.count - result.deletedIds.length),
+      total: Number(Math.max(0, previous.total - removedAmountTotal).toFixed(2)),
+    }));
     setSelectedIds(new Set());
     setIsDeleteDialogOpen(false);
+
+    if (result.skippedIds.length > 0) {
+      toast.warning(`${result.skippedIds.length} expense(s) were skipped due to permissions.`);
+    }
+
+    reconcileWithServer();
   };
 
   const handleBulkUpdateCategory = async (categoryId: string): Promise<void> => {
@@ -286,9 +358,36 @@ export function useExpensesListState({
       return;
     }
 
+    const updatedIdSet = new Set(result.updatedIds);
+    const updatedCategory = categories.find((category) => category.id === categoryId);
+
+    setExpenses((previous) =>
+      previous.map((expense) => {
+        if (!updatedIdSet.has(expense.id)) {
+          return expense;
+        }
+
+        return {
+          ...expense,
+          category: updatedCategory
+            ? {
+              id: updatedCategory.id,
+              name: updatedCategory.name,
+              color: updatedCategory.color,
+            }
+            : expense.category,
+        };
+      })
+    );
+
     toast.success(`Updated ${result.updatedCount} expenses`);
-    router.refresh();
+
+    if (result.skippedIds.length > 0) {
+      toast.warning(`${result.skippedIds.length} expense(s) were skipped due to permissions.`);
+    }
+
     setSelectedIds(new Set());
+    reconcileWithServer();
   };
 
   const handleExport = async (): Promise<void> => {
@@ -386,9 +485,9 @@ export function useExpensesListState({
   const selectedCategoryNames = getSelectedCategoryNames(categories, selectedCategories);
 
   return {
-    router,
     isPending,
     expenses,
+    summary,
     nextCursor,
     isLoadingMore,
     selectedIds,
@@ -421,9 +520,11 @@ export function useExpensesListState({
     removeSort,
     clearAllSorts,
     clearFilters,
+    addExpense,
     handleBulkDelete,
     handleBulkUpdateCategory,
     handleExport,
     loadMore,
+    reconcileWithServer,
   };
 }

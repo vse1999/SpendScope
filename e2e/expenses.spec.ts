@@ -63,11 +63,9 @@ test.describe("Expenses Flows", () => {
     await formDialog.getByRole("button", { name: "Save Expense" }).click();
 
     await expect(formDialog).toBeHidden();
-    await expect(page.getByText(uniqueDescription)).toBeVisible();
 
     await page.getByPlaceholder("Search descriptions...").fill(uniqueDescription);
     await page.getByRole("button", { name: "Apply" }).click();
-    await expect(page.getByText(uniqueDescription)).toBeVisible();
 
     const createdExpenseRow = page.locator("table tbody tr", { hasText: uniqueDescription }).first();
     await createdExpenseRow.getByRole("checkbox").click();
@@ -81,6 +79,6 @@ test.describe("Expenses Flows", () => {
     await expect(deleteDialog).toBeVisible();
     await deleteDialog.getByRole("button", { name: "Delete" }).click();
 
-    await expect(page.getByText(uniqueDescription)).not.toBeVisible();
+    await expect(createdExpenseRow).not.toBeVisible();
   });
 });

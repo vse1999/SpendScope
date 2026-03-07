@@ -4,10 +4,13 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { stripe } from "@/lib/stripe/config"
+import { createLogger } from "@/lib/monitoring/logger"
 import { revalidatePath } from "next/cache"
 import { syncUsageLimits as syncUsageLimitsService } from "@/lib/subscription/feature-gate-service"
 import { createNotification } from "@/app/actions/notifications"
 import type { StripeSubscriptionWithPeriod } from "@/types/stripe"
+
+const logger = createLogger("billing-actions");
 
 /**
  * Result type for sync usage limits action
@@ -64,7 +67,7 @@ export async function resetToFree() {
 
     return { success: true }
   } catch (error) {
-    console.error("Reset error:", error)
+    logger.error("Reset subscription failed", { error })
     return { error: "Failed to reset subscription" }
   }
 }
@@ -137,12 +140,12 @@ export async function syncSubscriptionAfterCheckout() {
         });
       }
     } catch (notifyError) {
-      console.error("Failed to send upgrade notifications:", notifyError);
+      logger.error("Failed to send upgrade notifications", { error: notifyError });
     }
 
     return { success: true, plan: "PRO" }
   } catch (error) {
-    console.error("Sync error:", error)
+    logger.error("Sync subscription after checkout failed", { error })
     return { error: "Failed to sync subscription" }
   }
 }
@@ -190,7 +193,7 @@ export async function syncUsageLimits(): Promise<SyncUsageLimitsResult> {
 
     return { success: true, message: "Usage limits synced successfully" }
   } catch (error) {
-    console.error("Sync usage limits error:", error)
+    logger.error("Sync usage limits failed", { error })
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Failed to sync usage limits" 

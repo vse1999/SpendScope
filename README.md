@@ -24,6 +24,32 @@ SpendScope is a production-oriented expense management platform for teams that n
 - Sentry (optional)
 - Upstash Redis (recommended for production rate limiting)
 
+## Engineering Decisions
+
+### Multi-tenant safety model
+
+- Every dashboard request is resolved through authenticated user + company context before data access.
+- Sensitive mutations enforce company membership and role checks server-side, not in client code.
+- Shared test helpers intentionally seed isolated tenant data to keep E2E behavior deterministic.
+
+### Caching and invalidation strategy
+
+- Read models use tenant-scoped cache tags (`company:{id}:...`) so invalidation is precise and cheap.
+- Expense mutations invalidate expense/dashboard/analytics tags; category bootstrap invalidates category/dashboard/analytics tags.
+- Revalidation is explicit in mutation actions to avoid stale aggregate cards after writes.
+
+### Mutation UX strategy
+
+- Expense flows use optimistic client updates for immediate feedback, then non-blocking server reconciliation.
+- Bulk actions now respect server-confirmed affected IDs so partial authorization outcomes remain UI-correct.
+- Summary counters are managed in the same client state model as the table rows to prevent drift.
+
+### Billing hardening strategy
+
+- Stripe webhooks are signature-verified and idempotent via persisted event IDs.
+- Billing actions are admin-gated and environment-gated for test-only reset behavior.
+- Checkout/portal routes emit request-scoped telemetry for post-incident auditability.
+
 ## Quick Start (5 Minutes)
 
 1. Install dependencies:

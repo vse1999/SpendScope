@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createExpense, getCategories } from "@/app/actions/expenses";
+import { createExpense, getCategories, type SerializedExpense } from "@/app/actions/expenses";
 import { expenseFormSchema, ExpenseFormInput } from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +54,7 @@ interface ExpenseFormCategory {
 
 interface ExpenseFormProps {
   initialCategories?: ExpenseFormCategory[];
-  onSuccess?: () => void;
+  onSuccess?: (expense: SerializedExpense) => void;
   onUpgradeRequired?: (context: UpgradeDialogContext) => void;
 }
 
@@ -130,7 +130,7 @@ export default function ExpenseForm({
       toast.success("Expense added");
       form.reset();
       setOpen(false);
-      onSuccess?.();
+      onSuccess?.(result.expense);
     } else {
       if (result.code === "LIMIT_EXCEEDED") {
         onUpgradeRequired?.({

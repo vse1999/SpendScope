@@ -36,10 +36,7 @@ export interface ExpensesClientProps {
   initialNextCursor: string | null;
   categories: Category[];
   children?: React.ReactNode;
-  summary: {
-    count: number;
-    total: number;
-  };
+  summary: ExpenseSummary;
   filters: {
     cursor?: string;
     dateFrom?: Date;
@@ -56,3 +53,8 @@ export interface ExpensesClientProps {
 }
 
 export type SortField = ExpenseSortField;
+
+export interface ExpenseSummary {
+  count: number;
+  total: number;
+}

@@ -5,11 +5,13 @@ import { Prisma } from "@prisma/client"
 import Stripe from "stripe"
 import type { StripeSubscriptionWithPeriod } from "@/types/stripe"
 import { getSubscriptionIdFromInvoice } from "@/types/stripe"
+import { createLogger } from "@/lib/monitoring/logger"
 import { createApiRouteContext, logApiError, logApiInfo, withRequestIdHeader } from "@/lib/monitoring/api-route"
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ""
 const STRIPE_PROVIDER = "stripe"
 const WEBHOOK_ROUTE = "/api/stripe/webhooks";
+const logger = createLogger("stripe-webhooks");
 
 type WebhookProcessingResult = "processed" | "duplicate"
 
@@ -50,7 +52,7 @@ async function applyEvent(
     }
 
     default: {
-      console.log(`Unhandled event type: ${event.type}`)
+      logger.info("Unhandled webhook event type", { eventType: event.type })
     }
   }
 }
@@ -136,7 +138,9 @@ async function handleCheckoutCompleted(
     : session.subscription?.id
 
   if (!companyId || !subscriptionId) {
-    console.error("Missing metadata in checkout session")
+    logger.error("Missing metadata in checkout session", {
+      sessionId: session.id,
+    })
     return
   }
 
@@ -157,7 +161,7 @@ async function handleCheckoutCompleted(
     },
   })
 
-  console.log(`[STRIPE] Upgraded company ${companyId} to PRO`)
+  logger.info("Upgraded company to PRO", { companyId })
 }
 
 async function handleInvoicePaid(
@@ -175,7 +179,7 @@ async function handleInvoicePaid(
     data: { status: "ACTIVE" },
   })
 
-  console.log(`[STRIPE] Subscription ${subscriptionId} payment confirmed`)
+  logger.info("Subscription payment confirmed", { subscriptionId })
 }
 
 async function handlePaymentFailed(
@@ -193,7 +197,7 @@ async function handlePaymentFailed(
     data: { status: "PAST_DUE" },
   })
 
-  console.log(`[STRIPE] Subscription ${subscriptionId} payment failed`)
+  logger.warn("Subscription payment failed", { subscriptionId })
 }
 
 async function handleSubscriptionDeleted(
@@ -211,5 +215,5 @@ async function handleSubscriptionDeleted(
     },
   })
 
-  console.log(`[STRIPE] Subscription ${subscription.id} downgraded to FREE`)
+  logger.info("Subscription downgraded to FREE", { subscriptionId: subscription.id })
 }

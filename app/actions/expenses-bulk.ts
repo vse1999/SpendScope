@@ -52,7 +52,7 @@ async function getExpenseBulkActor(): Promise<ExpenseBulkActorResult> {
  * Only admins can bulk delete, members can only delete their own
  */
 export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
-  | { success: true; deletedCount: number }
+  | { success: true; deletedCount: number; deletedIds: string[]; skippedIds: string[] }
   | { success: false; error: string }
 > {
   try {
@@ -82,6 +82,8 @@ export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
     const deletableIds = expenses
       .filter((expense) => isAdmin || expense.userId === userId)
       .map((expense) => expense.id);
+    const deletedIdSet = new Set(deletableIds);
+    const skippedIds = expenseIds.filter((expenseId) => !deletedIdSet.has(expenseId));
 
     if (deletableIds.length === 0) {
       return { success: false, error: "Not authorized to delete these expenses" };
@@ -105,7 +107,7 @@ export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
     revalidatePath("/dashboard/expenses");
     invalidateCompanyExpenseReadModels(companyId);
 
-    return { success: true, deletedCount: result.count };
+    return { success: true, deletedCount: result.count, deletedIds: deletableIds, skippedIds };
   } catch (error) {
     console.error("Failed to bulk delete expenses:", error);
     return {
@@ -123,7 +125,7 @@ export async function bulkUpdateCategory(
   expenseIds: string[],
   categoryId: string
 ): Promise<
-  | { success: true; updatedCount: number }
+  | { success: true; updatedCount: number; updatedIds: string[]; skippedIds: string[] }
   | { success: false; error: string }
 > {
   try {
@@ -165,6 +167,8 @@ export async function bulkUpdateCategory(
     const updatableIds = expenses
       .filter((expense) => isAdmin || expense.userId === userId)
       .map((expense) => expense.id);
+    const updatedIdSet = new Set(updatableIds);
+    const skippedIds = expenseIds.filter((expenseId) => !updatedIdSet.has(expenseId));
 
     if (updatableIds.length === 0) {
       return { success: false, error: "Not authorized to update these expenses" };
@@ -183,7 +187,7 @@ export async function bulkUpdateCategory(
     revalidatePath("/dashboard/expenses");
     invalidateCompanyExpenseReadModels(companyId);
 
-    return { success: true, updatedCount: updatableIds.length };
+    return { success: true, updatedCount: updatableIds.length, updatedIds: updatableIds, skippedIds };
   } catch (error) {
     console.error("Failed to bulk update category:", error);
     return {

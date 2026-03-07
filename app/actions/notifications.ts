@@ -4,7 +4,10 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NotificationType } from "@prisma/client";
 import { getDisplayName, parseAuditRoleChangeMessage } from "@/lib/invitations/utils";
+import { createLogger } from "@/lib/monitoring/logger";
 import { revalidatePath } from "next/cache";
+
+const logger = createLogger("notifications-action");
 
 export interface NotificationInput {
   type: NotificationType;
@@ -139,7 +142,7 @@ export async function getUserNotifications(): Promise<{
 
     return { success: true, notifications: formattedNotifications };
   } catch (error) {
-    console.error("Failed to fetch notifications:", error);
+    logger.error("Failed to fetch notifications", { error });
     return { success: false, error: "Failed to fetch notifications" };
   }
 }
@@ -154,7 +157,7 @@ export async function markNotificationAsRead(notificationId: string): Promise<{
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      console.error("[markNotificationAsRead] Not authenticated");
+      logger.warn("Not authenticated while marking notification as read");
       return { success: false, error: "Not authenticated" };
     }
 
@@ -164,7 +167,10 @@ export async function markNotificationAsRead(notificationId: string): Promise<{
     });
 
     if (!notification) {
-      console.error(`[markNotificationAsRead] Notification not found: ${notificationId} for user: ${session.user.id}`);
+      logger.warn("Notification not found for mark-as-read", {
+        notificationId,
+        userId: session.user.id,
+      });
       return { success: false, error: "Notification not found" };
     }
 
@@ -181,16 +187,16 @@ export async function markNotificationAsRead(notificationId: string): Promise<{
     });
 
     if (result.count === 0) {
-      console.error(`[markNotificationAsRead] No rows updated for notification: ${notificationId}`);
+      logger.error("No rows updated while marking notification as read", { notificationId });
       return { success: false, error: "Failed to update notification" };
     }
 
-    console.log(`[markNotificationAsRead] Successfully marked notification ${notificationId} as read`);
+    logger.info("Marked notification as read", { notificationId });
 
     revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
-    console.error("[markNotificationAsRead] Error:", error);
+    logger.error("markNotificationAsRead failed", { error });
     return { success: false, error: "Failed to update notification" };
   }
 }
@@ -216,12 +222,15 @@ export async function markAllNotificationsAsRead(): Promise<{
       },
     });
 
-    console.log(`[markAllNotificationsAsRead] Marked ${result.count} notifications as read for user: ${session.user.id}`);
+    logger.info("Marked all notifications as read", {
+      count: result.count,
+      userId: session.user.id,
+    });
 
     revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
-    console.error("[markAllNotificationsAsRead] Error:", error);
+    logger.error("markAllNotificationsAsRead failed", { error });
     return { success: false, error: "Failed to update notifications" };
   }
 }
@@ -255,7 +264,7 @@ export async function deleteNotification(notificationId: string): Promise<{
     revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete notification:", error);
+    logger.error("Failed to delete notification", { error, notificationId });
     return { success: false, error: "Failed to delete notification" };
   }
 }
@@ -278,11 +287,11 @@ export async function createNotification(
       },
     });
 
-    console.log(`[createNotification] Created notification ${notification.id} for user: ${userId}`);
+    logger.info("Created notification", { notificationId: notification.id, userId });
 
     return { success: true, notification };
   } catch (error) {
-    console.error("[createNotification] Error:", error);
+    logger.error("createNotification failed", { error, userId });
     return { success: false, error: "Failed to create notification" };
   }
 }
@@ -301,7 +310,7 @@ export async function createUserNotification(
 
     return createNotification(session.user.id, input);
   } catch (error) {
-    console.error("[createUserNotification] Error:", error);
+    logger.error("createUserNotification failed", { error });
     return { success: false, error: "Failed to create notification" };
   }
 }

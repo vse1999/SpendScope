@@ -49,7 +49,7 @@ interface EditExpenseDialogProps {
   categories: Category[]
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (updatedExpense: Expense) => void
   canEdit: boolean
   isAdmin: boolean
 }
@@ -127,11 +127,18 @@ export function EditExpenseDialog({
 
     const result = await updateExpense(expense.id, data)
 
-    if (result.error) {
+    if ("error" in result && result.error) {
       toast.error(result.error)
-    } else {
+    } else if ("expense" in result && result.expense) {
       toast.success("Expense updated successfully")
-      onSuccess()
+      const updatedExpense = result.expense
+      onSuccess({
+        id: updatedExpense.id,
+        amount: updatedExpense.amount,
+        description: updatedExpense.description,
+        date: new Date(updatedExpense.date),
+        categoryId: updatedExpense.categoryId,
+      })
       onClose()
     }
 

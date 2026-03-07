@@ -17,7 +17,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { MarketingDeviceProfileProvider, useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
+import { MarketingDeviceProfileProvider } from "@/components/marketing/hooks/use-marketing-device-profile";
 
 // Lazy load MagneticButton to avoid loading framer-motion on initial render
 const MagneticButton = dynamic(

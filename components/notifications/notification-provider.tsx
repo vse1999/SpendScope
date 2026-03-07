@@ -9,6 +9,7 @@ import {
   deleteNotification,
   createUserNotification,
 } from '@/app/actions/notifications'
+import { createLogger } from '@/lib/monitoring/logger'
 import { toast } from 'sonner'
 
 interface NotificationProviderProps {
@@ -21,6 +22,7 @@ type IdleCapableWindow = Window & {
 }
 
 export const NotificationContext = createContext<NotificationContextValue | undefined>(undefined)
+const logger = createLogger("notification-provider")
 
 export function NotificationProvider({ children }: NotificationProviderProps): React.JSX.Element {
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -54,10 +56,10 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
         }))
         setNotifications(parsedNotifications)
       } else if (result.error) {
-        console.error('[NotificationProvider] Failed to load notifications:', result.error)
+        logger.error("Failed to load notifications", { error: result.error })
       }
     } catch (error) {
-      console.error('[NotificationProvider] Error loading notifications:', error)
+      logger.error("Error loading notifications", { error })
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false)
@@ -155,7 +157,7 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
           setNotifications((prev) => [newNotification, ...prev])
         }
       } catch (error) {
-        console.error('Failed to create notification:', error)
+        logger.error("Failed to create notification", { error })
         toast.error('Failed to create notification')
       }
     },
@@ -163,7 +165,7 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
   )
 
   const markAsRead = useCallback(async (id: string): Promise<void> => {
-    console.log(`[NotificationProvider] Marking notification ${id} as read`)
+    logger.debug("Marking notification as read", { id })
     
     // Optimistically update UI
     setNotifications((prev) =>
@@ -175,10 +177,10 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
     // Sync with database
     try {
       const result = await markNotificationAsRead(id)
-      console.log(`[NotificationProvider] markNotificationAsRead result:`, result)
+      logger.debug("markNotificationAsRead result", { id, result })
       
       if (!result.success) {
-        console.error(`[NotificationProvider] Failed to mark as read:`, result.error)
+        logger.error("Failed to mark notification as read", { id, error: result.error })
         // Revert on failure
         setNotifications((prev) =>
           prev.map((notification) =>
@@ -193,7 +195,7 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
         }, 100)
       }
     } catch (error) {
-      console.error('Failed to mark notification as read:', error)
+      logger.error("Failed to mark notification as read", { id, error })
       // Revert on error
       setNotifications((prev) =>
         prev.map((notification) =>
@@ -205,7 +207,7 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
   }, [])
 
   const markAllAsRead = useCallback(async (): Promise<void> => {
-    console.log(`[NotificationProvider] Marking all notifications as read`)
+    logger.debug("Marking all notifications as read")
     
     // Store previous state for potential revert
     const previousNotifications = notifications
@@ -218,10 +220,10 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
     // Sync with database
     try {
       const result = await markAllNotificationsAsRead()
-      console.log(`[NotificationProvider] markAllNotificationsAsRead result:`, result)
+      logger.debug("markAllNotificationsAsRead result", { result })
       
       if (!result.success) {
-        console.error(`[NotificationProvider] Failed to mark all as read:`, result.error)
+        logger.error("Failed to mark all notifications as read", { error: result.error })
         // Revert on failure
         setNotifications(previousNotifications)
         toast.error(result.error || 'Failed to mark all as read')
@@ -232,7 +234,7 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
         }, 100)
       }
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error)
+      logger.error("Failed to mark all notifications as read", { error })
       // Revert on error
       setNotifications(previousNotifications)
       toast.error('Failed to mark all as read')
@@ -264,7 +266,7 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
         }, 100)
       }
     } catch (error) {
-      console.error('Failed to delete notification:', error)
+      logger.error("Failed to delete notification", { id, error })
       // Revert on error
       if (notificationToRemove) {
         setNotifications((prev) => [notificationToRemove, ...prev].sort(

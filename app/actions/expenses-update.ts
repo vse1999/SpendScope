@@ -9,6 +9,9 @@ import { createNotification } from "@/app/actions/notifications";
 import { evaluateBudgetPolicyForExpenseChange } from "@/lib/budget/service";
 import { invalidateCompanyExpenseReadModels } from "@/lib/cache/company-read-model-cache";
 import { serializeExpense } from "@/lib/expenses/action-helpers";
+import { createLogger } from "@/lib/monitoring/logger";
+
+const logger = createLogger("expenses-update-action");
 
 /**
  * Update an expense with full audit trail
@@ -162,7 +165,11 @@ export async function updateExpense(id: string, formData: FormData) {
     revalidatePath("/dashboard");
     invalidateCompanyExpenseReadModels(existingExpense.companyId);
 
-    console.log(`[AUDIT] Expense ${id} updated by ${userName} (${userRole})`);
+    logger.info("Expense updated", {
+      expenseId: id,
+      userName,
+      userRole,
+    });
 
     // Notify expense owner if admin edited their expense
     if (!isOwner && isAdmin) {
@@ -179,7 +186,7 @@ export async function updateExpense(id: string, formData: FormData) {
           actionUrl: "/dashboard/expenses",
         });
       } catch (notifyError) {
-        console.error("Failed to send notification:", notifyError);
+        logger.error("Failed to send notification", { error: notifyError });
       }
     }
 
@@ -188,7 +195,7 @@ export async function updateExpense(id: string, formData: FormData) {
       expense: serializeExpense(updatedExpense)
     };
   } catch (error) {
-    console.error("Failed to update expense:", error);
+    logger.error("Failed to update expense", { error });
     return {
       error: error instanceof Error ? error.message : "Failed to update expense",
     };

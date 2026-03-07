@@ -1,7 +1,6 @@
 "use client";
 
 import { Download, Filter, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -9,6 +8,7 @@ import {
   useUpgradeToProDialog,
 } from "@/components/entitlements";
 import ExpenseForm from "@/components/expense-form";
+import { normalizeExpenseItem } from "./expenses-client-helpers";
 import { ExpenseBulkActionsBar } from "./components/expense-bulk-actions-bar";
 import { ExpenseFiltersCard } from "./components/expense-filters-card";
 import { ExpenseSortSummaryCard } from "./components/expense-sort-summary-card";
@@ -20,7 +20,7 @@ export function ExpensesClient({
   initialExpenses,
   initialNextCursor,
   categories,
-  summary,
+  summary: initialSummary,
   filters,
   initialSortConfig,
   isAdmin,
@@ -35,9 +35,9 @@ export function ExpensesClient({
   } = useUpgradeToProDialog();
 
   const {
-    router,
     isPending,
     expenses,
+    summary,
     nextCursor,
     isLoadingMore,
     selectedIds,
@@ -70,13 +70,16 @@ export function ExpensesClient({
     removeSort,
     clearAllSorts,
     clearFilters,
+    addExpense,
     handleBulkDelete,
     handleBulkUpdateCategory,
     handleExport,
     loadMore,
+    reconcileWithServer,
   } = useExpensesListState({
     initialExpenses,
     initialNextCursor,
+    initialSummary,
     filters,
     initialSortConfig,
     categories,
@@ -104,9 +107,9 @@ export function ExpensesClient({
           <ExpenseForm
             initialCategories={categories}
             onUpgradeRequired={openUpgradeDialog}
-            onSuccess={() => {
-              router.refresh();
-              toast.success("Expense added successfully");
+            onSuccess={(expense) => {
+              addExpense(normalizeExpenseItem(expense));
+              reconcileWithServer();
             }}
           />
         </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -58,12 +58,17 @@ export function ExpenseTable({
   currentUserRole
 }: ExpenseTableProps) {
   const router = useRouter()
+  const [tableExpenses, setTableExpenses] = useState<Expense[]>(expenses)
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   const isAdmin = currentUserRole === UserRole.ADMIN
+
+  useEffect(() => {
+    setTableExpenses(expenses)
+  }, [expenses])
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense)
@@ -80,6 +85,9 @@ export function ExpenseTable({
       toast.error(result.error)
     } else {
       toast.success("Expense deleted successfully")
+      setTableExpenses((previous) =>
+        previous.filter((expense) => expense.id !== deletingExpense.id)
+      )
       router.refresh()
     }
 
@@ -96,7 +104,7 @@ export function ExpenseTable({
     return isAdmin
   }
 
-  const hasExpenses = expenses.length > 0
+  const hasExpenses = tableExpenses.length > 0
 
   return (
     <>
@@ -109,7 +117,7 @@ export function ExpenseTable({
             </div>
             {hasExpenses && (
               <Badge variant="secondary" className="text-xs font-medium">
-                {expenses.length} total
+                {tableExpenses.length} total
               </Badge>
             )}
           </div>
@@ -126,7 +134,7 @@ export function ExpenseTable({
           ) : (
             <>
               <div className="space-y-3 px-4 md:hidden">
-                {expenses.map((expense) => {
+                {tableExpenses.map((expense) => {
                   const showDeleteAction = canDelete()
                   const showEditAction = canEdit(expense)
 
@@ -212,7 +220,7 @@ export function ExpenseTable({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {expenses.map((expense) => (
+                    {tableExpenses.map((expense) => (
                       <TableRow key={expense.id} className="group hover:bg-muted/35 transition-colors">
                         <TableCell className="text-muted-foreground tabular-nums pl-6">
                           {format(new Date(expense.date), "MMM d, yyyy")}
@@ -287,7 +295,31 @@ export function ExpenseTable({
           setIsEditDialogOpen(false)
           setEditingExpense(null)
         }}
-        onSuccess={() => {
+        onSuccess={(updatedExpense) => {
+          const nextCategory = categories.find(
+            (category) => category.id === updatedExpense.categoryId
+          )
+          setTableExpenses((previous) =>
+            previous.map((expense) => {
+              if (expense.id !== updatedExpense.id) {
+                return expense
+              }
+
+              return {
+                ...expense,
+                amount: updatedExpense.amount,
+                description: updatedExpense.description,
+                date: updatedExpense.date,
+                categoryId: updatedExpense.categoryId,
+                category: nextCategory
+                  ? {
+                    name: nextCategory.name,
+                    color: nextCategory.color,
+                  }
+                  : expense.category,
+              }
+            })
+          )
           router.refresh()
         }}
         canEdit={editingExpense ? canEdit(editingExpense) : false}
