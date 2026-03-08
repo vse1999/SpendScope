@@ -47,6 +47,7 @@ export async function DashboardPageContent(): Promise<React.JSX.Element> {
     : dashboardResult.data
 
   const categoryList = "error" in categoriesResult ? [] : categoriesResult
+  const initialCategories = "error" in categoriesResult ? undefined : categoriesResult
   const budgetSummary = budgetResult.success
     ? budgetResult.summary
     : {
@@ -68,7 +69,7 @@ export async function DashboardPageContent(): Promise<React.JSX.Element> {
         userName={user.name ?? undefined}
         companyId={companyId}
         userId={user.id ?? undefined}
-        initialCategories={categoryList}
+        initialCategories={initialCategories}
       />
 
       {hasError && <ErrorAlert expensesError={dashboardError} statsError={undefined} />}
