@@ -13,6 +13,7 @@ import {
   type BudgetSummary,
   type CompanyBudgetSettings,
 } from "@/lib/budget/types";
+import { invalidateCompanyBudgetReadModels } from "@/lib/cache/company-read-model-cache";
 import { getCompanyBudgetStateForCompany } from "@/lib/dashboard/queries";
 import { prisma } from "@/lib/prisma";
 
@@ -144,6 +145,7 @@ export async function upsertCompanyBudget(formData: FormData): Promise<UpsertBud
 
     const summary = await getBudgetSummary(context.companyId);
 
+    invalidateCompanyBudgetReadModels(context.companyId);
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/expenses");
 

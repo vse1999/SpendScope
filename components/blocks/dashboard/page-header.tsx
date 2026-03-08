@@ -4,9 +4,18 @@ interface PageHeaderProps {
   userName?: string
   companyId?: string
   userId?: string
+  initialCategories?: Array<{
+    id: string
+    name: string
+  }>
 }
 
-export function PageHeader({ userName, companyId, userId }: PageHeaderProps) {
+export function PageHeader({
+  userName,
+  companyId,
+  userId,
+  initialCategories,
+}: PageHeaderProps) {
   const firstName = userName?.split(" ")[0] || "there"
 
   return (
@@ -20,7 +29,7 @@ export function PageHeader({ userName, companyId, userId }: PageHeaderProps) {
         </p>
       </div>
       {userId && companyId && (
-        <ExpenseForm />
+        <ExpenseForm initialCategories={initialCategories} />
       )}
     </div>
   )

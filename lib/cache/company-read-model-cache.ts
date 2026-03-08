@@ -39,3 +39,8 @@ export function invalidateCompanyCategoryReadModels(companyId: string): void {
   revalidateTag(tags.dashboard, "max");
   revalidateTag(tags.analytics, "max");
 }
+
+export function invalidateCompanyBudgetReadModels(companyId: string): void {
+  const tags = getCompanyReadModelCacheTags(companyId);
+  revalidateTag(tags.dashboard, "max");
+}

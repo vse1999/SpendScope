@@ -1,8 +1,8 @@
 import { unstable_cache } from "next/cache";
-import { type Category } from "@prisma/client";
+import { Prisma, type Category } from "@prisma/client";
 import type { SerializedExpense } from "@/app/actions/expenses-types";
 import {
-  getBudgetSummary,
+  getBudgetSummaryWithSettings,
   getCompanyBudgetSettings,
 } from "@/lib/budget/service";
 import type {
@@ -14,10 +14,12 @@ import {
   getCompanyReadModelCacheTags,
 } from "@/lib/cache/company-read-model-cache";
 import { serializeExpense } from "@/lib/expenses/action-helpers";
+import { createLogger } from "@/lib/monitoring/logger";
 import { prisma } from "@/lib/prisma";
 
 type DashboardTrend = "up" | "down";
 type DashboardBudgetErrorCode = "UNAUTHORIZED" | "VALIDATION_ERROR";
+const logger = createLogger("dashboard-queries");
 
 export interface DashboardStatsCategory {
   amount: number;
@@ -49,13 +51,57 @@ export type DashboardStatsResult =
   | { data: DashboardStatsData }
   | { error: string };
 
+interface DashboardBudgetStateData {
+  settings: CompanyBudgetSettings | null;
+  summary: BudgetSummary;
+}
+
+interface DashboardStatsSummaryRow {
+  expenseCount: number | bigint | string;
+  largestExpense: Prisma.Decimal | number | string | null;
+  previousMonth: Prisma.Decimal | number | string | null;
+  thisMonth: Prisma.Decimal | number | string | null;
+  totalExpenses: Prisma.Decimal | number | string | null;
+}
+
+interface DashboardStatsCategoryRow {
+  amount: Prisma.Decimal | number | string | null;
+  color: string | null;
+  name: string | null;
+}
+
+function toNumericValue(
+  value: Prisma.Decimal | number | string | bigint | null | undefined
+): number {
+  if (value === null || value === undefined) {
+    return 0;
+  }
+
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "bigint") {
+    return Number(value);
+  }
+
+  return Number(value);
+}
+
 async function readCategoriesForCompanyFromDatabase(
   companyId: string
 ): Promise<Category[]> {
-  return prisma.category.findMany({
+  const startedAt = Date.now();
+  const categories = await prisma.category.findMany({
     where: { companyId },
     orderBy: { name: "asc" },
   });
+  logger.debug("categories_read_model_cache_miss", {
+    companyId,
+    durationMs: Date.now() - startedAt,
+    categoryCount: categories.length,
+  });
+  return categories;
 }
 
 function getCachedCategoriesForCompany(companyId: string): Promise<Category[]> {
@@ -86,12 +132,8 @@ export async function getCompanyBudgetStateForCompany(
   companyId: string
 ): Promise<DashboardBudgetStateResult> {
   try {
-    const [settings, summary] = await Promise.all([
-      getCompanyBudgetSettings(companyId),
-      getBudgetSummary(companyId),
-    ]);
-
-    return { success: true, settings, summary };
+    const budgetState = await getCachedCompanyBudgetStateForCompany(companyId);
+    return { success: true, ...budgetState };
   } catch (error) {
     return {
       success: false,
@@ -101,45 +143,82 @@ export async function getCompanyBudgetStateForCompany(
   }
 }
 
+function getCurrentMonthCacheKey(date: Date = new Date()): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${date.getFullYear()}-${month}`;
+}
+
+async function readCompanyBudgetStateForCompanyFromDatabase(
+  companyId: string
+): Promise<DashboardBudgetStateData> {
+  const startedAt = Date.now();
+  const settings = await getCompanyBudgetSettings(companyId);
+  const summary = await getBudgetSummaryWithSettings(companyId, settings);
+  logger.debug("budget_state_read_model_cache_miss", {
+    companyId,
+    durationMs: Date.now() - startedAt,
+  });
+  return { settings, summary };
+}
+
+function getCachedCompanyBudgetStateForCompany(
+  companyId: string
+): Promise<DashboardBudgetStateData> {
+  const tags = getCompanyReadModelCacheTags(companyId);
+  const currentMonthCacheKey = getCurrentMonthCacheKey();
+
+  return unstable_cache(
+    async (): Promise<DashboardBudgetStateData> =>
+      readCompanyBudgetStateForCompanyFromDatabase(companyId),
+    ["dashboard-budget-state", companyId, currentMonthCacheKey],
+    {
+      revalidate: COMPANY_CACHE_TTL_SECONDS.dashboard,
+      tags: [tags.dashboard, tags.expenses],
+    }
+  )();
+}
+
 async function readDashboardStatsForCompanyFromDatabase(
   companyId: string
 ): Promise<DashboardStatsData> {
+  const startedAt = Date.now();
   const now = new Date();
   const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-  const [
-    totalAgg,
-    totalCount,
-    thisMonthAgg,
-    previousMonthAgg,
-    categoryGroups,
-    recentExpenses,
-    largestExpenseAgg,
-  ] = await Promise.all([
-    prisma.expense.aggregate({
-      where: { companyId },
-      _sum: { amount: true },
-    }),
-    prisma.expense.count({
-      where: { companyId },
-    }),
-    prisma.expense.aggregate({
-      where: { companyId, date: { gte: startOfCurrentMonth } },
-      _sum: { amount: true },
-    }),
-    prisma.expense.aggregate({
-      where: {
-        companyId,
-        date: { gte: startOfPreviousMonth, lt: startOfCurrentMonth },
-      },
-      _sum: { amount: true },
-    }),
-    prisma.expense.groupBy({
-      by: ["categoryId"],
-      where: { companyId },
-      _sum: { amount: true },
-    }),
+  const [summaryRows, byCategoryRows, recentExpenses] = await Promise.all([
+    prisma.$queryRaw<DashboardStatsSummaryRow[]>(Prisma.sql`
+      SELECT
+        COALESCE(SUM(e."amount"), 0) AS "totalExpenses",
+        COUNT(*)::int AS "expenseCount",
+        COALESCE(SUM(
+          CASE
+            WHEN e."date" >= ${startOfCurrentMonth} THEN e."amount"
+            ELSE 0
+          END
+        ), 0) AS "thisMonth",
+        COALESCE(SUM(
+          CASE
+            WHEN e."date" >= ${startOfPreviousMonth} AND e."date" < ${startOfCurrentMonth}
+              THEN e."amount"
+            ELSE 0
+          END
+        ), 0) AS "previousMonth",
+        COALESCE(MAX(e."amount"), 0) AS "largestExpense"
+      FROM "Expense" e
+      WHERE e."companyId" = ${companyId}
+    `),
+    prisma.$queryRaw<DashboardStatsCategoryRow[]>(Prisma.sql`
+      SELECT
+        COALESCE(c."name", 'Uncategorized') AS "name",
+        COALESCE(c."color", '#888888') AS "color",
+        COALESCE(SUM(e."amount"), 0) AS "amount"
+      FROM "Expense" e
+      LEFT JOIN "Category" c ON c."id" = e."categoryId"
+      WHERE e."companyId" = ${companyId}
+      GROUP BY c."id", c."name", c."color"
+      ORDER BY COALESCE(SUM(e."amount"), 0) DESC
+    `),
     prisma.expense.findMany({
       where: { companyId },
       include: {
@@ -149,51 +228,42 @@ async function readDashboardStatsForCompanyFromDatabase(
       orderBy: { date: "desc" },
       take: 10,
     }),
-    prisma.expense.aggregate({
-      where: { companyId },
-      _max: { amount: true },
-    }),
   ]);
 
-  const categoryIds = categoryGroups.map((group) => group.categoryId);
-  const categories = categoryIds.length > 0
-    ? await prisma.category.findMany({
-        where: { id: { in: categoryIds } },
-        select: { id: true, name: true, color: true },
-      })
-    : [];
-
-  const categoryMap = new Map(categories.map((category) => [category.id, category]));
-
-  const byCategory = categoryGroups
-    .map((group) => {
-      const category = categoryMap.get(group.categoryId);
-      return {
-        amount: Number(group._sum.amount ?? 0),
-        color: category?.color || "#888888",
-        name: category?.name || "Uncategorized",
-      };
-    })
+  const summaryRow = summaryRows[0];
+  const totalExpenses = toNumericValue(summaryRow?.totalExpenses);
+  const expenseCount = toNumericValue(summaryRow?.expenseCount);
+  const thisMonth = toNumericValue(summaryRow?.thisMonth);
+  const previousMonth = toNumericValue(summaryRow?.previousMonth);
+  const largestExpense = toNumericValue(summaryRow?.largestExpense);
+  const byCategory = byCategoryRows
+    .map((row) => ({
+      amount: toNumericValue(row.amount),
+      color: row.color ?? "#888888",
+      name: row.name ?? "Uncategorized",
+    }))
     .sort((left, right) => right.amount - left.amount);
-
-  const totalExpenses = Number(totalAgg._sum.amount ?? 0);
-  const thisMonth = Number(thisMonthAgg._sum.amount ?? 0);
-  const previousMonth = Number(previousMonthAgg._sum.amount ?? 0);
-  const averageExpense = totalCount > 0 ? totalExpenses / totalCount : 0;
-  const largestExpense = Number(largestExpenseAgg._max.amount ?? 0);
+  const averageExpense = expenseCount > 0 ? totalExpenses / expenseCount : 0;
   const monthlyTrend: DashboardTrend = thisMonth >= previousMonth ? "up" : "down";
   const monthlyChangePercent =
     previousMonth > 0
       ? `${Math.abs(((thisMonth - previousMonth) / previousMonth) * 100).toFixed(1)}%`
-      : totalCount > 0
+      : expenseCount > 0
         ? "N/A"
         : "0%";
+
+  logger.debug("dashboard_stats_read_model_cache_miss", {
+    companyId,
+    durationMs: Date.now() - startedAt,
+    categoryCount: byCategory.length,
+    recentExpenseCount: recentExpenses.length,
+  });
 
   return {
     averageExpense,
     byCategory,
     categoryCount: byCategory.length,
-    expenseCount: totalCount,
+    expenseCount,
     largestExpense,
     monthlyChangePercent,
     monthlyTrend,

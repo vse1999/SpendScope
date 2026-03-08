@@ -5,6 +5,7 @@ jest.mock("next/cache", () => ({
 }));
 
 import {
+  invalidateCompanyBudgetReadModels,
   getCompanyReadModelCacheTags,
   invalidateCompanyCategoryReadModels,
   invalidateCompanyExpenseReadModels,
@@ -40,5 +41,11 @@ describe("company read model cache", () => {
     expect(mockRevalidateTag).toHaveBeenCalledWith("company:company-123:categories", "max");
     expect(mockRevalidateTag).toHaveBeenCalledWith("company:company-123:dashboard", "max");
     expect(mockRevalidateTag).toHaveBeenCalledWith("company:company-123:analytics", "max");
+  });
+
+  it("invalidates budget read models", () => {
+    invalidateCompanyBudgetReadModels("company-123");
+
+    expect(mockRevalidateTag).toHaveBeenCalledWith("company:company-123:dashboard", "max");
   });
 });

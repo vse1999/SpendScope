@@ -130,24 +130,18 @@ export async function getBudgetSummary(
   companyId: string,
   monthDate: Date = new Date()
 ): Promise<BudgetSummary> {
-  const [settings, monthSpentAggregate] = await Promise.all([
+  const [settings, thisMonthSpent] = await Promise.all([
     getCompanyBudgetSettings(companyId),
-    prisma.expense.aggregate({
-      where: {
-        companyId,
-        date: {
-          gte: getMonthBounds(monthDate).start,
-          lt: getMonthBounds(monthDate).end,
-        },
-      },
-      _sum: {
-        amount: true,
-      },
-    }),
+    getCompanyMonthSpent(companyId, monthDate),
   ]);
 
-  const thisMonthSpent = Number(monthSpentAggregate._sum.amount ?? 0);
+  return buildBudgetSummary(settings, thisMonthSpent);
+}
 
+function buildBudgetSummary(
+  settings: CompanyBudgetSettings | null,
+  thisMonthSpent: number
+): BudgetSummary {
   if (!settings || !settings.isActive) {
     return {
       hasBudget: false,
@@ -177,6 +171,33 @@ export async function getBudgetSummary(
     exhaustionPolicy: settings.exhaustionPolicy,
     isActive: settings.isActive,
   };
+}
+
+async function getCompanyMonthSpent(companyId: string, monthDate: Date): Promise<number> {
+  const monthBounds = getMonthBounds(monthDate);
+  const monthSpentAggregate = await prisma.expense.aggregate({
+    where: {
+      companyId,
+      date: {
+        gte: monthBounds.start,
+        lt: monthBounds.end,
+      },
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+
+  return Number(monthSpentAggregate._sum.amount ?? 0);
+}
+
+export async function getBudgetSummaryWithSettings(
+  companyId: string,
+  settings: CompanyBudgetSettings | null,
+  monthDate: Date = new Date()
+): Promise<BudgetSummary> {
+  const thisMonthSpent = await getCompanyMonthSpent(companyId, monthDate);
+  return buildBudgetSummary(settings, thisMonthSpent);
 }
 
 export async function evaluateBudgetPolicyForExpenseChange(input: {

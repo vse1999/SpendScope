@@ -68,6 +68,7 @@ export async function DashboardPageContent(): Promise<React.JSX.Element> {
         userName={user.name ?? undefined}
         companyId={companyId}
         userId={user.id ?? undefined}
+        initialCategories={categoryList}
       />
 
       {hasError && <ErrorAlert expensesError={dashboardError} statsError={undefined} />}
