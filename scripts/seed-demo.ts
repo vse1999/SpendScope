@@ -7,7 +7,10 @@ const DEMO_COMPANY = {
 } as const;
 
 const DEMO_MONTHLY_BUDGET = 20_000;
-const TARGET_EXPENSE_COUNT = 60;
+const DEFAULT_SEED = 20_260_309;
+const DEFAULT_REFERENCE_DATE = "2026-03-01";
+const MONTH_BUCKETS = 6;
+const EXPENSES_PER_MONTH = 10;
 
 const DEMO_USERS = [
   {
@@ -109,24 +112,111 @@ interface SeedUser {
   readonly email: string;
 }
 
-function randomFloat(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
+interface SeedOptions {
+  readonly seed: number;
+  readonly referenceDate: Date;
 }
 
-function randomAmount(min: number, max: number): number {
-  return Number(randomFloat(min, max).toFixed(2));
+interface SeedExpenseRecord {
+  readonly amount: number;
+  readonly categoryId: string;
+  readonly companyId: string;
+  readonly date: Date;
+  readonly description: string;
+  readonly userId: string;
 }
 
-function randomDateWithinPastDays(totalDays: number): Date {
-  const now = Date.now();
-  const minTime = now - totalDays * 24 * 60 * 60 * 1000;
-  const time = randomFloat(minTime, now);
-  return new Date(time);
+class SeededRng {
+  private state: number;
+
+  constructor(seed: number) {
+    this.state = seed >>> 0;
+    if (this.state === 0) {
+      this.state = 0x6d2b79f5;
+    }
+  }
+
+  public next(): number {
+    this.state = (1664525 * this.state + 1013904223) >>> 0;
+    return this.state / 4294967296;
+  }
+
+  public pick<T>(items: readonly T[]): T {
+    const index = Math.floor(this.next() * items.length);
+    return items[index];
+  }
+
+  public intInclusive(min: number, max: number): number {
+    const span = max - min + 1;
+    return min + Math.floor(this.next() * span);
+  }
 }
 
-function pickRandom<T>(items: readonly T[]): T {
-  const randomIndex = Math.floor(Math.random() * items.length);
-  return items[randomIndex];
+function parsePositiveInteger(rawValue: string, flagName: string): number {
+  const parsed = Number(rawValue);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`${flagName} must be a positive integer. Received: ${rawValue}`);
+  }
+  return parsed;
+}
+
+function parseReferenceDate(rawValue: string): Date {
+  const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!isoDatePattern.test(rawValue)) {
+    throw new Error(
+      `--reference-date must use YYYY-MM-DD format. Received: ${rawValue}`
+    );
+  }
+
+  const parsed = new Date(`${rawValue}T12:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`--reference-date is invalid: ${rawValue}`);
+  }
+
+  return parsed;
+}
+
+function parseCliOptions(argv: readonly string[]): SeedOptions {
+  let seed = DEFAULT_SEED;
+  let referenceDate = parseReferenceDate(DEFAULT_REFERENCE_DATE);
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+
+    if (token === "--seed") {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error("Missing value after --seed");
+      }
+      seed = parsePositiveInteger(value, "--seed");
+      index += 1;
+      continue;
+    }
+
+    if (token.startsWith("--seed=")) {
+      seed = parsePositiveInteger(token.slice("--seed=".length), "--seed");
+      continue;
+    }
+
+    if (token === "--reference-date") {
+      const value = argv[index + 1];
+      if (!value) {
+        throw new Error("Missing value after --reference-date");
+      }
+      referenceDate = parseReferenceDate(value);
+      index += 1;
+      continue;
+    }
+
+    if (token.startsWith("--reference-date=")) {
+      referenceDate = parseReferenceDate(token.slice("--reference-date=".length));
+      continue;
+    }
+
+    throw new Error(`Unknown argument: ${token}`);
+  }
+
+  return { seed, referenceDate };
 }
 
 function amountRangeForCategory(categoryName: DemoCategoryName): {
@@ -147,14 +237,85 @@ function amountRangeForCategory(categoryName: DemoCategoryName): {
   }
 }
 
-function pickExpenseUser(users: readonly SeedUser[]): SeedUser {
+function amountForCategory(
+  categoryName: DemoCategoryName,
+  rng: SeededRng
+): number {
+  const range = amountRangeForCategory(categoryName);
+  const value = range.min + rng.next() * (range.max - range.min);
+  return Number(value.toFixed(2));
+}
+
+function startOfUtcMonth(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1, 12, 0, 0));
+}
+
+function addUtcMonths(date: Date, monthOffset: number): Date {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + monthOffset, 1, 12, 0, 0)
+  );
+}
+
+function daysInUtcMonth(monthStart: Date): number {
+  return new Date(
+    Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+}
+
+function randomDateInUtcMonth(monthStart: Date, rng: SeededRng): Date {
+  const year = monthStart.getUTCFullYear();
+  const month = monthStart.getUTCMonth();
+  const day = rng.intInclusive(1, daysInUtcMonth(monthStart));
+  const hour = rng.intInclusive(8, 18);
+  const minute = rng.intInclusive(0, 59);
+  return new Date(Date.UTC(year, month, day, hour, minute, 0));
+}
+
+function pickExpenseUser(users: readonly SeedUser[], rng: SeededRng): SeedUser {
   const adminUser = users[0];
   const adminWeight = 0.35;
-  if (Math.random() < adminWeight) {
+
+  if (users.length === 1 || rng.next() < adminWeight) {
     return adminUser;
   }
 
-  return pickRandom(users);
+  const memberIndex = rng.intInclusive(1, users.length - 1);
+  return users[memberIndex];
+}
+
+function buildDeterministicExpenseRecords(
+  companyId: string,
+  categoryIdByName: Record<DemoCategoryName, string>,
+  users: readonly SeedUser[],
+  options: SeedOptions
+): readonly SeedExpenseRecord[] {
+  const rng = new SeededRng(options.seed);
+  const categoryNames = DEMO_CATEGORIES.map((category) => category.name);
+  const newestMonth = startOfUtcMonth(options.referenceDate);
+  const oldestMonth = addUtcMonths(newestMonth, -(MONTH_BUCKETS - 1));
+  const records: SeedExpenseRecord[] = [];
+
+  for (let monthOffset = 0; monthOffset < MONTH_BUCKETS; monthOffset += 1) {
+    const monthStart = addUtcMonths(oldestMonth, monthOffset);
+
+    for (let slot = 0; slot < EXPENSES_PER_MONTH; slot += 1) {
+      const categoryName = categoryNames[(monthOffset + slot) % categoryNames.length];
+      const description = rng.pick(EXPENSE_DESCRIPTIONS[categoryName]);
+      const amount = amountForCategory(categoryName, rng);
+      const user = pickExpenseUser(users, rng);
+
+      records.push({
+        amount,
+        categoryId: categoryIdByName[categoryName],
+        companyId,
+        date: randomDateInUtcMonth(monthStart, rng),
+        description,
+        userId: user.id,
+      });
+    }
+  }
+
+  return records;
 }
 
 async function seedCompany(): Promise<{ readonly id: string; readonly name: string }> {
@@ -281,57 +442,42 @@ async function seedUsers(companyId: string): Promise<readonly SeedUser[]> {
 async function seedExpenses(
   companyId: string,
   categoryIdByName: Record<DemoCategoryName, string>,
-  users: readonly SeedUser[]
+  users: readonly SeedUser[],
+  options: SeedOptions
 ): Promise<void> {
-  console.log("Creating demo expenses...");
+  console.log("Creating deterministic demo expenses...");
 
-  const existingCount = await prisma.expense.count({
+  const records = buildDeterministicExpenseRecords(
+    companyId,
+    categoryIdByName,
+    users,
+    options
+  );
+
+  await prisma.expense.deleteMany({
     where: { companyId },
   });
 
-  if (existingCount >= TARGET_EXPENSE_COUNT) {
-    console.log(`  INFO Already have ${existingCount} expenses. Skipping creation.`);
-    return;
-  }
+  await prisma.expense.createMany({
+    data: [...records],
+  });
 
-  const createCount = TARGET_EXPENSE_COUNT - existingCount;
-  const categoryNames = DEMO_CATEGORIES.map((category) => category.name);
+  const oldestMonth = addUtcMonths(startOfUtcMonth(options.referenceDate), -(MONTH_BUCKETS - 1));
+  const newestMonth = startOfUtcMonth(options.referenceDate);
 
-  for (let index = 0; index < createCount; index += 1) {
-    const categoryName = pickRandom(categoryNames);
-    const description = pickRandom(EXPENSE_DESCRIPTIONS[categoryName]);
-    const amountRange = amountRangeForCategory(categoryName);
-    const amount = randomAmount(amountRange.min, amountRange.max);
-    const user = pickExpenseUser(users);
-
-    const created = await prisma.expense.create({
-      data: {
-        amount,
-        categoryId: categoryIdByName[categoryName],
-        companyId,
-        date: randomDateWithinPastDays(60),
-        description,
-        userId: user.id,
-      },
-    });
-
-    if (index < 5 || index >= createCount - 5) {
-      console.log(`  OK $${created.amount.toFixed(2)} - ${created.description.slice(0, 45)}`);
-    } else if (index === 5) {
-      console.log(`  ... (${createCount - 10} more expenses)`);
-    }
-  }
-
-  console.log(`  OK Created ${createCount} expenses`);
+  console.log(
+    `  OK Created ${records.length} expenses across ${MONTH_BUCKETS} months (${oldestMonth
+      .toISOString()
+      .slice(0, 10)} to ${newestMonth.toISOString().slice(0, 10)})`
+  );
 }
 
-async function seedUsage(companyId: string): Promise<void> {
+async function seedUsage(companyId: string, referenceDate: Date): Promise<void> {
   console.log("Updating company usage metrics...");
 
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+  const startOfMonth = startOfUtcMonth(referenceDate);
+  const startOfNextMonth = addUtcMonths(startOfMonth, 1);
+  const currentMonth = startOfMonth.getUTCFullYear() * 100 + (startOfMonth.getUTCMonth() + 1);
 
   const monthlyExpenseCount = await prisma.expense.count({
     where: {
@@ -365,7 +511,11 @@ async function seedUsage(companyId: string): Promise<void> {
   console.log(`  OK Usage updated for ${currentMonth} with ${monthlyExpenseCount} expenses`);
 }
 
-async function printSummary(companyId: string, teamSize: number): Promise<void> {
+async function printSummary(
+  companyId: string,
+  teamSize: number,
+  options: SeedOptions
+): Promise<void> {
   const [categoryCount, expenseCount] = await Promise.all([
     prisma.category.count({ where: { companyId } }),
     prisma.expense.count({ where: { companyId } }),
@@ -374,18 +524,24 @@ async function printSummary(companyId: string, teamSize: number): Promise<void> 
   console.log(`\n${"=".repeat(50)}`);
   console.log("DEMO DATA SEED COMPLETE");
   console.log("=".repeat(50));
-  console.log(`Company:      ${DEMO_COMPANY.name}`);
-  console.log("Plan:         PRO");
-  console.log(`Budget:       $${DEMO_MONTHLY_BUDGET.toLocaleString()}/month`);
-  console.log(`Team Members: ${teamSize}`);
-  console.log(`Categories:   ${categoryCount}`);
-  console.log(`Expenses:     ${expenseCount}`);
+  console.log(`Company:        ${DEMO_COMPANY.name}`);
+  console.log("Plan:           PRO");
+  console.log(`Budget:         $${DEMO_MONTHLY_BUDGET.toLocaleString()}/month`);
+  console.log(`Team Members:   ${teamSize}`);
+  console.log(`Categories:     ${categoryCount}`);
+  console.log(`Expenses:       ${expenseCount}`);
+  console.log(`Seed:           ${options.seed}`);
+  console.log(
+    `Reference date: ${options.referenceDate.toISOString().slice(0, 10)} (UTC month window)`
+  );
   console.log("=".repeat(50));
   console.log("\nDemo data is ready for screenshots.");
 }
 
-async function seedDemo(): Promise<void> {
-  console.log("Starting professional demo data seed...\n");
+async function seedDemo(options: SeedOptions): Promise<void> {
+  console.log("Starting deterministic professional demo data seed...\n");
+  console.log(`Seed: ${options.seed}`);
+  console.log(`Reference date: ${options.referenceDate.toISOString().slice(0, 10)}\n`);
 
   const company = await seedCompany();
   await seedSubscription(company.id);
@@ -394,12 +550,14 @@ async function seedDemo(): Promise<void> {
   const categoryIdByName = await seedCategories(company.id);
   const users = await seedUsers(company.id);
 
-  await seedExpenses(company.id, categoryIdByName, users);
-  await seedUsage(company.id);
-  await printSummary(company.id, users.length);
+  await seedExpenses(company.id, categoryIdByName, users, options);
+  await seedUsage(company.id, options.referenceDate);
+  await printSummary(company.id, users.length, options);
 }
 
-seedDemo()
+const cliOptions = parseCliOptions(process.argv.slice(2));
+
+seedDemo(cliOptions)
   .catch((error: unknown) => {
     console.error("\nDemo seed failed:");
     if (error instanceof Error) {

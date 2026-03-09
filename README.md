@@ -2,6 +2,7 @@
 
 SpendScope is a production-oriented expense management platform for teams that need clear spend visibility, policy-aware controls, and reliable billing operations.
 
+
 ## Key Capabilities
 
 - Multi-tenant company data isolation
@@ -12,7 +13,7 @@ SpendScope is a production-oriented expense management platform for teams that n
 - Stripe checkout, billing portal, and webhook synchronization
 - Team notifications for billing and collaboration events
 
-## Architecture at a Glance
+## System Design Snapshot
 
 1. NextAuth v5 handles authentication with JWT sessions and Prisma persistence.
 2. `proxy.ts` enforces route/API access boundaries for public and protected traffic.
@@ -21,6 +22,8 @@ SpendScope is a production-oriented expense management platform for teams that n
 5. Mutations explicitly invalidate affected cache tags for consistency after writes.
 6. Billing routes are admin-gated and instrumented with request-scoped logs.
 7. Stripe webhook processing is signature-verified and idempotent via event ledger constraints.
+
+System context diagram: [`public/architecture/system-context.svg`](public/architecture/system-context.svg)
 
 ## Tech Stack
 
@@ -60,6 +63,11 @@ SpendScope is a production-oriented expense management platform for teams that n
 - Billing actions are admin-gated and environment-gated for test-only reset behavior.
 - Checkout/portal routes emit request-scoped telemetry for post-incident auditability.
 
+## Performance Evidence
+
+- Benchmark protocol and reporting table: [`docs/benchmarks/dashboard.md`](docs/benchmarks/dashboard.md)
+- Measurement contract: first dashboard load median vs warm-cache median with explicit environment and dataset setup
+
 ## Security Posture
 
 - Server-side authorization checks are enforced for privileged mutations.
@@ -98,6 +106,31 @@ npm run dev
 ```
 
 Open `http://localhost:3000`.
+
+## Demo Path (Deterministic)
+
+Use deterministic demo data before screenshots or recorded walkthroughs:
+
+```bash
+npm run seed:demo:reset
+npm run seed:demo -- --seed=20260309 --reference-date=2026-03-01
+```
+
+Expected seeded state:
+
+- Company: `DemoCorp`
+- Team size: 5 users (1 admin, 4 members)
+- Categories: 5
+- Expenses: 60 across a fixed 6-month window
+- Subscription: Pro (active)
+
+Suggested reviewer walkthrough:
+
+1. Login as DemoCorp admin.
+2. Navigate to `/dashboard` and inspect summary cards/charts.
+3. Create an expense and verify dashboard totals refresh.
+4. Open billing settings and verify admin-gated billing actions.
+5. Confirm notifications/team workflows are tenant-scoped.
 
 ## Environment Variables
 
@@ -207,6 +240,19 @@ npm run stripe:listen:secret
 npm run stripe:trigger:checkout
 ```
 
+### Demo Data
+
+```bash
+npm run seed:demo:reset
+npm run seed:demo -- --seed=20260309 --reference-date=2026-03-01
+```
+
+You can override deterministic defaults with custom flags:
+
+```bash
+npm run seed:demo -- --seed=12345 --reference-date=2026-04-01
+```
+
 ## CI Workflows
 
 - `CI` (`.github/workflows/ci.yml`): policy checks, typecheck, lint, audit, explicit-`any` gate, tests, and build
@@ -233,6 +279,16 @@ npm run stripe:trigger:checkout
   - Ensure all Stripe env vars are present and key modes are consistent (all test or all live).
   - Confirm the configured Stripe price IDs exist in the same Stripe account and mode.
 
+### Rollback runbook
+
+- If smoke checks fail after deployment, follow [`docs/deployment/rollback-runbook.md`](docs/deployment/rollback-runbook.md).
+
+## What I'd Do Next at Scale
+
+- Move selected dashboard read models behind precomputed materialized views and scheduled refresh strategy.
+- Add queue-backed webhook fanout for multi-provider billing and resilient retry orchestration.
+- Add p95 latency/error SLO dashboards for dashboard routes and billing endpoints.
+
 ## Non-goals / Tradeoffs
 
 - This repository is optimized for production-grade demo and team workflows, not enterprise compliance certification bundles.
@@ -242,9 +298,12 @@ npm run stripe:trigger:checkout
 ## Project Docs
 
 - Architecture: `ARCHITECTURE.md`
+- System context diagram: `public/architecture/system-context.svg`
+- Dashboard benchmark protocol: `docs/benchmarks/dashboard.md`
 - Stripe webhook setup: `docs/deployment/stripe-webhook-setup.md`
 - Deployment checklist: `docs/deployment/test-mode-checklist.md`
 - Manual regression checklist: `docs/deployment/manual-regression-checklist.md`
+- Rollback runbook: `docs/deployment/rollback-runbook.md`
 
 Private process notes and interview prep belong under `docs/private/` and are intentionally not tracked.
 

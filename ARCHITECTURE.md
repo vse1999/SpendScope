@@ -2,6 +2,8 @@
 
 This document provides a technical snapshot of request flow, trust boundaries, and operational behavior for SpendScope.
 
+System diagram: [`public/architecture/system-context.svg`](public/architecture/system-context.svg)
+
 ## Architecture at a Glance
 
 1. Authentication uses NextAuth v5 with JWT sessions and Prisma adapter persistence.
@@ -12,6 +14,16 @@ This document provides a technical snapshot of request flow, trust boundaries, a
 6. Billing writes are server-only and admin-gated (checkout, portal, usage sync, reset controls).
 7. Stripe webhook processing is signature-verified and idempotent via the `WebhookEvent` ledger unique constraint.
 8. Observability uses request-scoped logging for billing/webhook routes and optional Sentry integration.
+
+## Boundary Map
+
+| Boundary | Entry Points | Control Objective | Failure Mode Mitigated |
+| --- | --- | --- | --- |
+| Auth/session | NextAuth handlers, server actions | Bind every protected operation to authenticated identity | Anonymous access to protected workflows |
+| Route guard | `proxy.ts` and protected API routes | Separate public and protected traffic paths | Protected content/API exposure |
+| Tenant resolution | Server-side membership lookup | Enforce company-scoped reads/writes from database state | Stale token context and cross-tenant leakage |
+| Cache invalidation | Expense/category/billing mutations | Keep read models consistent after writes | Dashboard/analytics stale aggregates |
+| Webhook processing | Stripe webhook route + event ledger | Guarantee idempotent processing of external events | Duplicate side effects from retried events |
 
 ## Request Flow Boundaries
 
@@ -43,6 +55,21 @@ This document provides a technical snapshot of request flow, trust boundaries, a
 - Checkout/portal routes require authentication and admin role.
 - Webhook route validates Stripe signature before processing.
 - Event idempotency is guaranteed by unique `(provider, eventId)` on webhook ledger.
+
+## Cache Invalidation Ownership
+
+| Mutation Surface | Invalidation Target |
+| --- | --- |
+| Expense create/update/delete | Expense list, dashboard totals, analytics trend tags |
+| Category create/update/delete | Category bootstrap, dashboard summaries, analytics tags |
+| Billing state changes | Subscription usage and billing summary tags |
+
+## Webhook Idempotency Contract
+
+1. Verify Stripe signature before parsing payload.
+2. Check `(provider, eventId)` uniqueness in webhook ledger.
+3. Execute billing mutation only after idempotency gate passes.
+4. Persist processing result for audit and retry safety.
 
 ## Reliability Notes
 
