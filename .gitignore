@@ -46,16 +46,3 @@ dev.log
 *.pem
 /nul
 .vercel
-
-# internal/process markdown files (not for production)
-AGENTS.md
-
-# private AI command/prompt docs (never commit)
-git-commit-prompt.md
-docs/commands/
-docs/logo-generation-prompt.md
-
-# unpublished local artifacts (intentionally not committed yet)
-.env.example
-docs/deployment/stripe-webhook-setup.md
-docs/deployment/test-mode-checklist.md

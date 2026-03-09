@@ -51,6 +51,9 @@ jobs:
           SENTRY_SEND_DEFAULT_PII: "false"
         run: npm run deploy:check
 
+      - name: Public docs verification
+        run: npm run docs:check
+
       - name: Typecheck
         run: npx tsc --noEmit
 

@@ -2,7 +2,7 @@
 
 SpendScope is a production-oriented expense management platform for teams that need clear spend visibility, policy-aware controls, and reliable billing operations.
 
-## Why SpendScope
+## Key Capabilities
 
 - Multi-tenant company data isolation
 - Role-based access (admin/member)
@@ -11,6 +11,16 @@ SpendScope is a production-oriented expense management platform for teams that n
 - Plan-based entitlements (Free vs Pro)
 - Stripe checkout, billing portal, and webhook synchronization
 - Team notifications for billing and collaboration events
+
+## Architecture at a Glance
+
+1. NextAuth v5 handles authentication with JWT sessions and Prisma persistence.
+2. `proxy.ts` enforces route/API access boundaries for public and protected traffic.
+3. Tenant context is resolved server-side from database state (not token-only assumptions).
+4. Dashboard/analytics read models use tenant-scoped cache tags (`company:{id}:...`).
+5. Mutations explicitly invalidate affected cache tags for consistency after writes.
+6. Billing routes are admin-gated and instrumented with request-scoped logs.
+7. Stripe webhook processing is signature-verified and idempotent via event ledger constraints.
 
 ## Tech Stack
 
@@ -49,6 +59,14 @@ SpendScope is a production-oriented expense management platform for teams that n
 - Stripe webhooks are signature-verified and idempotent via persisted event IDs.
 - Billing actions are admin-gated and environment-gated for test-only reset behavior.
 - Checkout/portal routes emit request-scoped telemetry for post-incident auditability.
+
+## Security Posture
+
+- Server-side authorization checks are enforced for privileged mutations.
+- Multi-tenant reads/writes are scoped by company context.
+- Billing webhooks are signature-verified and idempotent.
+- Deployment policy checks enforce environment safety toggles and key consistency.
+- Vulnerability reporting policy: see `SECURITY.md`.
 
 ## Quick Start (5 Minutes)
 
@@ -156,6 +174,7 @@ npm run start
 ### Quality Gates
 
 ```bash
+npm run docs:check
 npx tsc --noEmit
 npm run lint
 npm run audit:prod
@@ -214,18 +233,20 @@ npm run stripe:trigger:checkout
   - Ensure all Stripe env vars are present and key modes are consistent (all test or all live).
   - Confirm the configured Stripe price IDs exist in the same Stripe account and mode.
 
+## Non-goals / Tradeoffs
+
+- This repository is optimized for production-grade demo and team workflows, not enterprise compliance certification bundles.
+- Billing guidance is intentionally centered on Stripe test-mode safety and deterministic validation.
+- Route guards intentionally avoid token-only company checks to prevent stale-token redirect loops.
+
 ## Project Docs
 
 - Architecture: `ARCHITECTURE.md`
-- Engineering standards: `AGENTS.md`
 - Stripe webhook setup: `docs/deployment/stripe-webhook-setup.md`
 - Deployment checklist: `docs/deployment/test-mode-checklist.md`
 - Manual regression checklist: `docs/deployment/manual-regression-checklist.md`
-- Commit workflow: `docs/commands/commit.md`
 
-## Contributing
-
-See `CONTRIBUTING.md` for development workflow, quality gates, and pull request expectations.
+Private process notes and interview prep belong under `docs/private/` and are intentionally not tracked.
 
 ## Security
 
@@ -235,6 +256,7 @@ See `SECURITY.md` for vulnerability reporting and handling.
 
 A branch is merge-ready only when all of these pass:
 
+- `npm run docs:check`
 - `npx tsc --noEmit`
 - `npm run lint`
 - `npm run audit:prod`
@@ -244,4 +266,4 @@ A branch is merge-ready only when all of these pass:
 
 ## License
 
-No open-source license file is currently defined in this repository.
+This project is licensed under the MIT License. See `LICENSE`.

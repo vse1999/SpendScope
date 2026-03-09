@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "docs:check": "node scripts/verify-public-docs.mjs",
     "check:any": "node scripts/check-explicit-any.mjs",
     "postinstall": "prisma generate",
     "test": "jest",
