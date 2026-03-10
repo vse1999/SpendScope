@@ -46,13 +46,20 @@ export function ExpensesCopilotSectionSkeleton({
   return (
     <>
       <Card>
-        <CardHeader className="space-y-2">
-          <Skeleton className="h-6 w-44" />
+        <CardHeader className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-6 w-40 rounded-lg" />
+          </div>
           <Skeleton className="h-4 w-full max-w-[30rem]" />
         </CardHeader>
         <CardContent className="space-y-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+          <div className="rounded-md border border-dashed p-4">
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-full max-w-[26rem] rounded" />
+              <Skeleton className="h-4 w-[72%] max-w-[18rem] rounded" />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
