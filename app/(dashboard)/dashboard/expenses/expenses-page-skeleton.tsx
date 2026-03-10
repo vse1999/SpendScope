@@ -9,6 +9,61 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+function ExpenseMonitorAlertSkeleton({
+  actionCount = 3,
+  index,
+}: {
+  actionCount?: number
+  index: number
+}): React.JSX.Element {
+  return (
+    <div className="space-y-3 rounded-lg border p-4">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Skeleton className="h-6 w-32 rounded-full" />
+          <Skeleton className="h-6 w-24 rounded-full" />
+          <Skeleton className="h-6 w-28 rounded-full" />
+        </div>
+
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full max-w-[28rem] rounded" />
+          <Skeleton className="h-4 w-[82%] max-w-[22rem] rounded" />
+        </div>
+
+        <Skeleton className="h-4 w-full max-w-[30rem] rounded" />
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {Array.from({ length: actionCount }).map((_, actionIndex) => (
+          <Skeleton
+            key={`expense-monitor-alert-action-skeleton-${index}-${actionIndex}`}
+            className="h-9 w-full rounded-md sm:w-32"
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ExpenseMonitorCardSkeleton(): React.JSX.Element {
+  return (
+    <Card className="border-amber-300/60">
+      <CardHeader className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-5 rounded" />
+          <Skeleton className="h-6 w-40 rounded-lg" />
+        </div>
+        <Skeleton className="h-4 w-full max-w-[32rem] rounded" />
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <ExpenseMonitorAlertSkeleton key={`expense-monitor-skeleton-${index}`} index={index} />
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function ExpensesPageSkeleton(): React.JSX.Element {
   return (
     <div className="space-y-6">
@@ -35,17 +90,7 @@ export function ExpensesPageSkeleton(): React.JSX.Element {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-44 rounded-lg" />
-          <Skeleton className="mt-2 h-4 w-80 rounded-lg" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-md border border-dashed p-4">
-            <Skeleton className="h-4 w-80 rounded" />
-          </div>
-        </CardContent>
-      </Card>
+      <ExpenseMonitorCardSkeleton />
 
       <Card>
         <CardHeader>
