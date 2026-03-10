@@ -1,110 +1,196 @@
+import { Suspense, cache } from "react"
 import {
-  PageHeader,
-  ErrorAlert,
-  StatsCards,
   CategoryBreakdown,
+  ErrorAlert,
+  PageHeader,
   QuickStats,
+  StatsCards,
 } from "@/components/blocks/dashboard"
 import { ExpenseTable } from "@/components/expenses/expense-table"
+import type {
+  DashboardCategoryBreakdownData,
+  DashboardCriticalReadModelData,
+} from "@/lib/dashboard/read-model"
 import {
-  getCategoriesForCompany,
-  getCompanyBudgetStateForCompany,
-  getDashboardStatsForCompany,
-} from "@/lib/dashboard/queries"
+  getDashboardCategoryBreakdownForCompany,
+  getDashboardCriticalReadModelForCompany,
+} from "@/lib/dashboard/read-model"
 import { requireDashboardRequestContext } from "@/lib/dashboard/request-context"
+import {
+  DashboardCategoryBreakdownSkeleton,
+  DashboardHeroSkeleton,
+  DashboardQuickStatsSkeleton,
+  DashboardRecentExpensesSkeleton,
+} from "./dashboard-page-skeleton"
 
-export async function DashboardPageContent(): Promise<React.JSX.Element> {
-  const context = await requireDashboardRequestContext()
-  const { user } = context
-  const companyId = user.company.id
-  const currentUserRole = user.role
+const EMPTY_DASHBOARD_CRITICAL_READ_MODEL: DashboardCriticalReadModelData = {
+  budgetSettings: null,
+  budgetSummary: {
+    budgetAmount: null,
+    currency: "USD",
+    exhaustionPolicy: "WARN_ONLY",
+    hasBudget: false,
+    health: "HEALTHY",
+    isActive: false,
+    remaining: null,
+    thisMonthSpent: 0,
+    usagePercent: null,
+  },
+  categories: [],
+  stats: {
+    averageExpense: 0,
+    categoryCount: 0,
+    expenseCount: 0,
+    largestExpense: 0,
+    monthlyChangePercent: "0%",
+    monthlyTrend: "down",
+    previousMonth: 0,
+    recentExpenses: [],
+    thisMonth: 0,
+    totalExpenses: 0,
+  },
+}
 
-  const [dashboardResult, categoriesResult, budgetResult] = await Promise.all([
-    getDashboardStatsForCompany(companyId),
-    getCategoriesForCompany(companyId),
-    getCompanyBudgetStateForCompany(companyId),
-  ])
+const EMPTY_DASHBOARD_CATEGORY_BREAKDOWN: DashboardCategoryBreakdownData = {
+  byCategory: [],
+}
 
-  // Extract errors
-  const dashboardError = "error" in dashboardResult ? dashboardResult.error : undefined
-  const hasError = Boolean(dashboardError)
+interface DashboardCriticalSectionState {
+  error?: string
+  readModel: DashboardCriticalReadModelData
+}
 
-  // Extract data with safe defaults
-  const data = "error" in dashboardResult
-    ? {
-      totalExpenses: 0,
-      thisMonth: 0,
-      previousMonth: 0,
-      monthlyTrend: "down" as const,
-      monthlyChangePercent: "0%",
-      expenseCount: 0,
-      averageExpense: 0,
-      largestExpense: 0,
-      byCategory: [],
-      recentExpenses: [],
-      categoryCount: 0,
+interface DashboardCategoryBreakdownSectionState {
+  error?: string
+  readModel: DashboardCategoryBreakdownData
+}
+
+const getDashboardCriticalSectionState = cache(
+  async (companyId: string): Promise<DashboardCriticalSectionState> => {
+    try {
+      const readModel = await getDashboardCriticalReadModelForCompany(companyId)
+      return { readModel }
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Failed to fetch dashboard data",
+        readModel: EMPTY_DASHBOARD_CRITICAL_READ_MODEL,
+      }
     }
-    : dashboardResult.data
+  }
+)
 
-  const categoryList = "error" in categoriesResult ? [] : categoriesResult
-  const initialCategories = "error" in categoriesResult ? undefined : categoriesResult
-  const budgetSummary = budgetResult.success
-    ? budgetResult.summary
-    : {
-      hasBudget: false,
-      thisMonthSpent: 0,
-      budgetAmount: null,
-      remaining: null,
-      usagePercent: null,
-      health: "HEALTHY" as const,
-      currency: "USD",
-      exhaustionPolicy: "WARN_ONLY" as const,
-      isActive: false,
+const getDashboardCategoryBreakdownSectionState = cache(
+  async (companyId: string): Promise<DashboardCategoryBreakdownSectionState> => {
+    try {
+      const readModel = await getDashboardCategoryBreakdownForCompany(companyId)
+      return { readModel }
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Failed to fetch category breakdown",
+        readModel: EMPTY_DASHBOARD_CATEGORY_BREAKDOWN,
+      }
     }
-  const budgetSettings = budgetResult.success ? budgetResult.settings : null
+  }
+)
+
+export async function DashboardCriticalSection(): Promise<React.JSX.Element> {
+  const { user } = await requireDashboardRequestContext()
+  const { error, readModel } = await getDashboardCriticalSectionState(user.company.id)
 
   return (
-    <div className="space-y-8">
+    <>
       <PageHeader
         userName={user.name ?? undefined}
-        companyId={companyId}
+        companyId={user.company.id}
         userId={user.id ?? undefined}
-        initialCategories={initialCategories}
+        initialCategories={readModel.categories.length > 0 ? readModel.categories : undefined}
       />
 
-      {hasError && <ErrorAlert expensesError={dashboardError} statsError={undefined} />}
+      {error ? <ErrorAlert expensesError={error} statsError={undefined} /> : null}
 
       <StatsCards
-        totalExpenses={data.totalExpenses}
-        thisMonth={data.thisMonth}
-        expenseCount={data.expenseCount}
-        monthlyTrend={data.monthlyTrend}
-        monthlyChangePercent={data.monthlyChangePercent}
-        budgetSummary={budgetSummary}
-        budgetSettings={budgetSettings}
-        currentUserRole={currentUserRole}
+        totalExpenses={readModel.stats.totalExpenses}
+        thisMonth={readModel.stats.thisMonth}
+        expenseCount={readModel.stats.expenseCount}
+        monthlyTrend={readModel.stats.monthlyTrend}
+        monthlyChangePercent={readModel.stats.monthlyChangePercent}
+        budgetSummary={readModel.budgetSummary}
+        budgetSettings={readModel.budgetSettings}
+        currentUserRole={user.role}
       />
+    </>
+  )
+}
+
+export async function DashboardRecentExpensesSection(): Promise<React.JSX.Element> {
+  const { user } = await requireDashboardRequestContext()
+  const { readModel } = await getDashboardCriticalSectionState(user.company.id)
+
+  return (
+    <ExpenseTable
+      expenses={readModel.stats.recentExpenses}
+      categories={readModel.categories}
+      currentUserId={user.id}
+      currentUserRole={user.role}
+    />
+  )
+}
+
+export async function DashboardQuickStatsSection(): Promise<React.JSX.Element> {
+  const { user } = await requireDashboardRequestContext()
+  const { readModel } = await getDashboardCriticalSectionState(user.company.id)
+
+  return (
+    <QuickStats
+      averageExpense={readModel.stats.averageExpense}
+      largestExpense={readModel.stats.largestExpense}
+      categoryCount={readModel.stats.categoryCount}
+    />
+  )
+}
+
+export async function DashboardCategoryBreakdownSection(): Promise<React.JSX.Element> {
+  const { user } = await requireDashboardRequestContext()
+  const [{ readModel: criticalReadModel }, { error, readModel: categoryReadModel }] = await Promise.all([
+    getDashboardCriticalSectionState(user.company.id),
+    getDashboardCategoryBreakdownSectionState(user.company.id),
+  ])
+
+  return (
+    <>
+      {error ? <ErrorAlert expensesError={undefined} statsError={error} /> : null}
+      <CategoryBreakdown
+        categories={categoryReadModel.byCategory}
+        totalExpenses={criticalReadModel.stats.totalExpenses}
+      />
+    </>
+  )
+}
+
+export function DashboardPageContent(): React.JSX.Element {
+  return (
+    <div className="space-y-8">
+      <Suspense fallback={<DashboardHeroSkeleton />}>
+        <DashboardCriticalSection />
+      </Suspense>
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ExpenseTable
-            expenses={data.recentExpenses}
-            categories={categoryList}
-            currentUserId={user.id}
-            currentUserRole={currentUserRole}
-          />
+          <Suspense fallback={<DashboardRecentExpensesSkeleton />}>
+            <DashboardRecentExpensesSection />
+          </Suspense>
         </div>
 
         <div className="space-y-6">
-          <CategoryBreakdown categories={data.byCategory} totalExpenses={data.totalExpenses} />
-          <QuickStats
-            averageExpense={data.averageExpense}
-            largestExpense={data.largestExpense}
-            categoryCount={data.categoryCount}
-          />
+          <Suspense fallback={<DashboardQuickStatsSkeleton />}>
+            <DashboardQuickStatsSection />
+          </Suspense>
+
+          <Suspense fallback={<DashboardCategoryBreakdownSkeleton />}>
+            <DashboardCategoryBreakdownSection />
+          </Suspense>
         </div>
       </div>
     </div>
   )
 }
-

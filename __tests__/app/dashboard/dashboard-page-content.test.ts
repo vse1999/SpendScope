@@ -1,9 +1,8 @@
-import { UserRole, type Category } from "@prisma/client"
+import { UserRole } from "@prisma/client"
 import { renderToStaticMarkup } from "react-dom/server"
-
-import { DashboardPageContent } from "@/app/(dashboard)/dashboard/dashboard-page-content"
+import { DashboardCriticalSection } from "@/app/(dashboard)/dashboard/dashboard-page-content"
 import * as dashboardBlocks from "@/components/blocks/dashboard"
-import { getCategoriesForCompany, getCompanyBudgetStateForCompany, getDashboardStatsForCompany } from "@/lib/dashboard/queries"
+import { getDashboardCriticalReadModelForCompany } from "@/lib/dashboard/read-model"
 import { requireDashboardRequestContext } from "@/lib/dashboard/request-context"
 
 jest.mock("@/components/blocks/dashboard", () => ({
@@ -22,36 +21,20 @@ jest.mock("@/lib/dashboard/request-context", () => ({
   requireDashboardRequestContext: jest.fn(),
 }))
 
-jest.mock("@/lib/dashboard/queries", () => ({
-  getCategoriesForCompany: jest.fn(),
-  getCompanyBudgetStateForCompany: jest.fn(),
-  getDashboardStatsForCompany: jest.fn(),
+jest.mock("@/lib/dashboard/read-model", () => ({
+  getDashboardCategoryBreakdownForCompany: jest.fn(),
+  getDashboardCriticalReadModelForCompany: jest.fn(),
 }))
 
 const mockPageHeader = jest.mocked(dashboardBlocks.PageHeader)
 const mockRequireDashboardRequestContext = jest.mocked(requireDashboardRequestContext)
-const mockGetDashboardStatsForCompany = jest.mocked(getDashboardStatsForCompany)
-const mockGetCategoriesForCompany = jest.mocked(getCategoriesForCompany)
-const mockGetCompanyBudgetStateForCompany = jest.mocked(getCompanyBudgetStateForCompany)
+const mockGetDashboardCriticalReadModelForCompany = jest.mocked(
+  getDashboardCriticalReadModelForCompany
+)
 
-const baseDashboardStats = {
-  averageExpense: 50,
-  byCategory: [],
-  categoryCount: 0,
-  expenseCount: 2,
-  largestExpense: 75,
-  monthlyChangePercent: "10.0%",
-  monthlyTrend: "up" as const,
-  previousMonth: 100,
-  recentExpenses: [],
-  thisMonth: 110,
-  totalExpenses: 200,
-}
-
-const baseBudgetState = {
-  success: true as const,
-  settings: null,
-  summary: {
+const baseReadModel = {
+  budgetSettings: null,
+  budgetSummary: {
     budgetAmount: null,
     currency: "USD",
     exhaustionPolicy: "WARN_ONLY" as const,
@@ -61,6 +44,19 @@ const baseBudgetState = {
     remaining: null,
     thisMonthSpent: 0,
     usagePercent: null,
+  },
+  categories: [],
+  stats: {
+    averageExpense: 50,
+    categoryCount: 0,
+    expenseCount: 2,
+    largestExpense: 75,
+    monthlyChangePercent: "10.0%",
+    monthlyTrend: "up" as const,
+    previousMonth: 100,
+    recentExpenses: [],
+    thisMonth: 110,
+    totalExpenses: 200,
   },
 }
 
@@ -87,21 +83,30 @@ function getPageHeaderProps(): Record<string, unknown> {
   return pageHeaderCall[0] as Record<string, unknown>
 }
 
-async function renderDashboardPageContent(): Promise<void> {
-  const element = await DashboardPageContent()
+async function renderDashboardCriticalSection(): Promise<void> {
+  const element = await DashboardCriticalSection()
   renderToStaticMarkup(element)
 }
 
-describe("DashboardPageContent category prefetch handoff", () => {
+describe("DashboardCriticalSection category prefetch handoff", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockRequireDashboardRequestContext.mockResolvedValue(baseContext)
-    mockGetDashboardStatsForCompany.mockResolvedValue({ data: baseDashboardStats })
-    mockGetCompanyBudgetStateForCompany.mockResolvedValue(baseBudgetState)
+    mockGetDashboardCriticalReadModelForCompany.mockResolvedValue(baseReadModel)
   })
 
-  it("passes initialCategories when server category prefetch succeeds", async () => {
-    const categories: Category[] = [
+  it("passes initialCategories when the dashboard critical read model succeeds", async () => {
+    mockRequireDashboardRequestContext.mockResolvedValue({
+      ...baseContext,
+      user: {
+        ...baseContext.user,
+        company: {
+          ...baseContext.user.company,
+          id: "company-categories",
+        },
+      },
+    })
+    const categories = [
       {
         companyId: "company-1",
         color: "#3b82f6",
@@ -112,18 +117,30 @@ describe("DashboardPageContent category prefetch handoff", () => {
         updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       },
     ]
-    mockGetCategoriesForCompany.mockResolvedValue(categories)
+    mockGetDashboardCriticalReadModelForCompany.mockResolvedValue({
+      ...baseReadModel,
+      categories,
+    })
 
-    await renderDashboardPageContent()
+    await renderDashboardCriticalSection()
 
     const pageHeaderProps = getPageHeaderProps()
     expect(pageHeaderProps.initialCategories).toEqual(categories)
   })
 
-  it("leaves initialCategories undefined when server category prefetch fails", async () => {
-    mockGetCategoriesForCompany.mockResolvedValue({ error: "Failed to fetch categories" })
+  it("leaves initialCategories undefined when the critical read model has no categories", async () => {
+    mockRequireDashboardRequestContext.mockResolvedValue({
+      ...baseContext,
+      user: {
+        ...baseContext.user,
+        company: {
+          ...baseContext.user.company,
+          id: "company-empty",
+        },
+      },
+    })
 
-    await renderDashboardPageContent()
+    await renderDashboardCriticalSection()
 
     const pageHeaderProps = getPageHeaderProps()
     expect(pageHeaderProps.initialCategories).toBeUndefined()

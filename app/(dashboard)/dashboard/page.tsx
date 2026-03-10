@@ -1,7 +1,5 @@
-import { Suspense } from "react"
 import type { Metadata } from "next"
 import { DashboardPageContent } from "./dashboard-page-content"
-import { DashboardPageSkeleton } from "./dashboard-page-skeleton"
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -15,9 +13,5 @@ export const metadata: Metadata = {
 }
 
 export default function DashboardPage(): React.JSX.Element {
-  return (
-    <Suspense fallback={<DashboardPageSkeleton />}>
-      <DashboardPageContent />
-    </Suspense>
-  )
+  return <DashboardPageContent />
 }

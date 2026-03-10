@@ -138,7 +138,7 @@ export async function getBudgetSummary(
   return buildBudgetSummary(settings, thisMonthSpent);
 }
 
-function buildBudgetSummary(
+export function buildBudgetSummary(
   settings: CompanyBudgetSettings | null,
   thisMonthSpent: number
 ): BudgetSummary {
