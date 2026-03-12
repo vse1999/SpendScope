@@ -1,80 +1,39 @@
 import {
   getExpenseCopilotAlerts,
   getExpensePolicyConfigForCompany,
+  type ExpensePolicyConfigView,
 } from "@/app/actions/expenses";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ExpenseCopilotPanelSection } from "./components/expense-copilot-panel-section";
+import { ExpenseReviewPanelSection } from "./components/expense-review-panel-section";
 import type { Category } from "./expenses-client-types";
 
-interface ExpensesCopilotSectionProps {
+interface ExpenseReviewSectionProps {
   categories: Category[];
   isAdmin: boolean;
 }
 
-const DEFAULT_POLICY_CONFIG = {
+const DEFAULT_POLICY_CONFIG: ExpensePolicyConfigView = {
   globalThresholdUsd: 1000,
   categoryThresholds: {},
 };
 
-export async function ExpensesCopilotSection({
+export async function ExpenseReviewSection({
   categories,
   isAdmin,
-}: ExpensesCopilotSectionProps): Promise<React.JSX.Element> {
+}: ExpenseReviewSectionProps): Promise<React.JSX.Element> {
   const [copilotAlertsResult, policyResult] = await Promise.all([
     getExpenseCopilotAlerts(),
-    getExpensePolicyConfigForCompany(),
+    isAdmin ? getExpensePolicyConfigForCompany() : Promise.resolve(null),
   ]);
-  const initialCopilotAlerts = copilotAlertsResult.success ? copilotAlertsResult.alerts : [];
-  const initialPolicyConfig = policyResult.success
-    ? policyResult.config
-    : DEFAULT_POLICY_CONFIG;
+  const initialAlerts = copilotAlertsResult.success ? copilotAlertsResult.alerts : [];
+  const initialPolicyConfig =
+    policyResult?.success ? policyResult.config : DEFAULT_POLICY_CONFIG;
 
   return (
-    <ExpenseCopilotPanelSection
+    <ExpenseReviewPanelSection
       categories={categories}
-      initialCopilotAlerts={initialCopilotAlerts}
+      initialAlerts={initialAlerts}
       initialPolicyConfig={initialPolicyConfig}
       isAdmin={isAdmin}
     />
-  );
-}
-
-export function ExpensesCopilotSectionSkeleton({
-  isAdmin,
-}: Pick<ExpensesCopilotSectionProps, "isAdmin">): React.JSX.Element {
-  return (
-    <>
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-5 w-5 rounded" />
-            <Skeleton className="h-6 w-40 rounded-lg" />
-          </div>
-          <Skeleton className="h-4 w-full max-w-[30rem]" />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="rounded-md border border-dashed p-4">
-            <div className="space-y-3">
-              <Skeleton className="h-4 w-full max-w-[26rem] rounded" />
-              <Skeleton className="h-4 w-[72%] max-w-[18rem] rounded" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {isAdmin && (
-        <Card>
-          <CardHeader className="space-y-2">
-            <Skeleton className="h-6 w-56" />
-            <Skeleton className="h-4 w-full max-w-[33rem]" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </CardContent>
-        </Card>
-      )}
-    </>
   );
 }

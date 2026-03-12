@@ -1,105 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
   deleteCategoryExpensePolicyThreshold,
-  resolveExpenseCopilotAlert,
   updateGlobalExpensePolicyThreshold,
   upsertCategoryExpensePolicyThreshold,
-  type ExpenseCopilotAlert,
   type ExpensePolicyConfigView,
-  type ResolveExpenseCopilotAction,
 } from "@/app/actions/expenses";
 import type { Category } from "./expenses-client-types";
 
-interface UseExpensesCopilotPolicyStateArgs {
+interface UseExpensePolicyControlsStateArgs {
   categories: Category[];
-  initialCopilotAlerts: ExpenseCopilotAlert[];
   initialPolicyConfig: ExpensePolicyConfigView;
 }
 
-interface UseExpensesCopilotPolicyStateResult {
-  copilotAlerts: ExpenseCopilotAlert[];
-  resolvingAlerts: Record<string, boolean>;
-  globalPolicyThreshold: string;
-  categoryPolicyThresholds: Record<string, string>;
-  selectedPolicyCategoryId: string;
-  selectedPolicyThreshold: string;
-  isSavingGlobalPolicy: boolean;
-  isSavingCategoryPolicy: boolean;
-  categoryPolicyOverrides: Array<{ id: string; name: string; threshold: string }>;
-  setGlobalPolicyThreshold: (value: string) => void;
-  setSelectedPolicyThreshold: (value: string) => void;
-  handleSelectedPolicyCategoryChange: (categoryId: string) => void;
-  resolveCopilotAlert: (alertId: string, action: ResolveExpenseCopilotAction) => Promise<void>;
-  handleSaveGlobalPolicyThreshold: () => Promise<void>;
-  handleSaveCategoryPolicyThreshold: () => Promise<void>;
-  handleDeleteCategoryPolicyThreshold: (categoryId: string) => Promise<void>;
+interface CategoryPolicyOverride {
+  id: string;
+  name: string;
+  threshold: string;
 }
 
-export function useExpensesCopilotPolicyState({
-  categories,
-  initialCopilotAlerts,
-  initialPolicyConfig,
-}: UseExpensesCopilotPolicyStateArgs): UseExpensesCopilotPolicyStateResult {
-  const router = useRouter();
+interface UseExpensePolicyControlsStateResult {
+  categoryPolicyOverrides: CategoryPolicyOverride[];
+  globalPolicyThreshold: string;
+  handleDeleteCategoryPolicyThreshold: (categoryId: string) => Promise<void>;
+  handleSaveCategoryPolicyThreshold: () => Promise<void>;
+  handleSaveGlobalPolicyThreshold: () => Promise<void>;
+  handleSelectedPolicyCategoryChange: (categoryId: string) => void;
+  isRefreshing: boolean;
+  isSavingCategoryPolicy: boolean;
+  isSavingGlobalPolicy: boolean;
+  selectedPolicyCategoryId: string;
+  selectedPolicyThreshold: string;
+  setGlobalPolicyThreshold: (value: string) => void;
+  setSelectedPolicyThreshold: (value: string) => void;
+}
 
-  const [copilotAlerts, setCopilotAlerts] = useState<ExpenseCopilotAlert[]>(initialCopilotAlerts);
-  const [resolvingAlerts, setResolvingAlerts] = useState<Record<string, boolean>>({});
+function getInitialCategoryPolicyThresholds(
+  policyConfig: ExpensePolicyConfigView
+): Record<string, string> {
+  const entries = Object.entries(policyConfig.categoryThresholds).map(([categoryId, threshold]) => [
+    categoryId,
+    String(threshold),
+  ]);
+
+  return Object.fromEntries(entries);
+}
+
+export function useExpensePolicyControlsState({
+  categories,
+  initialPolicyConfig,
+}: UseExpensePolicyControlsStateArgs): UseExpensePolicyControlsStateResult {
+  const router = useRouter();
+  const [isRefreshing, startTransition] = useTransition();
   const [globalPolicyThreshold, setGlobalPolicyThreshold] = useState<string>(
     String(initialPolicyConfig.globalThresholdUsd)
   );
-  const [categoryPolicyThresholds, setCategoryPolicyThresholds] = useState<Record<string, string>>(() => {
-    const entries = Object.entries(initialPolicyConfig.categoryThresholds).map(([categoryId, threshold]) => [
-      categoryId,
-      String(threshold),
-    ]);
-    return Object.fromEntries(entries);
-  });
+  const [categoryPolicyThresholds, setCategoryPolicyThresholds] = useState<Record<string, string>>(() =>
+    getInitialCategoryPolicyThresholds(initialPolicyConfig)
+  );
   const [selectedPolicyCategoryId, setSelectedPolicyCategoryId] = useState<string>("");
   const [selectedPolicyThreshold, setSelectedPolicyThreshold] = useState<string>("");
   const [isSavingGlobalPolicy, setIsSavingGlobalPolicy] = useState<boolean>(false);
   const [isSavingCategoryPolicy, setIsSavingCategoryPolicy] = useState<boolean>(false);
 
   useEffect(() => {
-    setCopilotAlerts(initialCopilotAlerts);
-  }, [initialCopilotAlerts]);
-
-  useEffect(() => {
     setGlobalPolicyThreshold(String(initialPolicyConfig.globalThresholdUsd));
-    const entries = Object.entries(initialPolicyConfig.categoryThresholds).map(([categoryId, threshold]) => [
-      categoryId,
-      String(threshold),
-    ]);
-    setCategoryPolicyThresholds(Object.fromEntries(entries));
+    setCategoryPolicyThresholds(getInitialCategoryPolicyThresholds(initialPolicyConfig));
   }, [initialPolicyConfig]);
-
-  const resolveCopilotAlert = async (
-    alertId: string,
-    action: ResolveExpenseCopilotAction
-  ): Promise<void> => {
-    setResolvingAlerts((previous) => ({ ...previous, [alertId]: true }));
-    const result = await resolveExpenseCopilotAlert(alertId, action);
-
-    if (!result.success) {
-      toast.error(result.error);
-      setResolvingAlerts((previous) => ({ ...previous, [alertId]: false }));
-      return;
-    }
-
-    setCopilotAlerts((previous) => previous.filter((alert) => alert.id !== alertId));
-    toast.success(
-      action === "APPROVE"
-        ? "Alert marked as valid"
-        : action === "DISMISS"
-          ? "Alert marked as false alarm"
-          : "Receipt request sent to expense owner"
-    );
-    setResolvingAlerts((previous) => ({ ...previous, [alertId]: false }));
-    router.refresh();
-  };
 
   const handleSaveGlobalPolicyThreshold = async (): Promise<void> => {
     const threshold = Number.parseFloat(globalPolicyThreshold);
@@ -118,7 +88,9 @@ export function useExpensesCopilotPolicyState({
     }
 
     toast.success("Global policy threshold updated");
-    router.refresh();
+    startTransition(() => {
+      router.refresh();
+    });
   };
 
   const handleSaveCategoryPolicyThreshold = async (): Promise<void> => {
@@ -148,7 +120,9 @@ export function useExpensesCopilotPolicyState({
     }));
     setSelectedPolicyThreshold(String(threshold));
     toast.success("Category threshold updated");
-    router.refresh();
+    startTransition(() => {
+      router.refresh();
+    });
   };
 
   const handleDeleteCategoryPolicyThreshold = async (categoryId: string): Promise<void> => {
@@ -166,11 +140,15 @@ export function useExpensesCopilotPolicyState({
       delete next[categoryId];
       return next;
     });
+
     if (selectedPolicyCategoryId === categoryId) {
       setSelectedPolicyThreshold("");
     }
+
     toast.success("Category override removed");
-    router.refresh();
+    startTransition(() => {
+      router.refresh();
+    });
   };
 
   const handleSelectedPolicyCategoryChange = (categoryId: string): void => {
@@ -178,31 +156,31 @@ export function useExpensesCopilotPolicyState({
     setSelectedPolicyThreshold(categoryPolicyThresholds[categoryId] ?? "");
   };
 
-  const categoryPolicyOverrides = categories
-    .filter((category) => categoryPolicyThresholds[category.id] !== undefined)
-    .map((category) => ({
-      id: category.id,
-      name: category.name,
-      threshold: categoryPolicyThresholds[category.id],
-    }));
+  const categoryPolicyOverrides = useMemo(
+    () =>
+      categories
+        .filter((category) => categoryPolicyThresholds[category.id] !== undefined)
+        .map((category) => ({
+          id: category.id,
+          name: category.name,
+          threshold: categoryPolicyThresholds[category.id],
+        })),
+    [categories, categoryPolicyThresholds]
+  );
 
   return {
-    copilotAlerts,
-    resolvingAlerts,
+    categoryPolicyOverrides,
     globalPolicyThreshold,
-    categoryPolicyThresholds,
+    handleDeleteCategoryPolicyThreshold,
+    handleSaveCategoryPolicyThreshold,
+    handleSaveGlobalPolicyThreshold,
+    handleSelectedPolicyCategoryChange,
+    isRefreshing,
+    isSavingCategoryPolicy,
+    isSavingGlobalPolicy,
     selectedPolicyCategoryId,
     selectedPolicyThreshold,
-    isSavingGlobalPolicy,
-    isSavingCategoryPolicy,
-    categoryPolicyOverrides,
     setGlobalPolicyThreshold,
     setSelectedPolicyThreshold,
-    handleSelectedPolicyCategoryChange,
-    resolveCopilotAlert,
-    handleSaveGlobalPolicyThreshold,
-    handleSaveCategoryPolicyThreshold,
-    handleDeleteCategoryPolicyThreshold,
   };
 }
-
