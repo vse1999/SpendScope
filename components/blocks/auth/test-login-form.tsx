@@ -48,8 +48,6 @@ export function TestLoginForm({ redirectTo = "/dashboard" }: TestLoginFormProps)
   async function quickLogin() {
     setIsLoading(true)
     setError(null)
-    
-    console.log("[TEST LOGIN] Attempting login...")
 
     try {
       const result = await signIn("credentials", {
@@ -58,8 +56,7 @@ export function TestLoginForm({ redirectTo = "/dashboard" }: TestLoginFormProps)
         redirect: false,
         callbackUrl: redirectTo,
       })
-      
-      console.log("[TEST LOGIN] Result:", result)
+
 
       if (result?.error) {
         setError(`Test login failed: ${result.error}`)
@@ -69,7 +66,7 @@ export function TestLoginForm({ redirectTo = "/dashboard" }: TestLoginFormProps)
         setError("No redirect URL returned")
       }
     } catch (err) {
-      console.error("[TEST LOGIN] Error:", err)
+      void err
       setError(`Something went wrong: ${err}`)
     } finally {
       setIsLoading(false)

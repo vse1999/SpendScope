@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import { requireDashboardRequestContext } from "@/lib/dashboard/request-context";
 import { isBillingEnabled } from "@/lib/stripe/config";
@@ -8,10 +7,7 @@ import {
   getExpensesSummary,
 } from "@/app/actions/expenses";
 import { parseMultiSort, type MultiSortConfig } from "@/lib/expense-sorting";
-import {
-  ExpensesCopilotSection,
-  ExpensesCopilotSectionSkeleton,
-} from "./expenses-copilot-section";
+import { ExpenseReviewSection } from "./expenses-copilot-section";
 import { ExpensesClient } from "./expenses-client";
 
 export const metadata: Metadata = {
@@ -91,9 +87,7 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
       isAdmin={isAdmin}
       billingEnabled={billingEnabled}
     >
-      <Suspense fallback={<ExpensesCopilotSectionSkeleton isAdmin={isAdmin} />}>
-        <ExpensesCopilotSection categories={categories} isAdmin={isAdmin} />
-      </Suspense>
+      <ExpenseReviewSection categories={categories} isAdmin={isAdmin} />
     </ExpensesClient>
   );
 }

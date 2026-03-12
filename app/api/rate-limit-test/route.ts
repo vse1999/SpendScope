@@ -124,6 +124,3 @@ export async function HEAD(request: NextRequest): Promise<NextResponse> {
   });
 }
 
-// Configure runtime for Edge compatibility
-export const runtime = "edge";
-export const preferredRegion = "auto";

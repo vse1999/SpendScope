@@ -31,8 +31,6 @@ export async function unlinkProvider(provider: string) {
         where: { id: accountToDelete.id }
     })
 
-    console.log(`[SECURITY] Unlinked ${provider} for user ${session.user.email}`)
-
     revalidatePath("/dashboard/settings")
     return { success: true }
 }
