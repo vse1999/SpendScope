@@ -51,7 +51,7 @@ function PricingCardContent({ plan }: { readonly plan: PricingPlanPresentation }
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-2xl font-semibold tracking-tight">{plan.name}</h3>
-          {plan.isPopular && <Sparkles className="size-5 text-indigo-400" />}
+          {plan.isPopular && <Sparkles className="size-5 text-indigo-500 dark:text-indigo-400" />}
         </div>
         <div className="h-6">
           {plan.badge && (

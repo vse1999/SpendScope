@@ -4,7 +4,7 @@ export function getPricingCardClassName(isPopular: boolean): string {
   return cn(
     "h-full overflow-hidden rounded-xl border",
     isPopular
-      ? "border-indigo-500/40 bg-gradient-to-br from-indigo-950/30 via-slate-950 to-violet-950/30 shadow-xl shadow-indigo-500/10 dark:border-indigo-500/40 dark:from-indigo-950/30 dark:via-slate-950 dark:to-violet-950/30"
+      ? "border-indigo-200/80 bg-gradient-to-br from-white via-indigo-50/80 to-violet-100/90 shadow-xl shadow-indigo-500/10 dark:border-indigo-500/40 dark:from-indigo-950/30 dark:via-slate-950 dark:to-violet-950/30 dark:shadow-indigo-500/10"
       : "border-white/10 bg-card/50 dark:border-white/10 dark:bg-slate-950/50"
   );
 }
@@ -22,13 +22,13 @@ export function getPricingFeatureIconContainerClassName(included: boolean): stri
   return cn(
     "flex size-4 shrink-0 items-center justify-center rounded-full",
     included
-      ? "bg-indigo-500/20"
+      ? "bg-indigo-500/12 ring-1 ring-indigo-200/70 dark:bg-indigo-500/20 dark:ring-0"
       : "bg-muted ring-1 ring-border/70"
   );
 }
 
 export function getPricingFeatureIconClassName(included: boolean): string {
-  return included ? "size-2.5 text-indigo-400" : "size-2.5 text-muted-foreground";
+  return included ? "size-2.5 text-indigo-600 dark:text-indigo-400" : "size-2.5 text-muted-foreground";
 }
 
 export function getPricingFeatureTextClassName(included: boolean): string {

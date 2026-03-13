@@ -250,7 +250,7 @@ export function BillingClient({ usage, isAdmin, billingEnabled }: BillingClientP
                   <div className="flex items-center gap-2">
                     <h3 className="text-2xl font-semibold tracking-tight">{plan.name}</h3>
                     {plan.isPopular && (
-                      <Sparkles className="size-5 text-indigo-400" />
+                      <Sparkles className="size-5 text-indigo-500 dark:text-indigo-400" />
                     )}
                   </div>
 
