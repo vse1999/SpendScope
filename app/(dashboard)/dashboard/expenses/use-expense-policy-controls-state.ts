@@ -11,6 +11,13 @@ import {
 } from "@/app/actions/expenses";
 import type { Category } from "./expenses-client-types";
 
+const GLOBAL_POLICY_SAVE_ERROR_MESSAGE =
+  "Couldn't save the global policy threshold. Please try again.";
+const CATEGORY_POLICY_SAVE_ERROR_MESSAGE =
+  "Couldn't save the category policy threshold. Please try again.";
+const CATEGORY_POLICY_DELETE_ERROR_MESSAGE =
+  "Couldn't remove the category override. Please try again.";
+
 interface UseExpensePolicyControlsStateArgs {
   categories: Category[];
   initialPolicyConfig: ExpensePolicyConfigView;
@@ -79,18 +86,23 @@ export function useExpensePolicyControlsState({
     }
 
     setIsSavingGlobalPolicy(true);
-    const result = await updateGlobalExpensePolicyThreshold(threshold);
-    setIsSavingGlobalPolicy(false);
+    try {
+      const result = await updateGlobalExpensePolicyThreshold(threshold);
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success("Global policy threshold updated");
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      toast.error(GLOBAL_POLICY_SAVE_ERROR_MESSAGE);
+    } finally {
+      setIsSavingGlobalPolicy(false);
     }
-
-    toast.success("Global policy threshold updated");
-    startTransition(() => {
-      router.refresh();
-    });
   };
 
   const handleSaveCategoryPolicyThreshold = async (): Promise<void> => {
@@ -106,49 +118,59 @@ export function useExpensePolicyControlsState({
     }
 
     setIsSavingCategoryPolicy(true);
-    const result = await upsertCategoryExpensePolicyThreshold(selectedPolicyCategoryId, threshold);
-    setIsSavingCategoryPolicy(false);
+    try {
+      const result = await upsertCategoryExpensePolicyThreshold(selectedPolicyCategoryId, threshold);
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      setCategoryPolicyThresholds((previous) => ({
+        ...previous,
+        [selectedPolicyCategoryId]: String(threshold),
+      }));
+      setSelectedPolicyThreshold(String(threshold));
+      toast.success("Category threshold updated");
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      toast.error(CATEGORY_POLICY_SAVE_ERROR_MESSAGE);
+    } finally {
+      setIsSavingCategoryPolicy(false);
     }
-
-    setCategoryPolicyThresholds((previous) => ({
-      ...previous,
-      [selectedPolicyCategoryId]: String(threshold),
-    }));
-    setSelectedPolicyThreshold(String(threshold));
-    toast.success("Category threshold updated");
-    startTransition(() => {
-      router.refresh();
-    });
   };
 
   const handleDeleteCategoryPolicyThreshold = async (categoryId: string): Promise<void> => {
     setIsSavingCategoryPolicy(true);
-    const result = await deleteCategoryExpensePolicyThreshold(categoryId);
-    setIsSavingCategoryPolicy(false);
+    try {
+      const result = await deleteCategoryExpensePolicyThreshold(categoryId);
 
-    if (!result.success) {
-      toast.error(result.error);
-      return;
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      setCategoryPolicyThresholds((previous) => {
+        const next = { ...previous };
+        delete next[categoryId];
+        return next;
+      });
+
+      if (selectedPolicyCategoryId === categoryId) {
+        setSelectedPolicyThreshold("");
+      }
+
+      toast.success("Category override removed");
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      toast.error(CATEGORY_POLICY_DELETE_ERROR_MESSAGE);
+    } finally {
+      setIsSavingCategoryPolicy(false);
     }
-
-    setCategoryPolicyThresholds((previous) => {
-      const next = { ...previous };
-      delete next[categoryId];
-      return next;
-    });
-
-    if (selectedPolicyCategoryId === categoryId) {
-      setSelectedPolicyThreshold("");
-    }
-
-    toast.success("Category override removed");
-    startTransition(() => {
-      router.refresh();
-    });
   };
 
   const handleSelectedPolicyCategoryChange = (categoryId: string): void => {

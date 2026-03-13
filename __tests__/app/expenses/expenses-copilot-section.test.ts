@@ -1,5 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { ExpenseReviewSection } from "@/app/(dashboard)/dashboard/expenses/expenses-copilot-section";
+import {
+  ExpenseReviewSection,
+  ExpenseReviewSectionSkeleton,
+} from "@/app/(dashboard)/dashboard/expenses/expenses-copilot-section";
 import {
   getExpenseCopilotAlerts,
   getExpensePolicyConfigForCompany,
@@ -103,5 +106,22 @@ describe("expense review server section", () => {
       },
       undefined
     );
+  });
+
+  it("renders the admin fallback shell with policy controls", () => {
+    const markup = renderToStaticMarkup(ExpenseReviewSectionSkeleton({ isAdmin: true }));
+
+    expect(markup).toContain("Expense Monitor");
+    expect(markup).toContain("Policy Threshold Controls");
+    expect(markup).toContain("Global Threshold (USD)");
+    expect(markup).not.toContain("Expense Alerts");
+  });
+
+  it("omits policy controls from the member fallback shell", () => {
+    const markup = renderToStaticMarkup(ExpenseReviewSectionSkeleton({ isAdmin: false }));
+
+    expect(markup).toContain("Expense Monitor");
+    expect(markup).not.toContain("Policy Threshold Controls");
+    expect(markup).not.toContain("Expense Alerts");
   });
 });

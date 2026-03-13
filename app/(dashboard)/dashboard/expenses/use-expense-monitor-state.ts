@@ -10,6 +10,9 @@ import {
 } from "@/app/actions/expenses";
 import { createExpenseMonitorViewModel, type ExpenseMonitorViewModel } from "./expense-monitor-model";
 
+const EXPENSE_MONITOR_RESOLUTION_ERROR_MESSAGE =
+  "Couldn't update the expense alert. Please try again.";
+
 interface UseExpenseMonitorStateArgs {
   initialAlerts: ExpenseCopilotAlert[];
   isAdmin: boolean;
@@ -49,26 +52,34 @@ export function useExpenseMonitorState({
     action: ResolveExpenseCopilotAction
   ): Promise<void> => {
     setResolvingAlerts((previous) => ({ ...previous, [alertId]: true }));
-    const result = await resolveExpenseCopilotAlert(alertId, action);
+    try {
+      const result = await resolveExpenseCopilotAlert(alertId, action);
 
-    if (!result.success) {
-      toast.error(result.error);
-      setResolvingAlerts((previous) => ({ ...previous, [alertId]: false }));
-      return;
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      setCopilotAlerts((previous) => previous.filter((alert) => alert.id !== alertId));
+      toast.success(
+        action === "APPROVE"
+          ? "Alert marked as valid"
+          : action === "DISMISS"
+            ? "Alert marked as false alarm"
+            : "Receipt request sent to expense owner"
+      );
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      toast.error(EXPENSE_MONITOR_RESOLUTION_ERROR_MESSAGE);
+    } finally {
+      setResolvingAlerts((previous) => {
+        const next = { ...previous };
+        delete next[alertId];
+        return next;
+      });
     }
-
-    setCopilotAlerts((previous) => previous.filter((alert) => alert.id !== alertId));
-    toast.success(
-      action === "APPROVE"
-        ? "Alert marked as valid"
-        : action === "DISMISS"
-          ? "Alert marked as false alarm"
-          : "Receipt request sent to expense owner"
-    );
-    setResolvingAlerts((previous) => ({ ...previous, [alertId]: false }));
-    startTransition(() => {
-      router.refresh();
-    });
   };
 
   return {
