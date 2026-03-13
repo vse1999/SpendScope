@@ -18,26 +18,6 @@ export interface CreateExpenseMonitorViewModelArgs {
 
 export const EXPENSE_MONITOR_DENSE_THRESHOLD = 3;
 
-export function getExpenseMonitorAlertIds(alerts: ExpenseCopilotAlert[]): string[] {
-  return alerts.map((alert) => alert.id);
-}
-
-export function shouldAutoOpenExpenseAlertSurface(
-  previousAlertIds: string[],
-  nextAlertIds: string[]
-): boolean {
-  if (nextAlertIds.length === 0) {
-    return false;
-  }
-
-  if (previousAlertIds.length === 0) {
-    return true;
-  }
-
-  const previousAlertIdSet = new Set(previousAlertIds);
-  return nextAlertIds.some((alertId) => !previousAlertIdSet.has(alertId));
-}
-
 export function getExpenseMonitorMode(alertCount: number): ExpenseMonitorMode {
   if (alertCount === 0) {
     return "empty";

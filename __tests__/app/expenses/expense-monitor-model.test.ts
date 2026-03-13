@@ -1,8 +1,6 @@
 import {
   createExpenseMonitorViewModel,
-  getExpenseMonitorAlertIds,
   getExpenseMonitorMode,
-  shouldAutoOpenExpenseAlertSurface,
 } from "@/app/(dashboard)/dashboard/expenses/expense-monitor-model";
 import type { ExpenseCopilotAlert } from "@/app/actions/expenses";
 
@@ -58,27 +56,5 @@ describe("expense monitor view model", () => {
       isPending: true,
       mode: "standard",
     });
-  });
-
-  it("returns alert ids in their current render order", () => {
-    const alerts = [createAlert("alert-2"), createAlert("alert-1")];
-
-    expect(getExpenseMonitorAlertIds(alerts)).toEqual(["alert-2", "alert-1"]);
-  });
-
-  it("auto-opens when alerts appear for the first time", () => {
-    expect(shouldAutoOpenExpenseAlertSurface([], ["alert-1"])).toBe(true);
-  });
-
-  it("stays collapsed when the same alerts return", () => {
-    expect(shouldAutoOpenExpenseAlertSurface(["alert-1"], ["alert-1"])).toBe(false);
-  });
-
-  it("stays collapsed when alerts are only removed", () => {
-    expect(shouldAutoOpenExpenseAlertSurface(["alert-1", "alert-2"], ["alert-1"])).toBe(false);
-  });
-
-  it("re-opens when a new unresolved alert appears", () => {
-    expect(shouldAutoOpenExpenseAlertSurface(["alert-1"], ["alert-1", "alert-3"])).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { ExpenseMonitorSummaryStripSkeleton } from "./components/expense-monitor-summary-strip"
 
 export function ExpensesPageSkeleton(): React.JSX.Element {
   return (
@@ -34,6 +35,8 @@ export function ExpensesPageSkeleton(): React.JSX.Element {
           </CardContent>
         </Card>
       </div>
+
+      <ExpenseMonitorSummaryStripSkeleton />
 
       <Card>
         <CardHeader className="pb-3">

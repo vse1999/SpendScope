@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
@@ -8,14 +8,12 @@ import type {
   ExpensePolicyConfigView,
 } from "@/app/actions/expenses";
 import type { Category } from "../expenses-client-types";
-import {
-  getExpenseMonitorAlertIds,
-  shouldAutoOpenExpenseAlertSurface,
-} from "../expense-monitor-model";
 import { useExpenseMonitorState } from "../use-expense-monitor-state";
 import { ExpenseMonitorSummaryStrip } from "./expense-monitor-summary-strip";
 import { ExpensePolicyControlsCard } from "./expense-policy-controls-card";
 import { ExpenseReviewQueue } from "./expense-review-queue";
+
+const EXPENSE_ALERTS_PANEL_ID = "expense-alerts-panel";
 
 interface ExpenseReviewPanelSectionProps {
   categories: Category[];
@@ -34,34 +32,25 @@ export function ExpenseReviewPanelSection({
     initialAlerts,
     isAdmin,
   });
-  const [collapsedAlertIds, setCollapsedAlertIds] = useState<string[]>([]);
-  const alertIds = useMemo(
-    () => getExpenseMonitorAlertIds(viewModel.alerts),
-    [viewModel.alerts]
-  );
-  const isAlertSurfaceOpen = shouldAutoOpenExpenseAlertSurface(collapsedAlertIds, alertIds);
+  const [isAlertSurfaceOpen, setIsAlertSurfaceOpen] = useState(false);
 
   const handleAlertSurfaceToggle = (): void => {
-    if (isAlertSurfaceOpen) {
-      setCollapsedAlertIds(alertIds);
-      return;
-    }
-
-    setCollapsedAlertIds([]);
+    setIsAlertSurfaceOpen((previous) => !previous);
   };
 
   return (
     <div className="space-y-4">
       <ExpenseMonitorSummaryStrip
         alertCount={viewModel.alertCount}
+        alertPanelId={EXPENSE_ALERTS_PANEL_ID}
         isAlertSurfaceOpen={isAlertSurfaceOpen}
         isPending={viewModel.isPending}
         mode={viewModel.mode}
         onAlertSurfaceToggle={handleAlertSurfaceToggle}
       />
 
-      {isAlertSurfaceOpen && (
-        <Card>
+      {isAlertSurfaceOpen && viewModel.alertCount > 0 && (
+        <Card id={EXPENSE_ALERTS_PANEL_ID}>
           <CardHeader className="space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">

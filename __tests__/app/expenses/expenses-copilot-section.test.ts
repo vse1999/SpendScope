@@ -111,7 +111,7 @@ describe("expense review server section", () => {
   it("renders the admin fallback shell with policy controls", () => {
     const markup = renderToStaticMarkup(ExpenseReviewSectionSkeleton({ isAdmin: true }));
 
-    expect(markup).toContain("Expense Monitor");
+    expect(markup).not.toContain("Expense Monitor");
     expect(markup).toContain("Policy Threshold Controls");
     expect(markup).toContain("Global Threshold (USD)");
     expect(markup).not.toContain("Expense Alerts");
@@ -120,7 +120,7 @@ describe("expense review server section", () => {
   it("omits policy controls from the member fallback shell", () => {
     const markup = renderToStaticMarkup(ExpenseReviewSectionSkeleton({ isAdmin: false }));
 
-    expect(markup).toContain("Expense Monitor");
+    expect(markup).not.toContain("Expense Monitor");
     expect(markup).not.toContain("Policy Threshold Controls");
     expect(markup).not.toContain("Expense Alerts");
   });

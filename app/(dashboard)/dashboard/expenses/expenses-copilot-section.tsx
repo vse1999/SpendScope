@@ -6,6 +6,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExpenseReviewPanelSection } from "./components/expense-review-panel-section";
+import { ExpenseMonitorSummaryStripSkeleton } from "./components/expense-monitor-summary-strip";
 import type { Category } from "./expenses-client-types";
 
 interface ExpenseReviewSectionProps {
@@ -45,20 +46,7 @@ export function ExpenseReviewSectionSkeleton({
 }: Pick<ExpenseReviewSectionProps, "isAdmin">): React.JSX.Element {
   return (
     <div className="space-y-4">
-      <Card className="border-amber-300/60">
-        <CardContent className="flex min-h-[5.75rem] flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <Skeleton className="h-5 w-5 rounded-full" />
-              <span className="font-medium">Expense Monitor</span>
-              <Skeleton className="h-6 w-24 rounded-full" />
-            </div>
-            <Skeleton className="h-4 w-full max-w-[22rem] rounded" />
-          </div>
-
-          <Skeleton className="h-9 w-28 rounded-md" />
-        </CardContent>
-      </Card>
+      <ExpenseMonitorSummaryStripSkeleton />
 
       {isAdmin && (
         <Card>
