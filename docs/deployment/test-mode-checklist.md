@@ -30,9 +30,7 @@ STRIPE_PRO_YEARLY_PRICE_ID="price_..."
 # Stripe safety fuse (must remain false for project/demo)
 ALLOW_LIVE_STRIPE_KEYS="false"
 
-# Disable debug/test backdoors on deployed app
-ENABLE_TEST_ENDPOINTS="false"
-E2E_LOGIN_BYPASS="false"
+# Disable debug/test toggles on deployed app
 ALLOW_BILLING_RESET="false"
 NEXT_PUBLIC_ALLOW_BILLING_RESET="false"
 
@@ -50,7 +48,7 @@ SENTRY_SEND_DEFAULT_PII="false"
 
 1. Confirm Stripe keys are test keys (`sk_test_`, `pk_test_`).
 2. Confirm `ALLOW_LIVE_STRIPE_KEYS=false`.
-3. Confirm debug/test flags are all `false`.
+3. Confirm non-production debug toggles are all `false`.
 4. Confirm OAuth redirect URIs in Google/GitHub include deployed domain callbacks.
 
 ## 3. Build Gates (Must Pass)
@@ -75,7 +73,7 @@ npm run deploy:check
 This enforces:
 1. required auth env vars
 2. Stripe test/live safety rules
-3. debug/test flags disabled
+3. non-production debug toggles disabled
 4. tracked-file secret leak scan
 
 ## 4. Deploy
@@ -96,9 +94,9 @@ This enforces:
 
 ## 6. Security/Debug Verification (Post-Deploy)
 
-1. Confirm `/api/test-login` is not usable.
-2. Confirm `/api/test-logout` is not usable.
-3. Confirm `/api/rate-limit-test` is not exposed unless intentionally enabled.
+1. Confirm `/api/test-login` returns `404`.
+2. Confirm `/api/test-logout` returns `404`.
+3. Confirm `/api/rate-limit-test` returns `404`.
 4. Confirm billing reset control is not visible for normal deployment.
 
 ## 7. Core Product Smoke Tests
@@ -116,7 +114,7 @@ Rollback immediately if any of these happen:
 1. Auth failures on deployed domain.
 2. Billing shows live-mode behavior.
 3. Stripe webhook failures for test payments.
-4. Debug/test endpoints respond in deployed environment.
+4. Retired test endpoints respond with anything other than `404`.
 
 Rollback method:
 1. Revert to previous stable deployment.

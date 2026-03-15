@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { loginAsSeededAdmin, logoutViaTestEndpoint } from "./helpers/session";
+import { loginAsSeededAdmin, logoutSeededUser } from "./helpers/session";
 
 test.describe("Auth And Onboarding Guards", () => {
   test("redirects unauthenticated dashboard access to login", async ({ page }) => {
@@ -13,12 +13,12 @@ test.describe("Auth And Onboarding Guards", () => {
     ).toBeVisible();
   });
 
-  test("supports test login, onboarding guard, and logout", async ({ page }) => {
+  test("supports seeded auth bootstrap, onboarding guard, and logout", async ({ page }) => {
     await loginAsSeededAdmin(page);
 
     await page.goto("/onboarding");
     await expect(page).toHaveURL(/\/dashboard$/);
 
-    await logoutViaTestEndpoint(page);
+    await logoutSeededUser(page);
   });
 });

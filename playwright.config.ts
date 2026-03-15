@@ -58,9 +58,6 @@ export default defineConfig({
         reuseExistingServer: !process.env.CI,
         env: {
           ...process.env,
-          ENABLE_TEST_ENDPOINTS: process.env.ENABLE_TEST_ENDPOINTS ?? "true",
-          E2E_LOGIN_BYPASS: process.env.E2E_LOGIN_BYPASS ?? "true",
-          E2E_LOGIN_TOKEN: process.env.E2E_LOGIN_TOKEN ?? "test",
           NEXTAUTH_URL: nextAuthUrl ?? baseURL,
           AUTH_URL: authUrl ?? nextAuthUrl ?? baseURL,
           APP_URL: appUrl ?? baseURL,

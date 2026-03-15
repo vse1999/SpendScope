@@ -181,8 +181,6 @@ Set `NEXT_PUBLIC_ENABLE_BILLING=true`, then configure:
 
 ### Non-production toggles (must stay `false` in deployed environments)
 
-- `ENABLE_TEST_ENDPOINTS`
-- `E2E_LOGIN_BYPASS`
 - `ALLOW_BILLING_RESET`
 - `NEXT_PUBLIC_ALLOW_BILLING_RESET`
 

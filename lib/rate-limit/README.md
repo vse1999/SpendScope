@@ -140,23 +140,13 @@ export const updateProfile = withRateLimit(
 
 ## Testing
 
-Use the test endpoint to verify rate limiting:
+Verify rate limiting through automated tests and feature-level flows instead of a dedicated public test endpoint:
 
 ```bash
-# Make requests until rate limited
-for i in {1..105}; do
-  curl -s http://localhost:3000/api/rate-limit-test | jq '.rateLimit.remaining'
-done
+npm test -- --runInBand --testPathPattern="rate-limit"
 ```
 
-Or check headers:
-
-```bash
-curl -I http://localhost:3000/api/rate-limit-test
-# X-RateLimit-Limit: 100
-# X-RateLimit-Remaining: 99
-# X-RateLimit-Reset: 1707158400
-```
+For manual verification, exercise the real auth/API surfaces in local development and inspect the returned `X-RateLimit-*` headers on the responses that are actually protected by your integration path.
 
 ## API Reference
 

@@ -42,7 +42,7 @@ export interface MiddlewareRateLimitOptions {
   keyPrefix?: string;
   /**
    * Skip rate limiting for these paths
-   * @default ["/api/rate-limit-test"]
+   * @default ["/api/auth/callback"]
    */
   skipPaths?: string[];
   /**
@@ -59,7 +59,7 @@ export interface MiddlewareRateLimitOptions {
  */
 const DEFAULT_MIDDLEWARE_OPTIONS: Partial<MiddlewareRateLimitOptions> = {
   pathMatchers: ["/api/"],
-  skipPaths: ["/api/rate-limit-test", "/api/auth/callback"],
+  skipPaths: ["/api/auth/callback"],
   identifierGenerator: (request: NextRequest): string => {
     // Use request headers directly to derive client identity
     const forwardedFor = request.headers.get("x-forwarded-for");

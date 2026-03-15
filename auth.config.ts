@@ -4,6 +4,18 @@ import type { NextAuthConfig } from "next-auth"
 // Must match Prisma schema: enum UserRole { ADMIN MEMBER }
 type UserRole = "ADMIN" | "MEMBER"
 
+function shouldTrustHost(): boolean {
+    if (process.env.TRUST_HOST === "true") {
+        return true
+    }
+
+    if (process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test") {
+        return true
+    }
+
+    return process.env.VERCEL === "1"
+}
+
 // Edge-compatible auth config (NO database imports here!)
 // This file is used by middleware.ts which runs in Edge Runtime
 export const authConfig: NextAuthConfig = {
@@ -32,5 +44,5 @@ export const authConfig: NextAuthConfig = {
     },
     session: { strategy: "jwt" },
     secret: process.env.NEXTAUTH_SECRET,
-    trustHost: true,
+    trustHost: shouldTrustHost(),
 }

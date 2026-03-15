@@ -42,7 +42,6 @@ describe("proxy auth behavior", () => {
     jest.clearAllMocks();
     const env = process.env as Record<string, string | undefined>;
     env.NODE_ENV = "test";
-    env.ENABLE_TEST_ENDPOINTS = "false";
   });
 
   it("returns 401 JSON for unauthenticated protected API requests", async (): Promise<void> => {
@@ -86,5 +85,28 @@ describe("proxy auth behavior", () => {
     const response = proxyHandler(createRequest("/api/stripe/portal", { auth: { user: { id: "user-1" } } }));
 
     expect(response).toEqual({ kind: "next" });
+  });
+
+  it("returns 404 for retired runtime test endpoints", async (): Promise<void> => {
+    const proxyModule = await import("../proxy");
+    const proxyHandler = proxyModule.default as unknown as (request: unknown) => MockResponse;
+
+    expect(proxyHandler(createRequest("/api/test-login"))).toEqual({
+      kind: "json",
+      body: { error: "Not found" },
+      status: 404,
+    });
+
+    expect(proxyHandler(createRequest("/api/test-logout"))).toEqual({
+      kind: "json",
+      body: { error: "Not found" },
+      status: 404,
+    });
+
+    expect(proxyHandler(createRequest("/api/rate-limit-test"))).toEqual({
+      kind: "json",
+      body: { error: "Not found" },
+      status: 404,
+    });
   });
 });

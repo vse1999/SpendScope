@@ -1,10 +1,13 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
+import { createLogger } from "@/lib/monitoring/logger"
 import { authConfig } from "./auth.config"
 import Google from "next-auth/providers/google"
 import GitHub from "next-auth/providers/github"
 import { UserRole } from "@prisma/client"
+
+const logger = createLogger("auth")
 
 // Full auth configuration for Node.js runtime (API routes)
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -41,9 +44,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         async signIn({ user, account, profile }) {
             // SECURITY: Email verification check
             // For a $1M enterprise app, we must ensure emails are verified before linking
-            
+             
             if (!user.email) {
-                console.error(`[SECURITY] Rejected sign-in: no email provided by ${account?.provider}`)
+                logger.warn("sign_in_rejected", {
+                    provider: account?.provider,
+                    reason: "missing_email",
+                })
                 return '/login?error=OAuthSignin'
             }
 
@@ -62,12 +68,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             })()
 
             if (!isEmailVerified) {
-                console.error(`[SECURITY] Blocked: unverified email from ${account?.provider} for ${user.email}`)
+                logger.warn("sign_in_blocked", {
+                    provider: account?.provider,
+                    reason: "unverified_email",
+                })
                 return '/login?error=UnverifiedEmail'
             }
 
             // Log security event for audit trail
-            console.log(`[AUTH] Sign-in attempt: ${account?.provider} for ${user.email}`)
+            logger.info("sign_in_attempt", {
+                provider: account?.provider,
+            })
 
             // Check if there's an existing user with this email
             const existingUser = await prisma.user.findUnique({
@@ -77,7 +88,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             if (!existingUser) {
                 // New user - allow sign up
-                console.log(`[AUTH] New user registration: ${user.email}`)
+                logger.info("sign_in_new_user", {
+                    provider: account?.provider,
+                })
                 return true
             }
 
@@ -89,13 +102,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
             if (existingAccount) {
                 // Account already linked - allow sign in
-                console.log(`[AUTH] Existing user sign-in: ${user.email} via ${account?.provider}`)
+                logger.info("sign_in_existing_user", {
+                    provider: account?.provider,
+                })
                 return true
             }
 
             // User exists but this provider is not linked
             // Auth.js will handle this and show OAuthAccountNotLinked error
-            console.log(`[AUTH] Provider not linked: ${account?.provider} for existing user ${user.email}`)
+            logger.info("sign_in_provider_not_linked", {
+                provider: account?.provider,
+            })
             return true
         },
         // Override the jwt callback to add database lookups

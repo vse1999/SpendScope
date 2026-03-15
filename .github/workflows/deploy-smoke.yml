@@ -7,11 +7,6 @@ on:
         description: "Deployed app URL (for example: https://app.example.com)"
         required: true
         type: string
-      use_test_login:
-        description: "Run authenticated checks via /api/test-login"
-        required: false
-        default: false
-        type: boolean
 
 jobs:
   smoke:
@@ -34,7 +29,4 @@ jobs:
       - name: Run deploy smoke checks
         env:
           SMOKE_BASE_URL: ${{ inputs.base_url }}
-          SMOKE_USE_TEST_LOGIN: ${{ inputs.use_test_login }}
-          SMOKE_E2E_TOKEN: ${{ secrets.SMOKE_E2E_TOKEN }}
         run: npm run smoke:deploy
-

@@ -2,22 +2,23 @@ import NextAuth from "next-auth"
 import { NextResponse } from "next/server"
 import { authConfig } from "./auth.config"
 
+const RETIRED_TEST_API_PREFIXES = [
+  "/api/test-login",
+  "/api/test-logout",
+  "/api/rate-limit-test",
+] as const
+
 // Node.js runtime proxy (formerly middleware)
 // Next.js 16+: proxy runs on Node.js runtime only (no Edge)
 const { auth } = NextAuth(authConfig)
 
-function areTestEndpointsEnabled(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.ENABLE_TEST_ENDPOINTS === "true"
-  )
-}
-
 export default auth((req) => {
   const isLoggedIn = !!req.auth
   const pathname = req.nextUrl.pathname
-  const testEndpointsEnabled = areTestEndpointsEnabled()
   const isApiRoute = pathname.startsWith("/api")
+  const isRetiredTestApiRoute = RETIRED_TEST_API_PREFIXES.some((prefix) =>
+    pathname.startsWith(prefix)
+  )
 
   const isAuthPage =
     pathname.startsWith("/login") ||
@@ -25,16 +26,17 @@ export default auth((req) => {
     pathname.startsWith("/invite/accept")
   const isPublicApiRoute =
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/stripe/webhooks") ||
-    (testEndpointsEnabled && pathname.startsWith("/api/test-login")) ||
-    (testEndpointsEnabled && pathname.startsWith("/api/test-logout")) ||
-    (testEndpointsEnabled && pathname.startsWith("/api/rate-limit-test"))
+    pathname.startsWith("/api/stripe/webhooks")
   const isPublicPage = pathname === "/"
   const isStaticFile = pathname.startsWith("/_next") || pathname.startsWith("/favicon") || pathname.includes(".")
 
   // Allow static files and public pages
   if (isStaticFile || isPublicPage) {
     return NextResponse.next()
+  }
+
+  if (isRetiredTestApiRoute) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
   // API endpoints should return HTTP errors instead of redirect responses.

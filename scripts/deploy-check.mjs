@@ -109,8 +109,6 @@ function validateCoreEnv() {
   requireEnv("GITHUB_CLIENT_ID");
   requireEnv("GITHUB_CLIENT_SECRET");
 
-  assertFalse("ENABLE_TEST_ENDPOINTS");
-  assertFalse("E2E_LOGIN_BYPASS");
   assertFalse("ALLOW_BILLING_RESET");
   assertFalse("NEXT_PUBLIC_ALLOW_BILLING_RESET");
 }

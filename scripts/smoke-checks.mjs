@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
 const baseUrl = process.env.SMOKE_BASE_URL;
-const smokeUseTestLogin = process.env.SMOKE_USE_TEST_LOGIN === "true";
-const smokeE2EToken = process.env.SMOKE_E2E_TOKEN;
+const smokeSessionCookie = process.env.SMOKE_SESSION_COOKIE;
 
 if (!baseUrl) {
   console.error("SMOKE_BASE_URL is required");
@@ -47,15 +46,8 @@ async function runUnauthenticatedChecks() {
   console.log("[smoke] PASS POST /api/stripe/portal blocks unauthenticated user");
 }
 
-async function runAuthenticatedChecksWithTestLogin() {
-  const tokenQuery = smokeE2EToken ? `&token=${encodeURIComponent(smokeE2EToken)}` : "";
-  const loginResponse = await request(`/api/test-login?seed=1${tokenQuery}`);
-  ensureStatus(loginResponse, [302, 303, 307, 308], "GET /api/test-login");
-
-  const sessionCookie = loginResponse.headers.get("set-cookie");
-  if (!sessionCookie) {
-    throw new Error("Test login did not set an auth session cookie");
-  }
+async function runAuthenticatedChecksWithSessionCookie() {
+  const sessionCookie = normalizeCookieHeader(smokeSessionCookie);
 
   const teamResponse = await request("/dashboard/team", {
     headers: {
@@ -74,14 +66,26 @@ async function runAuthenticatedChecksWithTestLogin() {
   console.log("[smoke] PASS authenticated billing dashboard access");
 }
 
+function normalizeCookieHeader(cookieHeader) {
+  if (!cookieHeader) {
+    throw new Error("SMOKE_SESSION_COOKIE is required for authenticated smoke checks");
+  }
+
+  return cookieHeader
+    .split(";")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .find((segment) => segment.includes("=")) ?? cookieHeader;
+}
+
 async function main() {
   console.log(`[smoke] Running smoke checks against ${normalizedBaseUrl}`);
   await runUnauthenticatedChecks();
 
-  if (smokeUseTestLogin) {
-    await runAuthenticatedChecksWithTestLogin();
+  if (smokeSessionCookie) {
+    await runAuthenticatedChecksWithSessionCookie();
   } else {
-    console.log("[smoke] Skipping authenticated smoke checks (SMOKE_USE_TEST_LOGIN is not true)");
+    console.log("[smoke] Skipping authenticated smoke checks (SMOKE_SESSION_COOKIE is not set)");
   }
 
   console.log("[smoke] All checks passed");
@@ -92,4 +96,3 @@ main().catch((error) => {
   console.error(`[smoke] FAILED: ${message}`);
   process.exit(1);
 });
-
