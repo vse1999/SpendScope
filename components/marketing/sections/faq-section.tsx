@@ -1,28 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
 
-import { useMarketingDeviceProfile } from "@/components/marketing/hooks/use-marketing-device-profile";
-import { cn } from "@/lib/utils";
 import { displayFont } from "@/lib/fonts";
-
-// Lazy load animation components
-const TextReveal = dynamic(
-  () => import("@/components/marketing/animations").then((m) => m.TextReveal),
-  { ssr: false, loading: () => <div /> }
-);
-
-const StaggerContainer = dynamic(
-  () => import("@/components/marketing/animations").then((m) => m.StaggerContainer),
-  { ssr: false, loading: () => <div /> }
-);
-
-const StaggerItem = dynamic(
-  () => import("@/components/marketing/animations").then((m) => m.StaggerItem),
-  { ssr: false, loading: () => <div /> }
-);
+import { cn } from "@/lib/utils";
 
 interface FAQItem {
   readonly question: string;
@@ -33,20 +15,21 @@ interface FAQSectionProps {
   readonly faqItems: readonly FAQItem[];
 }
 
-function FAQAccordion({ 
-  item, 
-  index, 
-  isOpen, 
-  onToggle 
-}: { 
-  readonly item: FAQItem; 
+function FAQAccordion({
+  item,
+  index,
+  isOpen,
+  onToggle,
+}: {
+  readonly item: FAQItem;
   readonly index: number;
   readonly isOpen: boolean;
   readonly onToggle: () => void;
-}) {
+}): React.JSX.Element {
   return (
     <div className="w-full rounded-xl border border-border/80 bg-card/80">
       <button
+        type="button"
         onClick={onToggle}
         className="flex w-full cursor-pointer items-center justify-between gap-4 p-5 text-left font-medium text-foreground transition-colors hover:text-indigo-600 dark:hover:text-indigo-400"
         aria-expanded={isOpen}
@@ -81,67 +64,35 @@ function FAQAccordion({
   );
 }
 
-// Section header
-function SectionHeader() {
-  return (
-    <div className="mb-10 text-center">
-      <h2
-        id="faq-heading"
-        className={cn(displayFont.className, "text-3xl font-semibold tracking-tight sm:text-4xl")}
-      >
-        Frequently asked <span className="text-gradient">questions</span>
-      </h2>
-    </div>
-  );
-}
+export function FAQSection({ faqItems }: FAQSectionProps): React.JSX.Element {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
 
-export function FAQSection({ faqItems }: FAQSectionProps) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const { useMobileOptimizedContent } = useMarketingDeviceProfile();
-
-  const handleToggle = (index: number) => {
-    setOpenIndex(openIndex === index ? null : index);
+  const handleToggle = (index: number): void => {
+    setOpenIndex((currentIndex) => (currentIndex === index ? null : index));
   };
 
-  // Mobile: static content
-  if (useMobileOptimizedContent) {
-    return (
-      <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-24 py-16">
-        <SectionHeader />
-        <div className="space-y-4">
-          {faqItems.map((item, index) => (
-            <FAQAccordion
-              key={item.question}
-              item={item}
-              index={index}
-              isOpen={openIndex === index}
-              onToggle={() => handleToggle(index)}
-            />
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  // Desktop: with animations
   return (
     <section id="faq" aria-labelledby="faq-heading" className="scroll-mt-24 py-16">
-      <TextReveal>
-        <SectionHeader />
-      </TextReveal>
+      <div className="mb-10 text-center">
+        <h2
+          id="faq-heading"
+          className={cn(displayFont.className, "text-3xl font-semibold tracking-tight sm:text-4xl")}
+        >
+          Frequently asked <span className="text-gradient">questions</span>
+        </h2>
+      </div>
 
-      <StaggerContainer className="space-y-4" staggerDelay={0.1} delayChildren={0.2}>
+      <div className="space-y-4">
         {faqItems.map((item, index) => (
-          <StaggerItem key={item.question}>
-            <FAQAccordion
-              item={item}
-              index={index}
-              isOpen={openIndex === index}
-              onToggle={() => handleToggle(index)}
-            />
-          </StaggerItem>
+          <FAQAccordion
+            key={item.question}
+            item={item}
+            index={index}
+            isOpen={openIndex === index}
+            onToggle={() => handleToggle(index)}
+          />
         ))}
-      </StaggerContainer>
+      </div>
     </section>
   );
 }

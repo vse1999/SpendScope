@@ -1,42 +1,29 @@
-"use client";
-
 import Link from "next/link";
-import dynamic from "next/dynamic";
-import {
-  ArrowRight,
-  Menu,
-} from "lucide-react";
+import { ArrowRight, Menu } from "lucide-react";
+import type { ReactElement } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   Sheet,
-  SheetContent,
-  SheetTrigger,
   SheetClose,
+  SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
-import { MarketingDeviceProfileProvider } from "@/components/marketing/hooks/use-marketing-device-profile";
-
-// Lazy load MagneticButton to avoid loading framer-motion on initial render
-const MagneticButton = dynamic(
-  () => import("@/components/marketing/animations").then((m) => m.MagneticButton),
-  { ssr: false, loading: () => <div /> }
-);
+import { Button } from "@/components/ui/button";
 import {
-  HeroSection,
-  TechStackSection,
-  FeaturesSection,
-  TourSection,
-  PricingSection,
-  FAQSection,
   CTASection,
+  FAQSection,
+  FeaturesSection,
+  HeroSection,
+  PricingSection,
+  TechStackSection,
+  TourSection,
 } from "@/components/marketing/sections";
 import { MARKETING_ANALYTICS_DATA } from "@/lib/marketing/demo-data";
 import { PRICING_PLANS } from "@/lib/marketing/pricing-plans";
 
-// Data definitions - all serializable (no React components)
 const navigationItems = [
   { label: "Product", href: "#product" },
   { label: "Pricing", href: "#pricing" },
@@ -119,7 +106,7 @@ const faqItems = [
   },
 ] as const;
 
-function BrandWordmark({ className }: { className?: string }) {
+function BrandWordmark({ className }: { className?: string }): ReactElement {
   return (
     <span
       className={[
@@ -128,14 +115,16 @@ function BrandWordmark({ className }: { className?: string }) {
         "bg-clip-text text-transparent",
         "transition-all duration-300 hover:opacity-90",
         className,
-      ].filter(Boolean).join(" ")}
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
       SpendScope
     </span>
   );
 }
 
-function Header(): React.JSX.Element {
+function Header(): ReactElement {
   return (
     <header className="sticky top-0 z-50 border-b border-indigo-100/80 bg-background/80 backdrop-blur-md dark:border-indigo-900/40">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
@@ -143,7 +132,6 @@ function Header(): React.JSX.Element {
           <BrandWordmark className="text-[1.65rem] sm:text-[1.85rem]" />
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           {navigationItems.map((item) => (
             <Link
@@ -156,43 +144,37 @@ function Header(): React.JSX.Element {
           ))}
         </nav>
 
-        {/* Desktop Auth Buttons */}
         <div className="hidden items-center gap-2 md:flex">
-          <Button asChild variant="ghost" className="hidden sm:inline-flex"
-          >
+          <Button asChild variant="ghost" className="hidden sm:inline-flex">
             <Link href="/login">Sign In</Link>
           </Button>
-          <MagneticButton>
-            <Button
-              asChild
-              className="bg-gradient-brand text-white shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30"
-            >
-              <Link href="/signup">
-                Start Free Plan
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-          </MagneticButton>
+          <Button
+            asChild
+            className="bg-gradient-brand text-white shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30"
+          >
+            <Link href="/signup">
+              Start Free Plan
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
         </div>
 
-        {/* Mobile Menu */}
         <div className="flex items-center gap-2 md:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open menu">
-                  <Menu className="size-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-75 sm:w-100">
-                <SheetHeader className="sr-only">
-                  <SheetTitle>Navigation menu</SheetTitle>
-                  <SheetDescription>
-                    Browse the landing page sections and authentication actions.
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="flex flex-col gap-6 py-4">
-                  {/* Mobile Navigation Links */}
-                  <nav className="flex flex-col gap-4">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Open menu">
+                <Menu className="size-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-75 sm:w-100">
+              <SheetHeader className="sr-only">
+                <SheetTitle>Navigation menu</SheetTitle>
+                <SheetDescription>
+                  Browse the landing page sections and authentication actions.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex flex-col gap-6 py-4">
+                <nav className="flex flex-col gap-4">
                   {navigationItems.map((item) => (
                     <SheetClose asChild key={item.href}>
                       <Link
@@ -205,10 +187,8 @@ function Header(): React.JSX.Element {
                   ))}
                 </nav>
 
-                {/* Divider */}
                 <div className="h-px bg-border" />
 
-                {/* Mobile Auth Buttons */}
                 <div className="flex flex-col gap-3">
                   <SheetClose asChild>
                     <Button asChild variant="outline" className="w-full">
@@ -216,10 +196,7 @@ function Header(): React.JSX.Element {
                     </Button>
                   </SheetClose>
                   <SheetClose asChild>
-                    <Button
-                      asChild
-                      className="w-full bg-gradient-brand text-white shadow-md shadow-indigo-500/20"
-                    >
+                    <Button asChild className="w-full bg-gradient-brand text-white shadow-md shadow-indigo-500/20">
                       <Link href="/signup">
                         Open Free Workspace
                         <ArrowRight className="size-4" />
@@ -236,52 +213,44 @@ function Header(): React.JSX.Element {
   );
 }
 
-function Footer(): React.JSX.Element {
+function Footer(): ReactElement {
   const currentYear = new Date().getFullYear();
 
   return (
     <footer className="border-t border-border/70 bg-slate-50/50 py-8 dark:bg-slate-950/50">
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-center gap-4 px-4 text-sm text-muted-foreground sm:px-6">
         <p className="text-xs font-medium">(c) {currentYear} SpendScope</p>
-        <p className="text-xs">Built with modern technology for modern finance teams.</p>
+        <p className="text-xs">
+          Built with modern technology for modern finance teams.
+        </p>
       </div>
     </footer>
   );
 }
 
-interface LandingPageProps {
-  readonly defaultIsMobileViewport?: boolean;
-}
-
-export function LandingPage({
-  defaultIsMobileViewport = false,
-}: LandingPageProps): React.JSX.Element {
+export function LandingPage(): ReactElement {
   return (
-    <MarketingDeviceProfileProvider
-      defaultIsMobileViewport={defaultIsMobileViewport}
-    >
-      <div className="relative min-h-screen overflow-x-hidden bg-background">
-        <Header />
+    <div className="relative min-h-screen overflow-x-hidden bg-background">
+      <Header />
 
-        <main className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6">
-          <HeroSection
-            trustItems={trustItems}
-            previewData={{
-              monthlyTrend: MARKETING_ANALYTICS_DATA.monthlyTrend,
-              summary: MARKETING_ANALYTICS_DATA.summary,
-              userSpending: MARKETING_ANALYTICS_DATA.userSpending,
-            }}
-          />
-          <TechStackSection technologies={technologies} />
-          <FeaturesSection analyticsData={MARKETING_ANALYTICS_DATA} />
-          <TourSection tourSteps={tourSteps} />
-          <PricingSection plans={PRICING_PLANS} />
-          <FAQSection faqItems={faqItems} />
-          <CTASection />
-        </main>
+      <main className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6">
+        <HeroSection
+          trustItems={trustItems}
+          previewData={{
+            monthlyTrend: MARKETING_ANALYTICS_DATA.monthlyTrend,
+            summary: MARKETING_ANALYTICS_DATA.summary,
+            userSpending: MARKETING_ANALYTICS_DATA.userSpending,
+          }}
+        />
+        <TechStackSection technologies={technologies} />
+        <FeaturesSection analyticsData={MARKETING_ANALYTICS_DATA} />
+        <TourSection tourSteps={tourSteps} />
+        <PricingSection plans={PRICING_PLANS} />
+        <FAQSection faqItems={faqItems} />
+        <CTASection />
+      </main>
 
-        <Footer />
-      </div>
-    </MarketingDeviceProfileProvider>
+      <Footer />
+    </div>
   );
 }

@@ -1,5 +1,3 @@
-"use client";
-
 import { formatCurrency } from "@/lib/format-utils";
 import type { MonthlyTrend } from "@/types/analytics";
 

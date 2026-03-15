@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
+import { OrganizationJsonLd } from "@/components/seo/json-ld";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import { OrganizationJsonLd } from "@/components/seo/json-ld";
 import { shouldAllowIndexing } from "@/lib/seo/deployment-environment";
 import { getSiteUrlObject } from "@/lib/seo/site-url";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,10 +25,11 @@ const allowIndexing = shouldAllowIndexing();
 export const metadata: Metadata = {
   metadataBase: getSiteUrlObject(),
   title: {
-    default: "SpendScope - Enterprise Expense Analytics",
+    default: "SpendScope",
     template: "%s | SpendScope",
   },
-  description: "Track, analyze, and manage company expenses with policy-aware insights",
+  description:
+    "Track, analyze, and manage company expenses with policy-aware insights.",
   alternates: {
     canonical: "/",
   },
@@ -34,9 +37,9 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "SpendScope",
-    title: "SpendScope - Enterprise Expense Analytics",
+    title: "SpendScope",
     description:
-      "Track, analyze, and manage company expenses with policy-aware insights",
+      "Track, analyze, and manage company expenses with policy-aware insights.",
     images: [
       {
         url: "/api/og?variant=home",
@@ -48,9 +51,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "SpendScope - Enterprise Expense Analytics",
+    title: "SpendScope",
     description:
-      "Track, analyze, and manage company expenses with policy-aware insights",
+      "Track, analyze, and manage company expenses with policy-aware insights.",
     images: ["/api/twitter?variant=home"],
   },
   robots: {
@@ -81,12 +84,10 @@ export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}>): React.JSX.Element {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

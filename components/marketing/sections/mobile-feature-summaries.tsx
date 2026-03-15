@@ -1,11 +1,9 @@
-"use client";
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/format-utils";
 import {
   formatSharePercentage,
   getTotalAmount,
 } from "@/lib/marketing/summary-math";
+import { formatCurrency } from "@/lib/format-utils";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CategoryDistribution, UserSpending } from "@/types/analytics";
 
 interface MobileFeatureSummariesProps {
@@ -27,11 +25,11 @@ export function MobileFeatureSummaries({
   const totalUserAmount = getTotalAmount(userSpending);
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 lg:grid-cols-2">
       <Card className="app-card-strong">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Top Categories</CardTitle>
-          <CardDescription>Fast mobile summary</CardDescription>
+          <CardDescription>Fast product summary</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 pt-2">
           {topCategories.map((category) => (
