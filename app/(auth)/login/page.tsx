@@ -55,7 +55,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     const errorInfo = error ? getErrorMessage(error) : null
 
     return (
-        <div className="min-h-screen app-shell flex flex-col items-center justify-center p-4">
+        <main className="min-h-screen app-shell flex flex-col items-center justify-center p-4">
             {errorInfo && (
                 <Alert variant="destructive" className="max-w-md mb-6">
                     <AlertCircle className="h-4 w-4" />
@@ -64,6 +64,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 </Alert>
             )}
             <LoginForm redirectTo={redirectTo} />
-        </div>
+        </main>
     )
 }

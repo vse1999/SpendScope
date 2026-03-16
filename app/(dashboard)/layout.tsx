@@ -29,6 +29,12 @@ export default async function DashboardLayout({
   return (
     <NotificationProvider>
       <div id="dashboard-root" className="min-h-screen min-w-0 app-shell" suppressHydrationWarning>
+        <a
+          href="#dashboard-main-content"
+          className="sr-only absolute left-4 top-4 z-50 rounded-md bg-background px-3 py-2 text-sm font-medium text-foreground shadow-md focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          Skip to main content
+        </a>
         <DashboardSidebar user={user} defaultOpen={sidebarOpen}>
           <div className="flex min-h-screen w-full min-w-0 flex-col">
             {/* Header with breadcrumbs - Desktop only (mobile handled by sidebar) */}
@@ -37,11 +43,15 @@ export default async function DashboardLayout({
             />
 
             {/* Page Content */}
-            <div className="flex-1 w-full min-w-0 p-4 md:p-6 lg:p-8">
+            <main
+              id="dashboard-main-content"
+              tabIndex={-1}
+              className="flex-1 w-full min-w-0 p-4 md:p-6 lg:p-8"
+            >
               <div className="mx-auto w-full min-w-0 max-w-7xl">
                 {children}
               </div>
-            </div>
+            </main>
           </div>
         </DashboardSidebar>
       </div>

@@ -1,4 +1,5 @@
 import { GoogleSignInButton, GitHubSignInButton } from "./oauth-buttons"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 interface LoginFormProps {
@@ -42,7 +43,15 @@ export function LoginForm({
       </div>
 
       <p className="text-xs text-center text-muted-foreground">
-        By continuing, you agree to our Terms of Service and Privacy Policy.
+        By continuing, you agree to our{" "}
+        <Link href="/terms" className="underline underline-offset-4 hover:text-foreground">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </div>
   )

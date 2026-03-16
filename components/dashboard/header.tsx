@@ -246,7 +246,11 @@ function SearchButton(): React.JSX.Element {
           </DialogHeader>
           <div className="flex items-center border-b px-3">
             <Search className="size-5 shrink-0 text-muted-foreground" />
+            <label htmlFor="dashboard-quick-actions-search" className="sr-only">
+              Search dashboard pages
+            </label>
             <input
+              id="dashboard-quick-actions-search"
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -287,8 +291,8 @@ function SearchButton(): React.JSX.Element {
           <div className="flex items-center justify-between border-t bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
               <span>Press</span>
-              <kbd className="rounded border bg-background px-1">↑↓</kbd>
-              <span>to close</span>
+              <kbd className="rounded border bg-background px-1">Tab</kbd>
+              <span>to move between pages</span>
             </div>
             <div className="flex items-center gap-2">
               <span>Select with</span>

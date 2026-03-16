@@ -22,7 +22,7 @@ describe("LoginPage", () => {
       }),
     })
 
-    renderToStaticMarkup(element)
+    const html = renderToStaticMarkup(element)
 
     expect(mockLoginForm).toHaveBeenCalledWith(
       {
@@ -30,6 +30,7 @@ describe("LoginPage", () => {
       },
       undefined
     )
+    expect(html).toContain("<main")
   })
 
   it("falls back to dashboard when redirect target is unsafe", async () => {
