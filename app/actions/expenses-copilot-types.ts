@@ -1,5 +1,5 @@
 export type ExpenseAnomalyRuleType = "DUPLICATE" | "POLICY_BREACH" | "UNUSUAL_SPEND";
-export type ExpenseAnomalyStatus = "OPEN" | "APPROVED" | "DISMISSED" | "RECEIPT_REQUESTED";
+export type ExpenseAnomalyStatus = "OPEN" | "APPROVED" | "DISMISSED";
 
 export interface ExpenseCopilotAlert {
   id: string;
@@ -25,7 +25,7 @@ export type GetExpenseCopilotAlertsResult =
   | { success: true; alerts: ExpenseCopilotAlert[] }
   | { success: false; error: string; code?: "UNAUTHORIZED" };
 
-export type ResolveExpenseCopilotAction = "APPROVE" | "DISMISS" | "REQUEST_RECEIPT";
+export type ResolveExpenseCopilotAction = "APPROVE" | "DISMISS";
 
 export type ResolveExpenseCopilotAlertResult =
   | { success: true; alertId: string; status: ExpenseAnomalyStatus }

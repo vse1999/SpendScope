@@ -161,7 +161,7 @@ class RuleFallbackProvider implements CopilotAIProvider {
       return {
         model: ADVICE_MODEL_DEFAULT,
         confidence: 0.7,
-        recommendation: request.severity >= 85 ? "ESCALATE" : "REQUEST_RECEIPT",
+        recommendation: request.severity >= 85 ? "ESCALATE" : "MARK_VALID",
         payload: {
           priorityScore: request.severity,
           impactLevel:
@@ -193,7 +193,7 @@ class RuleFallbackProvider implements CopilotAIProvider {
     return {
       model: ADVICE_MODEL_DEFAULT,
       confidence: 0.75,
-      recommendation: request.ruleType === "DUPLICATE" ? "FALSE_ALARM" : "REQUEST_RECEIPT",
+      recommendation: request.ruleType === "DUPLICATE" ? "FALSE_ALARM" : "ESCALATE",
       explanation: `Generated from deterministic alert context for ${request.ruleType}.`,
       payload: {
         summary: `${request.ruleType} alert for ${request.userDisplayName} on ${request.expenseDescription}.`,
@@ -203,7 +203,7 @@ class RuleFallbackProvider implements CopilotAIProvider {
         ],
         recommendedAction:
           request.ruleType === "POLICY_BREACH"
-            ? "REQUEST_RECEIPT"
+            ? "ESCALATE"
             : request.ruleType === "DUPLICATE"
               ? "FALSE_ALARM"
               : "MARK_VALID",

@@ -62,11 +62,7 @@ export function useExpenseMonitorState({
 
       setCopilotAlerts((previous) => previous.filter((alert) => alert.id !== alertId));
       toast.success(
-        action === "APPROVE"
-          ? "Alert marked as valid"
-          : action === "DISMISS"
-            ? "Alert marked as false alarm"
-            : "Receipt request sent to expense owner"
+        action === "APPROVE" ? "Alert marked as valid" : "Alert marked as false alarm"
       );
       startTransition(() => {
         router.refresh();

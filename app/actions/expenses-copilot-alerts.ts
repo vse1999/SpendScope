@@ -3,7 +3,6 @@
 import { auth } from "@/auth";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { createNotification } from "@/app/actions/notifications";
 import { detectExpenseAnomalies, type CopilotExpenseSignal } from "@/lib/expenses/copilot";
 import { getExpensePolicyConfig } from "@/lib/expenses/policy-service";
 import { revalidatePath } from "next/cache";
@@ -23,14 +22,6 @@ const COPILOT_MAX_ALERTS = 25;
 function toCopilotStatus(action: ResolveExpenseCopilotAction): ExpenseAnomalyStatus {
   if (action === "APPROVE") {
     return "APPROVED";
-  }
-
-  if (action === "DISMISS") {
-    return "DISMISSED";
-  }
-
-  if (action === "REQUEST_RECEIPT") {
-    return "RECEIPT_REQUESTED";
   }
 
   return "DISMISSED";
@@ -120,7 +111,7 @@ export async function getExpenseCopilotAlerts(): Promise<GetExpenseCopilotAlerts
       } else if (historyEntry.changeType === "COPILOT_DISMISSED") {
         resolvedByKey.set(key, "DISMISSED");
       } else if (historyEntry.changeType === "COPILOT_RECEIPT_REQUESTED") {
-        resolvedByKey.set(key, "RECEIPT_REQUESTED");
+        resolvedByKey.set(key, "DISMISSED");
       }
     }
 
@@ -213,9 +204,6 @@ export async function resolveExpenseCopilotAlert(
       },
       select: {
         id: true,
-        userId: true,
-        description: true,
-        amount: true,
       },
     });
 
@@ -240,12 +228,7 @@ export async function resolveExpenseCopilotAlert(
     }
 
     const nextStatus = toCopilotStatus(action);
-    const changeType =
-      nextStatus === "APPROVED"
-        ? "COPILOT_APPROVED"
-        : nextStatus === "DISMISSED"
-          ? "COPILOT_DISMISSED"
-          : "COPILOT_RECEIPT_REQUESTED";
+    const changeType = nextStatus === "APPROVED" ? "COPILOT_APPROVED" : "COPILOT_DISMISSED";
 
     await prisma.expenseHistory.create({
       data: {
@@ -263,25 +246,6 @@ export async function resolveExpenseCopilotAlert(
         reason: ruleType,
       },
     });
-
-    if (nextStatus === "RECEIPT_REQUESTED" && expense.userId !== actor.id) {
-      const actorName = actor.name ?? actor.email ?? "Admin";
-      const amountFormatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(Number(expense.amount));
-
-      try {
-        await createNotification(expense.userId, {
-          type: "WARNING",
-          title: "Receipt Requested",
-          message: `${actorName} requested a receipt for "${expense.description}" (${amountFormatted}).`,
-          actionUrl: "/dashboard/expenses",
-        });
-      } catch (notificationError) {
-        console.error("Failed to notify user for receipt request:", notificationError);
-      }
-    }
 
     revalidatePath("/dashboard/expenses");
     return { success: true, alertId, status: nextStatus };

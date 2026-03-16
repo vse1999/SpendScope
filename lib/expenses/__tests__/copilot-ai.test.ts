@@ -70,11 +70,11 @@ describe("expense copilot ai service", () => {
         payload: {
           summary: "Likely policy breach.",
           rationaleBullets: ["Amount significantly above threshold."],
-          recommendedAction: "REQUEST_RECEIPT",
+          recommendedAction: "ESCALATE",
         },
         confidence: 0.84,
         explanation: "Based on policy threshold context.",
-        recommendation: "REQUEST_RECEIPT",
+        recommendation: "ESCALATE",
         model: "test-model",
         tokenUsage: 120,
       }),
@@ -114,4 +114,3 @@ describe("expense copilot ai service", () => {
     process.env.AI_COPILOT_ENABLED = previous;
   });
 });
-

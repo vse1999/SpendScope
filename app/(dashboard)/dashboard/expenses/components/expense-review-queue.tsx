@@ -1,7 +1,6 @@
 import { format } from "date-fns";
 import {
   CheckCircle2,
-  FileWarning,
   Loader2,
   XCircle,
 } from "lucide-react";
@@ -83,16 +82,6 @@ export function ExpenseReviewQueue({
                 >
                   <XCircle className="mr-2 h-4 w-4" />
                   False Alarm
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="min-w-[8.5rem] justify-center"
-                  disabled={isDisabled}
-                  onClick={() => onResolveAlert(alert.id, "REQUEST_RECEIPT")}
-                >
-                  <FileWarning className="mr-2 h-4 w-4" />
-                  Request Receipt
                 </Button>
               </div>
             ) : (

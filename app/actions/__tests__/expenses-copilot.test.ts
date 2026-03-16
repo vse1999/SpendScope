@@ -7,8 +7,6 @@ import {
 
 const mockAuth = jest.fn();
 const mockRevalidatePath = jest.fn();
-const mockCreateNotification = jest.fn();
-
 const mockPrismaUserFindUnique = jest.fn();
 const mockPrismaExpenseFindMany = jest.fn();
 const mockPrismaExpenseFindFirst = jest.fn();
@@ -25,10 +23,6 @@ jest.mock("@/auth", () => ({
 
 jest.mock("next/cache", () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
-}));
-
-jest.mock("@/app/actions/notifications", () => ({
-  createNotification: (...args: unknown[]) => mockCreateNotification(...args),
 }));
 
 jest.mock("@/lib/expenses/policy-service", () => ({
@@ -125,7 +119,7 @@ describe("expense copilot actions", () => {
     }
   });
 
-  it("resolves alert and requests receipt for expense owner", async (): Promise<void> => {
+  it("resolves alert as dismissed for expense owner", async (): Promise<void> => {
     mockAuth.mockResolvedValue({ user: { id: "admin-1" } });
     mockPrismaUserFindUnique.mockResolvedValue({
       id: "admin-1",
@@ -145,14 +139,13 @@ describe("expense copilot actions", () => {
       id: "history-1",
     });
 
-    const result = await resolveExpenseCopilotAlert("exp-1:POLICY_BREACH", "REQUEST_RECEIPT");
+    const result = await resolveExpenseCopilotAlert("exp-1:POLICY_BREACH", "DISMISS");
 
     expect(result).toEqual({
       success: true,
       alertId: "exp-1:POLICY_BREACH",
-      status: "RECEIPT_REQUESTED",
+      status: "DISMISSED",
     });
-    expect(mockCreateNotification).toHaveBeenCalledTimes(1);
     expect(mockRevalidatePath).toHaveBeenCalledWith("/dashboard/expenses");
   });
 

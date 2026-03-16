@@ -10,7 +10,7 @@ export type CopilotAdviceStatus = "READY" | "FAILED" | "STALE";
 export interface CopilotCaseSummaryPayload {
   summary: string;
   rationaleBullets: string[];
-  recommendedAction: "MARK_VALID" | "FALSE_ALARM" | "REQUEST_RECEIPT" | "ESCALATE";
+  recommendedAction: "MARK_VALID" | "FALSE_ALARM" | "ESCALATE";
 }
 
 export interface TriagePriorityPayload {
@@ -70,7 +70,7 @@ export interface CopilotAdviceRecord {
 const CaseSummarySchema = z.object({
   summary: z.string().min(1).max(600),
   rationaleBullets: z.array(z.string().min(1).max(220)).min(1).max(5),
-  recommendedAction: z.enum(["MARK_VALID", "FALSE_ALARM", "REQUEST_RECEIPT", "ESCALATE"]),
+  recommendedAction: z.enum(["MARK_VALID", "FALSE_ALARM", "ESCALATE"]),
 });
 
 const TriagePrioritySchema = z.object({
@@ -100,4 +100,3 @@ export function validateAdvicePayload(
 
   return PolicySuggestionSchema.parse(payload);
 }
-
