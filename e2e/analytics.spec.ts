@@ -27,4 +27,23 @@ test.describe("Analytics Flows", () => {
 
     expect(download.suggestedFilename()).toContain("analytics");
   });
+
+  test("keeps the committed range and URL unchanged when a refresh fails", async ({ page }) => {
+    await page.goto("/dashboard/analytics");
+
+    await page.route("**/api/analytics?days=30", async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Failed to load analytics data" }),
+      });
+    });
+
+    await page.getByRole("button", { name: "Last 90 days" }).click();
+    await page.getByRole("menuitem", { name: "Last 30 days" }).click();
+
+    await expect(page.getByText("Failed to load analytics data")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Last 90 days" })).toBeVisible();
+    await expect(page).not.toHaveURL(/days=30/);
+  });
 });

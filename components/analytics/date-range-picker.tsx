@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { CalendarDays, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -8,14 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { CalendarDays, ChevronDown } from "lucide-react"
-
-const PRESETS = [
-  { label: "Last 30 days", value: 30 },
-  { label: "Last 90 days", value: 90 },
-  { label: "Last 180 days", value: 180 },
-  { label: "Last 365 days", value: 365 },
-] as const
+import { ANALYTICS_DAY_PRESET_OPTIONS } from "@/lib/analytics/date-range"
 
 interface DateRangePickerProps {
   value: number
@@ -23,10 +17,14 @@ interface DateRangePickerProps {
   disabled?: boolean
 }
 
-export function DateRangePicker({ value, onChange, disabled = false }: DateRangePickerProps) {
+export function DateRangePicker({
+  value,
+  onChange,
+  disabled = false,
+}: DateRangePickerProps): React.JSX.Element {
   const [open, setOpen] = useState(false)
-  
-  const selectedLabel = PRESETS.find(p => p.value === value)?.label || "Custom"
+  const selectedLabel =
+    ANALYTICS_DAY_PRESET_OPTIONS.find((preset) => preset.value === value)?.label ?? "Custom"
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
@@ -41,7 +39,7 @@ export function DateRangePicker({ value, onChange, disabled = false }: DateRange
         align="end"
         className="data-[state=open]:animate-none data-[state=closed]:animate-none"
       >
-        {PRESETS.map((preset) => (
+        {ANALYTICS_DAY_PRESET_OPTIONS.map((preset) => (
           <DropdownMenuItem
             key={preset.value}
             onClick={() => {

@@ -6,6 +6,7 @@ import {
   COMPANY_CACHE_TTL_SECONDS,
   getCompanyReadModelCacheTags,
 } from "@/lib/cache/company-read-model-cache";
+import { getAnalyticsPeriodBounds, parseAnalyticsDaysParam } from "@/lib/analytics/date-range";
 import { prisma } from "@/lib/prisma";
 import type { AnalyticsData } from "@/types/analytics";
 import { buildMonthlyTrend, normalizeAnalyticsDays } from "@/lib/analytics/monthly-trend";
@@ -149,14 +150,12 @@ async function readAnalyticsDataForCompany(
   companyId: string,
   normalizedDays: number
 ): Promise<AnalyticsData> {
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(endDate.getDate() - normalizedDays);
+  const { endDate, endExclusive, startDate } = getAnalyticsPeriodBounds(normalizedDays);
   const whereClause = {
     companyId,
     date: {
       gte: startDate,
-      lte: endDate,
+      lt: endExclusive,
     },
   };
   const monthBucketSql = Prisma.sql`date_trunc('month', "date" AT TIME ZONE 'UTC')`;
@@ -180,7 +179,7 @@ async function readAnalyticsDataForCompany(
       FROM "Expense"
       WHERE "companyId" = ${companyId}
         AND "date" >= ${startDate}
-        AND "date" <= ${endDate}
+        AND "date" < ${endExclusive}
       GROUP BY ${monthBucketSql}
       ORDER BY ${monthBucketSql} ASC
     `),
@@ -193,7 +192,7 @@ async function readAnalyticsDataForCompany(
       INNER JOIN "Category" c ON c."id" = e."categoryId"
       WHERE e."companyId" = ${companyId}
         AND e."date" >= ${startDate}
-        AND e."date" <= ${endDate}
+        AND e."date" < ${endExclusive}
       GROUP BY c."id", c."name", c."color"
       ORDER BY "amount" DESC, c."name" ASC
     `),
@@ -207,7 +206,7 @@ async function readAnalyticsDataForCompany(
       LEFT JOIN "User" u ON u."id" = e."userId"
       WHERE e."companyId" = ${companyId}
         AND e."date" >= ${startDate}
-        AND e."date" <= ${endDate}
+        AND e."date" < ${endExclusive}
       GROUP BY u."id", u."name", u."email"
       ORDER BY "amount" DESC, "email" ASC
     `),
@@ -301,7 +300,10 @@ export async function getAnalyticsData(days: number = 90): Promise<GetAnalyticsD
       };
     }
 
-    const normalizedDays = normalizeAnalyticsDays(days, 90);
+    const normalizedDays = normalizeAnalyticsDays(
+      parseAnalyticsDaysParam(days, 90),
+      90
+    );
     const data = await getCachedAnalyticsDataForCompany(companyId, normalizedDays);
     return {
       data,

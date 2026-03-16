@@ -5,11 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 import { invalidateCompanyCategoryReadModels } from "@/lib/cache/company-read-model-cache";
-import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { getNumericLimits } from "@/lib/subscription/config";
-import { FeatureGateError } from "@/lib/errors";
-import { InvitationStatus, SubscriptionPlan, UserRole } from "@prisma/client";
-import { createNotification } from "@/app/actions/notifications";
+import { FeatureGateError, ValidationError } from "@/lib/errors";
+import {
+  InvitationStatus,
+  NotificationType,
+  Prisma,
+  SubscriptionPlan,
+  UserRole,
+} from "@prisma/client";
 
 /**
  * Get all companies the user can join.
@@ -83,6 +87,63 @@ function formatPlanLimit(limit: number): string {
   return Number.isFinite(limit) ? String(limit) : "unlimited";
 }
 
+interface NormalizedCompanyInput {
+  readonly name: string;
+  readonly slug: string;
+}
+
+type NormalizedCompanyInputResult =
+  | { success: true; data: NormalizedCompanyInput }
+  | { success: false; error: string };
+
+type CreateCompanyTransactionResult =
+  | { status: "ALREADY_IN_COMPANY" }
+  | { status: "SUCCESS"; company: { id: string; name: string; slug: string } };
+
+type JoinCompanyTransactionResult =
+  | { status: "ALREADY_IN_ANOTHER_COMPANY" }
+  | { status: "INVITATION_REQUIRED" }
+  | { status: "LIMIT_EXCEEDED"; maxUsersForPlan: number }
+  | { status: "NOT_FOUND" }
+  | {
+      status: "SUCCESS";
+      company: { id: string; name: string; slug: string };
+      joined: boolean;
+    };
+
+const CREATE_COMPANY_MEMBERSHIP_ERROR = "CREATE_COMPANY_MEMBERSHIP_ERROR";
+const JOIN_COMPANY_CONFLICT_ERROR = "JOIN_COMPANY_CONFLICT_ERROR";
+
+function normalizeCompanyInput(formData: FormData): NormalizedCompanyInputResult {
+  const rawName = formData.get("name");
+  const rawSlug = formData.get("slug");
+  const name = typeof rawName === "string" ? rawName.trim() : "";
+  const slug = typeof rawSlug === "string" ? rawSlug.trim().toLowerCase() : "";
+
+  if (!name || !slug) {
+    return {
+      success: false,
+      error: "Company name and slug are required",
+    };
+  }
+
+  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  if (!slugRegex.test(slug)) {
+    return {
+      success: false,
+      error: "Slug must contain only lowercase letters, numbers, and hyphens",
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      name,
+      slug,
+    },
+  };
+}
+
 /**
  * Create a new company and assign the current user as admin
  * Includes CompanyUsage record creation with default limits
@@ -95,107 +156,153 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
     }
 
+    const userId = session.user.id;
+
     const [actionLimit, userLimit] = await Promise.all([
       checkRateLimit("company-action", { tier: "action" }),
-      checkRateLimit(`company-user:${session.user.id}`, { tier: "action" }),
+      checkRateLimit(`company-user:${userId}`, { tier: "action" }),
     ]);
 
     if (!actionLimit.allowed || !userLimit.allowed) {
       return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
 
-    const name = formData.get("name") as string;
-    const slug = formData.get("slug") as string;
-
-    if (!name || !slug) {
-      return { success: false, error: "Company name and slug are required", code: "VALIDATION_ERROR" };
+    const normalizedInput = normalizeCompanyInput(formData);
+    if (!normalizedInput.success) {
+      return {
+        success: false,
+        error: normalizedInput.error,
+        code: "VALIDATION_ERROR",
+      };
     }
 
-    // Validate slug format (alphanumeric, hyphens)
-    const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-    if (!slugRegex.test(slug.toLowerCase())) {
-      return { success: false, error: "Slug must contain only lowercase letters, numbers, and hyphens", code: "VALIDATION_ERROR" };
-    }
+    const { name, slug } = normalizedInput.data;
 
     // Check if slug is already taken
     const existing = await prisma.company.findUnique({
-      where: { slug: slug.toLowerCase() },
+      where: { slug },
     });
 
     if (existing) {
       return { success: false, error: "Company slug already taken", code: "VALIDATION_ERROR" };
     }
 
-    // Create company and update user in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create the company
-      const company = await tx.company.create({
-        data: {
-          name: name.trim(),
-          slug: slug.toLowerCase(),
-        },
-      });
+    const result = await prisma.$transaction(
+      async (tx): Promise<CreateCompanyTransactionResult> => {
+        const currentUser = await tx.user.findUnique({
+          where: { id: userId },
+          select: { companyId: true },
+        });
 
-      // Create default categories for the company
-      const defaultCategories = [
-        { name: "Office Supplies", color: "#3b82f6", icon: "Briefcase" },
-        { name: "Travel", color: "#10b981", icon: "Plane" },
-        { name: "Meals", color: "#f59e0b", icon: "Utensils" },
-        { name: "Software", color: "#8b5cf6", icon: "Monitor" },
-        { name: "Equipment", color: "#ef4444", icon: "Wrench" },
-      ];
+        if (currentUser?.companyId) {
+          return { status: "ALREADY_IN_COMPANY" };
+        }
 
-      await tx.category.createMany({
-        data: defaultCategories.map((cat) => ({
-          ...cat,
-          companyId: company.id,
-        })),
-      });
+        const company = await tx.company.create({
+          data: {
+            name,
+            slug,
+          },
+        });
 
-      // Create free subscription for the company
-      await tx.subscription.create({
-        data: {
-          companyId: company.id,
-          plan: "FREE",
-          status: "ACTIVE",
-        },
-      });
+        const defaultCategories = [
+          { name: "Office Supplies", color: "#3b82f6", icon: "Briefcase" },
+          { name: "Travel", color: "#10b981", icon: "Plane" },
+          { name: "Meals", color: "#f59e0b", icon: "Utensils" },
+          { name: "Software", color: "#8b5cf6", icon: "Monitor" },
+          { name: "Equipment", color: "#ef4444", icon: "Wrench" },
+        ];
 
-      // Create CompanyUsage record with default limits
-      const now = new Date();
-      const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
-      const freePlanLimits = getNumericLimits(SubscriptionPlan.FREE);
+        await tx.category.createMany({
+          data: defaultCategories.map((category) => ({
+            ...category,
+            companyId: company.id,
+          })),
+        });
 
-      await tx.companyUsage.create({
-        data: {
-          companyId: company.id,
-          currentMonth,
-          monthlyExpenses: 0,
-          maxExpenses: freePlanLimits.maxMonthlyExpenses,
-          maxUsers: freePlanLimits.maxUsers,
-          maxCategories: freePlanLimits.maxCategories,
-          version: 0,
-        },
-      });
+        await tx.subscription.create({
+          data: {
+            companyId: company.id,
+            plan: "FREE",
+            status: "ACTIVE",
+          },
+        });
 
-      // Update user to be admin of the new company
-      await tx.user.update({
-        where: { id: session.user.id },
-        data: {
-          companyId: company.id,
-          role: UserRole.ADMIN,
-        },
-      });
+        const now = new Date();
+        const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+        const freePlanLimits = getNumericLimits(SubscriptionPlan.FREE);
 
-      return company;
-    });
+        await tx.companyUsage.create({
+          data: {
+            companyId: company.id,
+            currentMonth,
+            monthlyExpenses: 0,
+            maxExpenses: freePlanLimits.maxMonthlyExpenses,
+            maxUsers: freePlanLimits.maxUsers,
+            maxCategories: freePlanLimits.maxCategories,
+            version: 0,
+          },
+        });
+
+        const userUpdate = await tx.user.updateMany({
+          where: {
+            id: userId,
+            companyId: null,
+          },
+          data: {
+            companyId: company.id,
+            role: UserRole.ADMIN,
+          },
+        });
+
+        if (userUpdate.count === 0) {
+          throw new ValidationError(
+            "companyId",
+            userId,
+            CREATE_COMPANY_MEMBERSHIP_ERROR
+          );
+        }
+
+        return {
+          status: "SUCCESS",
+          company,
+        };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      }
+    );
+
+    if (result.status === "ALREADY_IN_COMPANY") {
+      return {
+        success: false,
+        error: "Leave your current company before creating a new one",
+        code: "VALIDATION_ERROR",
+      };
+    }
 
     revalidatePath("/dashboard");
     revalidatePath("/onboarding");
-    invalidateCompanyCategoryReadModels(result.id);
+    invalidateCompanyCategoryReadModels(result.company.id);
 
-    return { success: true, company: result };
+    return { success: true, company: result.company };
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return {
+        success: false,
+        error: "Company slug already taken",
+        code: "VALIDATION_ERROR",
+      };
+    }
+
+    if (error instanceof ValidationError && error.message === CREATE_COMPANY_MEMBERSHIP_ERROR) {
+      return {
+        success: false,
+        error: "Leave your current company before creating a new one",
+        code: "VALIDATION_ERROR",
+      };
+    }
+
     console.error("Failed to create company:", error);
     return {
       success: false,
@@ -208,6 +315,8 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
  * Join an existing company with invitation and user limit enforcement
  */
 export async function joinCompany(companyId: string): Promise<JoinCompanyResult> {
+  let userId: string | null = null;
+
   try {
     const session = await auth();
 
@@ -215,21 +324,133 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
       return { success: false, error: "Not authenticated", code: "UNAUTHORIZED" };
     }
 
+    const authenticatedUserId = session.user.id;
+    userId = authenticatedUserId;
+    const userEmail = session.user.email.toLowerCase();
+    const joinerName = session.user.name || session.user.email || "Someone new";
+
     const [actionLimit, userRateLimit] = await Promise.all([
       checkRateLimit("join-action", { tier: "action" }),
-      checkRateLimit(`join-user:${session.user.id}`, { tier: "action" }),
+      checkRateLimit(`join-user:${authenticatedUserId}`, { tier: "action" }),
     ]);
 
     if (!actionLimit.allowed || !userRateLimit.allowed) {
       return { success: false, error: "Too many requests. Please try again later.", code: "RATE_LIMITED" };
     }
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { companyId: true },
-    });
+    const joinResult = await prisma.$transaction(
+      async (tx): Promise<JoinCompanyTransactionResult> => {
+        const currentUser = await tx.user.findUnique({
+          where: { id: authenticatedUserId },
+          select: { companyId: true },
+        });
 
-    if (currentUser?.companyId && currentUser.companyId !== companyId) {
+        if (currentUser?.companyId && currentUser.companyId !== companyId) {
+          return { status: "ALREADY_IN_ANOTHER_COMPANY" };
+        }
+
+        const company = await tx.company.findUnique({
+          where: { id: companyId },
+          include: {
+            subscription: true,
+            _count: {
+              select: { users: true },
+            },
+          },
+        });
+
+        if (!company) {
+          return { status: "NOT_FOUND" };
+        }
+
+        if (currentUser?.companyId === companyId) {
+          return {
+            status: "SUCCESS",
+            company: {
+              id: company.id,
+              name: company.name,
+              slug: company.slug,
+            },
+            joined: false,
+          };
+        }
+
+        const invitation = await tx.invitation.findFirst({
+          where: {
+            companyId,
+            email: userEmail,
+            status: InvitationStatus.PENDING,
+            expiresAt: { gte: new Date() },
+          },
+          select: {
+            id: true,
+            role: true,
+          },
+        });
+
+        if (!invitation) {
+          return { status: "INVITATION_REQUIRED" };
+        }
+
+        const plan = company.subscription?.plan ?? SubscriptionPlan.FREE;
+        const maxUsersForPlan = getNumericLimits(plan).maxUsers;
+        if (company._count.users >= maxUsersForPlan) {
+          return {
+            status: "LIMIT_EXCEEDED",
+            maxUsersForPlan,
+          };
+        }
+
+        const acceptedAt = new Date();
+        const invitationClaim = await tx.invitation.updateMany({
+          where: {
+            id: invitation.id,
+            companyId,
+            email: userEmail,
+            status: InvitationStatus.PENDING,
+            expiresAt: { gte: acceptedAt },
+          },
+          data: {
+            status: InvitationStatus.ACCEPTED,
+            acceptedAt,
+          },
+        });
+
+        if (invitationClaim.count === 0) {
+          throw new ValidationError("invitationId", invitation.id, JOIN_COMPANY_CONFLICT_ERROR);
+        }
+
+        const membershipClaim = await tx.user.updateMany({
+          where: {
+            id: authenticatedUserId,
+            companyId: null,
+          },
+          data: {
+            companyId,
+            role: invitation.role,
+          },
+        });
+
+        if (membershipClaim.count === 0) {
+          throw new ValidationError("companyId", companyId, JOIN_COMPANY_CONFLICT_ERROR);
+        }
+
+        return {
+          status: "SUCCESS",
+          company: {
+            id: company.id,
+            name: company.name,
+            slug: company.slug,
+          },
+          joined: true,
+        };
+      },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      }
+    );
+
+    if (joinResult.status === "ALREADY_IN_ANOTHER_COMPANY") {
       return {
         success: false,
         error: "Leave your current company before joining another one",
@@ -237,49 +458,11 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
       };
     }
 
-    if (currentUser?.companyId === companyId) {
-      const existingCompany = await prisma.company.findUnique({
-        where: { id: companyId },
-        select: { id: true, name: true, slug: true },
-      });
-
-      if (!existingCompany) {
-        return { success: false, error: "Company not found", code: "NOT_FOUND" };
-      }
-
-      return { success: true, company: existingCompany };
-    }
-
-    // Verify company exists
-    const company = await prisma.company.findUnique({
-      where: { id: companyId },
-      include: {
-        subscription: true,
-        _count: {
-          select: { users: true },
-        },
-      },
-    });
-
-    if (!company) {
+    if (joinResult.status === "NOT_FOUND") {
       return { success: false, error: "Company not found", code: "NOT_FOUND" };
     }
 
-    // Invitation check is mandatory for joining
-    const invitation = await prisma.invitation.findFirst({
-      where: {
-        companyId,
-        email: session.user.email.toLowerCase(),
-        status: InvitationStatus.PENDING,
-        expiresAt: { gte: new Date() },
-      },
-      select: {
-        id: true,
-        role: true,
-      },
-    });
-
-    if (!invitation) {
+    if (joinResult.status === "INVITATION_REQUIRED") {
       return {
         success: false,
         error: "A valid invitation is required to join this company",
@@ -287,94 +470,85 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
       };
     }
 
-    // Check user limit before allowing join
-    const plan = company.subscription?.plan ?? SubscriptionPlan.FREE;
-    const maxUsersForPlan = getNumericLimits(plan).maxUsers;
-
-    if (company._count.users >= maxUsersForPlan) {
+    if (joinResult.status === "LIMIT_EXCEEDED") {
       return {
         success: false,
-        error: `This company has reached the maximum user limit (${formatPlanLimit(maxUsersForPlan)}). Upgrade to Pro for unlimited users.`,
+        error: `This company has reached the maximum user limit (${formatPlanLimit(joinResult.maxUsersForPlan)}). Upgrade to Pro for unlimited users.`,
         code: "LIMIT_EXCEEDED",
       };
     }
 
-    // Additional feature gate check (graceful)
-    try {
-      const limitCheck = await checkFeatureLimit(companyId, "user", 1);
-      if (!limitCheck.allowed) {
-        return {
-          success: false,
-          error: limitCheck.reason ?? "User limit exceeded for this company",
-          code: "LIMIT_EXCEEDED",
-        };
-      }
-    } catch (error) {
-      // Gracefully handle limit check failure - use the simpler check above
-      console.error("Feature limit check failed:", error);
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.invitation.update({
-        where: { id: invitation.id },
-        data: {
-          status: InvitationStatus.ACCEPTED,
-          acceptedAt: new Date(),
-        },
-      });
-
-      await tx.user.update({
-        where: { id: session.user!.id! },
-        data: {
-          companyId,
-          // Never carry roles across tenants.
-          role: invitation.role,
-        },
-      });
-    });
-
     revalidatePath("/dashboard");
     revalidatePath("/onboarding");
+    revalidatePath("/dashboard/team");
 
-    // Notify existing company members about the new joiner
-    try {
-      const existingMembers = await prisma.user.findMany({
-        where: { companyId },
-        select: { id: true },
-      });
+    if (joinResult.joined) {
+      try {
+        const existingMembers = await prisma.user.findMany({
+          where: {
+            companyId,
+            id: { not: authenticatedUserId },
+          },
+          select: { id: true },
+        });
 
-      const joinerName = session.user.name || session.user.email || "Someone new";
-
-      for (const member of existingMembers) {
-        if (member.id !== session.user.id) {
-          await createNotification(member.id, {
-            type: "INFO",
+        const notificationRows = [
+          ...existingMembers.map((member) => ({
+            userId: member.id,
+            type: NotificationType.INFO,
             title: "New Team Member",
-            message: `${joinerName} joined "${company.name}"`,
+            message: `${joinerName} joined "${joinResult.company.name}"`,
             actionUrl: "/dashboard/team",
-          });
-        }
-      }
+          })),
+          {
+            userId: authenticatedUserId,
+            type: NotificationType.SUCCESS,
+            title: "Welcome to the Team!",
+            message: `You've successfully joined "${joinResult.company.name}"`,
+            actionUrl: "/dashboard",
+          },
+        ];
 
-      await createNotification(session.user.id, {
-        type: "SUCCESS",
-        title: "Welcome to the Team!",
-        message: `You've successfully joined "${company.name}"`,
-        actionUrl: "/dashboard",
-      });
-    } catch (notifyError) {
-      console.error("Failed to send notifications:", notifyError);
+        await prisma.notification.createMany({
+          data: notificationRows,
+        });
+      } catch (notifyError) {
+        console.error("Failed to send notifications:", notifyError);
+      }
     }
 
     return {
       success: true,
-      company: {
-        id: company.id,
-        name: company.name,
-        slug: company.slug,
-      },
+      company: joinResult.company,
     };
   } catch (error) {
+    if (error instanceof ValidationError && error.message === JOIN_COMPANY_CONFLICT_ERROR && userId) {
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
+
+      if (currentUser?.companyId === companyId) {
+        const company = await prisma.company.findUnique({
+          where: { id: companyId },
+          select: { id: true, name: true, slug: true },
+        });
+
+        if (company) {
+          return {
+            success: true,
+            company,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        error: "Leave your current company before joining another one",
+        code: "ALREADY_IN_ANOTHER_COMPANY",
+      };
+    }
+
     console.error("Failed to join company:", error);
 
     if (error instanceof FeatureGateError) {

@@ -33,7 +33,8 @@ export function AnalyticsClient({
   initialDays,
   userRole,
 }: AnalyticsClientProps): React.JSX.Element {
-  const [days, setDays] = useState<number>(initialDays)
+  const [committedDays, setCommittedDays] = useState<number>(initialDays)
+  const [pendingDays, setPendingDays] = useState<number | null>(null)
   const [data, setData] = useState<AnalyticsData | null>(initialData)
   const [isPending, setIsPending] = useState<boolean>(false)
   const activeRequestIdRef = useRef<number>(0)
@@ -55,16 +56,18 @@ export function AnalyticsClient({
     window.history.replaceState(window.history.state, "", nextPath)
   }, [])
 
+  const getPendingRangeLabel = useCallback((rangeDays: number): string => {
+    return `${rangeDays} day${rangeDays === 1 ? "" : "s"}`
+  }, [])
+
   const handleDaysChange = useCallback((newDays: number): void => {
-    if (newDays === days || isPending) {
+    if (newDays === committedDays || isPending) {
       return
     }
 
-    setDays(newDays)
-    updateDaysQueryWithoutNavigation(newDays)
-
     const requestId = activeRequestIdRef.current + 1
     activeRequestIdRef.current = requestId
+    setPendingDays(newDays)
     setIsPending(true)
 
     void (async () => {
@@ -83,11 +86,15 @@ export function AnalyticsClient({
 
         if (!response.ok || !result.data) {
           toast.error(result.error ?? "Failed to load analytics data")
+          setPendingDays(null)
           setIsPending(false)
           return
         }
 
         setData(result.data)
+        setCommittedDays(newDays)
+        updateDaysQueryWithoutNavigation(newDays)
+        setPendingDays(null)
         setIsPending(false)
       } catch {
         if (activeRequestIdRef.current !== requestId) {
@@ -95,10 +102,11 @@ export function AnalyticsClient({
         }
 
         toast.error("Failed to load analytics data")
+        setPendingDays(null)
         setIsPending(false)
       }
     })()
-  }, [days, isPending, updateDaysQueryWithoutNavigation])
+  }, [committedDays, isPending, updateDaysQueryWithoutNavigation])
 
   const isAdmin = userRole === UserRole.ADMIN
 
@@ -130,12 +138,16 @@ export function AnalyticsClient({
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:items-center sm:justify-end">
-          <DateRangePicker value={days} onChange={handleDaysChange} disabled={isPending} />
-          <ExportButton data={data} filename={`analytics-${days}days`} />
+          <DateRangePicker
+            value={committedDays}
+            onChange={handleDaysChange}
+            disabled={isPending}
+          />
+          <ExportButton data={data} filename={`analytics-${committedDays}days`} />
           {isPending && (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Updating
+              Updating to {getPendingRangeLabel(pendingDays ?? committedDays)}
             </span>
           )}
         </div>

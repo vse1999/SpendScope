@@ -1,6 +1,7 @@
 import { AlertCircle } from "lucide-react"
 import { getAnalyticsData } from "@/app/actions/expenses"
 import { requireDashboardRequestContext } from "@/lib/dashboard/request-context"
+import { parseAnalyticsDaysParam } from "@/lib/analytics/date-range"
 import { isBillingEnabled } from "@/lib/stripe/config"
 import { AnalyticsUpgradeGate } from "@/components/entitlements"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -9,8 +10,6 @@ import { AnalyticsClient } from "./analytics-client"
 interface AnalyticsPageContentProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
-
-const VALID_DAY_PRESETS = new Set([30, 90, 180, 365])
 
 export async function AnalyticsPageContent({
   searchParams,
@@ -21,8 +20,7 @@ export async function AnalyticsPageContent({
   const billingEnabled = isBillingEnabled()
   const isAdmin = userRole === "ADMIN"
 
-  const parsedDays = Number(resolvedSearchParams?.days)
-  const days = VALID_DAY_PRESETS.has(parsedDays) ? parsedDays : 90
+  const days = parseAnalyticsDaysParam(resolvedSearchParams?.days)
   const result = await getAnalyticsData(days)
 
   if (result.error) {
