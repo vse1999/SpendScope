@@ -1,18 +1,6 @@
-import Link from "next/link";
-import { ArrowRight, Menu } from "lucide-react";
 import type { ReactElement } from "react";
 
-import { MarketingScrollLink } from "@/components/marketing/marketing-scroll-link";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { LandingNavbar } from "@/components/marketing/landing-navbar";
 import {
   CTASection,
   FAQSection,
@@ -24,12 +12,6 @@ import {
 } from "@/components/marketing/sections";
 import { MARKETING_ANALYTICS_DATA } from "@/lib/marketing/demo-data";
 import { PRICING_PLANS } from "@/lib/marketing/pricing-plans";
-
-const navigationItems = [
-  { label: "Product", href: "#product" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "FAQ", href: "#faq" },
-] as const;
 
 const trustItems = [
   { title: "Role-based access controls", iconName: "ShieldCheck" },
@@ -107,113 +89,6 @@ const faqItems = [
   },
 ] as const;
 
-function BrandWordmark({ className }: { className?: string }): ReactElement {
-  return (
-    <span
-      className={[
-        "inline-flex items-center font-bold tracking-tight",
-        "bg-gradient-to-r from-indigo-600 via-violet-500 to-cyan-500",
-        "bg-clip-text text-transparent",
-        "transition-all duration-300 hover:opacity-90",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      SpendScope
-    </span>
-  );
-}
-
-function Header(): ReactElement {
-  return (
-    <header className="sticky top-0 z-50 border-b border-indigo-100/80 bg-background/80 backdrop-blur-md dark:border-indigo-900/40">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
-        <Link href="/" className="inline-flex items-center">
-          <BrandWordmark className="text-[1.65rem] sm:text-[1.85rem]" />
-        </Link>
-
-        <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
-          {navigationItems.map((item) => (
-            <MarketingScrollLink
-              key={item.href}
-              href={item.href}
-              className="transition-colors duration-200 hover:text-indigo-600 dark:hover:text-indigo-400"
-            >
-              {item.label}
-            </MarketingScrollLink>
-          ))}
-        </nav>
-
-        <div className="hidden items-center gap-2 md:flex">
-          <Button asChild variant="ghost" className="hidden sm:inline-flex">
-            <Link href="/login">Sign In</Link>
-          </Button>
-          <Button
-            asChild
-            className="bg-gradient-brand text-white shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30"
-          >
-            <Link href="/signup">
-              Start Free Plan
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2 md:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Open menu">
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-75 sm:w-100">
-              <SheetHeader className="sr-only">
-                <SheetTitle>Navigation menu</SheetTitle>
-                <SheetDescription>
-                  Browse the landing page sections and authentication actions.
-                </SheetDescription>
-              </SheetHeader>
-              <div className="flex flex-col gap-6 py-4">
-                <nav className="flex flex-col gap-4">
-                  {navigationItems.map((item) => (
-                    <SheetClose asChild key={item.href}>
-                      <MarketingScrollLink
-                        href={item.href}
-                        className="text-lg font-medium text-foreground transition-colors hover:text-indigo-600 dark:hover:text-indigo-400"
-                      >
-                        {item.label}
-                      </MarketingScrollLink>
-                    </SheetClose>
-                  ))}
-                </nav>
-
-                <div className="h-px bg-border" />
-
-                <div className="flex flex-col gap-3">
-                  <SheetClose asChild>
-                    <Button asChild variant="outline" className="w-full">
-                      <Link href="/login">Sign In</Link>
-                    </Button>
-                  </SheetClose>
-                  <SheetClose asChild>
-                    <Button asChild className="w-full bg-gradient-brand text-white shadow-md shadow-indigo-500/20">
-                      <Link href="/signup">
-                        Open Free Workspace
-                        <ArrowRight className="size-4" />
-                      </Link>
-                    </Button>
-                  </SheetClose>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-      </div>
-    </header>
-  );
-}
-
 function Footer(): ReactElement {
   const currentYear = new Date().getFullYear();
 
@@ -232,7 +107,9 @@ function Footer(): ReactElement {
 export function LandingPage(): ReactElement {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-background">
-      <Header />
+      <LandingNavbar />
+
+      <div aria-hidden="true" className="h-20 sm:h-24" />
 
       <main className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6">
         <HeroSection

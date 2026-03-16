@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 test("landing page renders primary marketing shell", async ({ page }) => {
   await page.goto("/");
 
+  const landingNavbar = page.locator("header[data-scrolled]");
+
   await expect(page).toHaveTitle(/Expense Control for Modern Teams \| SpendScope/);
 
   await expect(
@@ -14,6 +16,11 @@ test("landing page renders primary marketing shell", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: "Create Free Workspace" }).first()
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign In" }).first()).toBeVisible();
+  await expect(landingNavbar).toHaveAttribute("data-scrolled", "false");
+
+  await page.mouse.wheel(0, 900);
+  await expect(landingNavbar).toHaveAttribute("data-scrolled", "true");
   await expect(page.getByRole("link", { name: "Sign In" }).first()).toBeVisible();
 
   await page.getByRole("link", { name: "Explore Product" }).click();
