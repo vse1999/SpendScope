@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Menu } from "lucide-react";
 import type { ReactElement } from "react";
 
+import { MarketingScrollLink } from "@/components/marketing/marketing-scroll-link";
 import {
   Sheet,
   SheetClose,
@@ -134,13 +135,13 @@ function Header(): ReactElement {
 
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           {navigationItems.map((item) => (
-            <Link
+            <MarketingScrollLink
               key={item.href}
               href={item.href}
               className="transition-colors duration-200 hover:text-indigo-600 dark:hover:text-indigo-400"
             >
               {item.label}
-            </Link>
+            </MarketingScrollLink>
           ))}
         </nav>
 
@@ -177,12 +178,12 @@ function Header(): ReactElement {
                 <nav className="flex flex-col gap-4">
                   {navigationItems.map((item) => (
                     <SheetClose asChild key={item.href}>
-                      <Link
+                      <MarketingScrollLink
                         href={item.href}
                         className="text-lg font-medium text-foreground transition-colors hover:text-indigo-600 dark:hover:text-indigo-400"
                       >
                         {item.label}
-                      </Link>
+                      </MarketingScrollLink>
                     </SheetClose>
                   ))}
                 </nav>

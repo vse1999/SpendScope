@@ -16,5 +16,11 @@ describe("LandingPage", () => {
     expect(html).toContain("Choose your plan");
     expect(html).toContain("Frequently asked");
     expect(html).toContain("Ready to launch your");
+    expect(html).toContain(
+      '/signup?plan=free&amp;redirectTo=%2Fonboarding%3FredirectTo%3D%252Fdashboard'
+    );
+    expect(html).toContain(
+      '/signup?plan=pro&amp;redirectTo=%2Fonboarding%3FredirectTo%3D%252Fdashboard%252Fbilling%26plan%3Dpro'
+    );
   });
 });

@@ -36,12 +36,16 @@ function GitHubIcon({ className }: { className?: string }) {
   )
 }
 
-export function GoogleSignInButton({ redirectTo = "/dashboard" }: OAuthButtonProps) {
+export function GoogleSignInButton({
+  redirectTo = "/dashboard",
+}: OAuthButtonProps) {
   return (
     <form
       action={async () => {
         "use server"
-        await signIn("google", { redirectTo })
+        await signIn("google", {
+          redirectTo,
+        })
       }}
     >
       <Button
@@ -56,12 +60,16 @@ export function GoogleSignInButton({ redirectTo = "/dashboard" }: OAuthButtonPro
   )
 }
 
-export function GitHubSignInButton({ redirectTo = "/dashboard" }: OAuthButtonProps) {
+export function GitHubSignInButton({
+  redirectTo = "/dashboard",
+}: OAuthButtonProps) {
   return (
     <form
       action={async () => {
         "use server"
-        await signIn("github", { redirectTo })
+        await signIn("github", {
+          redirectTo,
+        })
       }}
     >
       <Button

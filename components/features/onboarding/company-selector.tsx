@@ -15,9 +15,10 @@ interface Company {
 
 interface CompanySelectorProps {
   companies: Company[]
+  redirectTo: string
 }
 
-export function CompanySelector({ companies }: CompanySelectorProps) {
+export function CompanySelector({ companies, redirectTo }: CompanySelectorProps) {
   return (
     <Tabs defaultValue="join" className="w-full">
       <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
@@ -43,7 +44,7 @@ export function CompanySelector({ companies }: CompanySelectorProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <JoinCompanyList companies={companies} />
+            <JoinCompanyList companies={companies} redirectTo={redirectTo} />
           </CardContent>
         </Card>
       </TabsContent>
@@ -60,7 +61,7 @@ export function CompanySelector({ companies }: CompanySelectorProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CreateCompanyForm />
+            <CreateCompanyForm redirectTo={redirectTo} />
           </CardContent>
         </Card>
       </TabsContent>

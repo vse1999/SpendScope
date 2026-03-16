@@ -7,7 +7,11 @@ import { Label } from "@/components/ui/label"
 import { createCompany } from "@/app/actions/companies"
 import { Loader2, Building2, CheckCircle2 } from "lucide-react"
 
-export function CreateCompanyForm() {
+interface CreateCompanyFormProps {
+  readonly redirectTo: string
+}
+
+export function CreateCompanyForm({ redirectTo }: CreateCompanyFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [slug, setSlug] = useState("")
@@ -39,8 +43,7 @@ export function CreateCompanyForm() {
       }
 
       if (result.success) {
-        // Navigate to dashboard - getUserCompany() will fetch fresh data from DB
-        window.location.href = "/dashboard"
+        window.location.href = redirectTo
       }
     } catch {
       setError("Something went wrong. Please try again.")

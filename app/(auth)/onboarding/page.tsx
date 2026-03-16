@@ -2,13 +2,24 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getAllCompanies, getUserCompany } from "@/app/actions/companies"
 import { CompanyWelcome, CompanySelector, FeatureHighlights } from "@/components/features/onboarding"
+import { sanitizeRedirectTo } from "@/lib/auth/redirect-intent"
 
-export default async function OnboardingPage() {
+interface OnboardingPageProps {
+  readonly searchParams: Promise<{
+    redirectTo?: string
+  }>
+}
+
+export default async function OnboardingPage({
+  searchParams,
+}: OnboardingPageProps) {
   const session = await auth()
   if (!session?.user) redirect("/login")
+  const params = await searchParams
+  const redirectTo = sanitizeRedirectTo(params.redirectTo)
 
   const userCompanyResult = await getUserCompany()
-  if (userCompanyResult.hasCompany) redirect("/dashboard")
+  if (userCompanyResult.hasCompany) redirect(redirectTo)
 
   const companies = await getAllCompanies()
   const companyList = "error" in companies ? [] : companies
@@ -17,7 +28,7 @@ export default async function OnboardingPage() {
     <div className="min-h-screen app-shell p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
         <CompanyWelcome userName={session.user.name} />
-        <CompanySelector companies={companyList} />
+        <CompanySelector companies={companyList} redirectTo={redirectTo} />
         <FeatureHighlights />
 
         <div className="text-center">

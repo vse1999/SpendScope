@@ -6,7 +6,10 @@ interface LoginFormProps {
   redirectTo?: string
 }
 
-export function LoginForm({ className, redirectTo = "/dashboard" }: LoginFormProps) {
+export function LoginForm({
+  className,
+  redirectTo = "/dashboard",
+}: LoginFormProps) {
   return (
     <div className={cn("w-full max-w-md space-y-6", className)}>
       <div className="text-center space-y-2">

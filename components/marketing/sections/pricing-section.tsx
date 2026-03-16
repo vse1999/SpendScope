@@ -12,12 +12,28 @@ import {
 } from "@/components/pricing/plan-card-styles";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  buildOnboardingUrl,
+  type PricingIntent,
+} from "@/lib/auth/redirect-intent";
 import { displayFont } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import type { PricingPlanPresentation } from "@/lib/marketing/pricing-plans";
 
 interface PricingSectionProps {
   readonly plans: readonly PricingPlanPresentation[];
+}
+
+function getPlanSignupHref(planName: PricingPlanPresentation["name"]): string {
+  const pricingIntent: PricingIntent = planName === "Pro" ? "pro" : "free"
+  const postOnboardingRedirect =
+    planName === "Pro" ? "/dashboard/billing" : "/dashboard"
+  const redirectTo = buildOnboardingUrl({
+    pricingIntent: planName === "Pro" ? "pro" : undefined,
+    redirectTo: postOnboardingRedirect,
+  })
+
+  return `/signup?plan=${pricingIntent}&redirectTo=${encodeURIComponent(redirectTo)}`
 }
 
 function PricingCard({ plan }: { readonly plan: PricingPlanPresentation }): ReactElement {
@@ -74,7 +90,7 @@ function PricingCard({ plan }: { readonly plan: PricingPlanPresentation }): Reac
             variant={plan.isPopular ? "default" : "outline"}
             size="lg"
           >
-            <Link href="/signup">{plan.cta}</Link>
+            <Link href={getPlanSignupHref(plan.name)}>{plan.cta}</Link>
           </Button>
         </div>
       </div>

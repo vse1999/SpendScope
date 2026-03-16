@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Download } from "lucide-react";
 import type { ReactElement } from "react";
 
+import { MarketingScrollLink } from "@/components/marketing/marketing-scroll-link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,10 +48,10 @@ export function CTASection(): ReactElement {
               variant="outline"
               className="glass-card transition-transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Link href="#product">
+              <MarketingScrollLink href="#product">
                 Explore Product
                 <Download className="size-4" />
-              </Link>
+              </MarketingScrollLink>
             </Button>
           </CardContent>
         </Card>

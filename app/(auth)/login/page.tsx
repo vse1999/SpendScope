@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/blocks/auth"
+import { sanitizeRedirectTo } from "@/lib/auth/redirect-intent"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import type { Metadata } from "next"
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 interface LoginPageProps {
-    searchParams: Promise<{ error?: string; redirectTo?: string }>
+    searchParams: Promise<{ error?: string; redirectTo?: string; plan?: string }>
 }
 
 function getErrorMessage(error: string): { title: string; message: string } {
@@ -50,10 +51,7 @@ function getErrorMessage(error: string): { title: string; message: string } {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
     const params = await searchParams
     const error = params.error
-    const redirectTo =
-        typeof params.redirectTo === "string" && params.redirectTo.startsWith("/")
-            ? params.redirectTo
-            : "/dashboard"
+    const redirectTo = sanitizeRedirectTo(params.redirectTo)
     const errorInfo = error ? getErrorMessage(error) : null
 
     return (

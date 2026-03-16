@@ -22,6 +22,7 @@ export default auth((req) => {
 
   const isAuthPage =
     pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
     pathname.startsWith("/onboarding") ||
     pathname.startsWith("/invite/accept")
   const isPublicApiRoute =
@@ -54,7 +55,7 @@ export default auth((req) => {
 
   // Redirect logged-in users away from login page only
   // Note: onboarding is accessible to logged-in users (they might need to select/create company)
-  if (pathname.startsWith("/login") && isLoggedIn) {
+  if ((pathname.startsWith("/login") || pathname.startsWith("/signup")) && isLoggedIn) {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 

@@ -17,9 +17,13 @@ interface Company {
 
 interface JoinCompanyListProps {
   companies: Company[]
+  redirectTo: string
 }
 
-export function JoinCompanyList({ companies }: JoinCompanyListProps) {
+export function JoinCompanyList({
+  companies,
+  redirectTo,
+}: JoinCompanyListProps) {
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -37,8 +41,7 @@ export function JoinCompanyList({ companies }: JoinCompanyListProps) {
       }
 
       if (result.success) {
-        // Navigate to dashboard - getUserCompany() will fetch fresh data from DB
-        window.location.href = "/dashboard"
+        window.location.href = redirectTo
       }
     } catch {
       setError("Something went wrong. Please try again.")

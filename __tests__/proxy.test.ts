@@ -69,6 +69,15 @@ describe("proxy auth behavior", () => {
     });
   });
 
+  it("allows unauthenticated signup routes to preserve pricing intent", async (): Promise<void> => {
+    const proxyModule = await import("../proxy");
+    const proxyHandler = proxyModule.default as unknown as (request: unknown) => MockResponse;
+
+    const response = proxyHandler(createRequest("/signup"));
+
+    expect(response).toEqual({ kind: "next" });
+  });
+
   it("allows public API auth routes without authentication", async (): Promise<void> => {
     const proxyModule = await import("../proxy");
     const proxyHandler = proxyModule.default as unknown as (request: unknown) => MockResponse;
