@@ -1,13 +1,14 @@
 'use client'
 
-import React, { createContext, useCallback, useEffect, useMemo, useState, useRef, type ReactNode } from 'react'
+import React, { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Notification, NotificationContextValue } from '@/types/notifications'
 import {
-  getUserNotifications,
-  markNotificationAsRead,
-  markAllNotificationsAsRead,
-  deleteNotification,
   createUserNotification,
+  deleteNotification,
+  getUnreadNotificationCount,
+  getUserNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
 } from '@/app/actions/notifications'
 import { createLogger } from '@/lib/monitoring/logger'
 import { toast } from 'sonner'
@@ -16,123 +17,82 @@ interface NotificationProviderProps {
   children: ReactNode
 }
 
-type IdleCapableWindow = Window & {
-  cancelIdleCallback?: (handle: number) => void
-  requestIdleCallback?: (callback: () => void) => number
-}
-
 export const NotificationContext = createContext<NotificationContextValue | undefined>(undefined)
-const logger = createLogger("notification-provider")
+
+const logger = createLogger('notification-provider')
+
+function mapNotification(notification: {
+  id: string
+  type: string
+  title: string
+  message: string
+  read: boolean
+  createdAt: Date | string
+  actionUrl: string | null
+}): Notification {
+  return {
+    id: notification.id,
+    type: notification.type.toLowerCase() as Notification['type'],
+    title: notification.title,
+    message: notification.message,
+    read: notification.read,
+    createdAt: new Date(notification.createdAt),
+    actionUrl: notification.actionUrl ?? undefined,
+  }
+}
 
 export function NotificationProvider({ children }: NotificationProviderProps): React.JSX.Element {
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [lastRefresh, setLastRefresh] = useState<number>(0)
-  const idleLoadRef = useRef<number | null>(null)
-  const pollingRef = useRef<NodeJS.Timeout | null>(null)
-  const pollingInFlightRef = useRef<boolean>(false)
-  const isMountedRef = useRef(true)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [hasLoaded, setHasLoaded] = useState(false)
 
-  // Fetch notifications from database
-  const loadNotifications = useCallback(async (showLoading = false) => {
-    if (showLoading) {
-      setIsLoading(true)
-    }
-    
+  const loadUnreadCount = useCallback(async (): Promise<void> => {
     try {
-      const result = await getUserNotifications()
-      if (!isMountedRef.current) return
-
-      if (result.success && result.notifications) {
-        // Convert Date strings to Date objects and map types
-        const parsedNotifications: Notification[] = result.notifications.map(n => ({
-          id: n.id,
-          type: n.type.toLowerCase() as Notification['type'],
-          title: n.title,
-          message: n.message,
-          read: n.read,
-          createdAt: new Date(n.createdAt),
-          actionUrl: n.actionUrl ?? undefined,
-        }))
-        setNotifications(parsedNotifications)
+      const result = await getUnreadNotificationCount()
+      if (result.success && typeof result.unreadCount === 'number') {
+        setUnreadCount(result.unreadCount)
       } else if (result.error) {
-        logger.error("Failed to load notifications", { error: result.error })
+        logger.error('Failed to load unread notification count', { error: result.error })
       }
     } catch (error) {
-      logger.error("Error loading notifications", { error })
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false)
-      }
+      logger.error('Error loading unread notification count', { error })
     }
   }, [])
 
-  // Initial load
-  useEffect(() => {
-    isMountedRef.current = true
-    const idleWindow = window as IdleCapableWindow
-
-    if (typeof idleWindow.requestIdleCallback === "function") {
-      idleLoadRef.current = idleWindow.requestIdleCallback(() => {
-        void loadNotifications(true)
-      })
-    } else {
-      idleLoadRef.current = window.setTimeout(() => {
-        void loadNotifications(true)
-      }, 0)
+  const refreshNotifications = useCallback(async (showLoading = false): Promise<void> => {
+    if (showLoading) {
+      setIsLoading(true)
     }
-    
-    return () => {
-      isMountedRef.current = false
 
-      if (idleLoadRef.current !== null) {
-        if (typeof idleWindow.cancelIdleCallback === "function") {
-          idleWindow.cancelIdleCallback(idleLoadRef.current)
-        } else {
-          window.clearTimeout(idleLoadRef.current)
-        }
-        idleLoadRef.current = null
+    try {
+      const result = await getUserNotifications()
+      if (result.success && result.notifications) {
+        const parsedNotifications = result.notifications.map(mapNotification)
+        setNotifications(parsedNotifications)
+        setUnreadCount(parsedNotifications.filter((notification) => !notification.read).length)
+        setHasLoaded(true)
+      } else if (result.error) {
+        logger.error('Failed to load notifications', { error: result.error })
       }
+    } catch (error) {
+      logger.error('Error loading notifications', { error })
+    } finally {
+      setIsLoading(false)
     }
-  }, [loadNotifications])
+  }, [])
 
-  const pollNotifications = useCallback(async (): Promise<void> => {
-    if (document.hidden || pollingInFlightRef.current) {
+  const ensureLoaded = useCallback(async (): Promise<void> => {
+    if (hasLoaded || isLoading) {
       return
     }
 
-    pollingInFlightRef.current = true
-    try {
-      await loadNotifications(false)
-    } finally {
-      pollingInFlightRef.current = false
-    }
-  }, [loadNotifications])
+    await refreshNotifications(true)
+  }, [hasLoaded, isLoading, refreshNotifications])
 
   useEffect(() => {
-    const handleVisibilityChange = (): void => {
-      if (!document.hidden) {
-        void loadNotifications(false)
-      }
-    }
-
-    document.addEventListener("visibilitychange", handleVisibilityChange)
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
-    }
-  }, [loadNotifications])
-
-  // Refresh when lastRefresh changes (triggered after mark as read)
-  useEffect(() => {
-    if (lastRefresh > 0) {
-      loadNotifications(false)
-    }
-  }, [lastRefresh, loadNotifications])
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !n.read).length,
-    [notifications]
-  )
+    void loadUnreadCount()
+  }, [loadUnreadCount])
 
   const addNotification = useCallback(
     async (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>): Promise<void> => {
@@ -145,167 +105,160 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
         })
 
         if (result.success && result.notification) {
-          const newNotification: Notification = {
-            id: result.notification.id,
-            type: result.notification.type.toLowerCase() as Notification['type'],
-            title: result.notification.title,
-            message: result.notification.message,
-            read: result.notification.read,
-            createdAt: new Date(result.notification.createdAt),
-            actionUrl: result.notification.actionUrl ?? undefined,
-          }
-          setNotifications((prev) => [newNotification, ...prev])
+          const nextNotification = mapNotification(result.notification)
+          setUnreadCount((currentUnreadCount) => currentUnreadCount + 1)
+          setNotifications((currentNotifications) =>
+            hasLoaded ? [nextNotification, ...currentNotifications] : currentNotifications
+          )
+          return
+        }
+
+        if (result.error) {
+          logger.error('Failed to create notification', { error: result.error })
         }
       } catch (error) {
-        logger.error("Failed to create notification", { error })
-        toast.error('Failed to create notification')
+        logger.error('Failed to create notification', { error })
       }
+
+      toast.error('Failed to create notification')
     },
-    []
+    [hasLoaded]
   )
 
-  const markAsRead = useCallback(async (id: string): Promise<void> => {
-    logger.debug("Marking notification as read", { id })
-    
-    // Optimistically update UI
-    setNotifications((prev) =>
-      prev.map((notification) =>
-        notification.id === id ? { ...notification, read: true } : notification
-      )
-    )
-
-    // Sync with database
-    try {
-      const result = await markNotificationAsRead(id)
-      logger.debug("markNotificationAsRead result", { id, result })
-      
-      if (!result.success) {
-        logger.error("Failed to mark notification as read", { id, error: result.error })
-        // Revert on failure
-        setNotifications((prev) =>
-          prev.map((notification) =>
-            notification.id === id ? { ...notification, read: false } : notification
-          )
-        )
-        toast.error(result.error || 'Failed to mark as read')
-      } else {
-        // Force a refresh to ensure sync
-        setTimeout(() => {
-          setLastRefresh(Date.now())
-        }, 100)
+  const markAsRead = useCallback(
+    async (id: string): Promise<void> => {
+      const targetNotification = notifications.find((notification) => notification.id === id)
+      if (!targetNotification || targetNotification.read) {
+        return
       }
-    } catch (error) {
-      logger.error("Failed to mark notification as read", { id, error })
-      // Revert on error
-      setNotifications((prev) =>
-        prev.map((notification) =>
+
+      setNotifications((currentNotifications) =>
+        currentNotifications.map((notification) =>
+          notification.id === id ? { ...notification, read: true } : notification
+        )
+      )
+      setUnreadCount((currentUnreadCount) => Math.max(0, currentUnreadCount - 1))
+
+      try {
+        const result = await markNotificationAsRead(id)
+        if (result.success) {
+          return
+        }
+
+        if (result.error) {
+          logger.error('Failed to mark notification as read', { id, error: result.error })
+        }
+      } catch (error) {
+        logger.error('Failed to mark notification as read', { id, error })
+      }
+
+      setNotifications((currentNotifications) =>
+        currentNotifications.map((notification) =>
           notification.id === id ? { ...notification, read: false } : notification
         )
       )
+      setUnreadCount((currentUnreadCount) => currentUnreadCount + 1)
       toast.error('Failed to mark as read')
-    }
-  }, [])
+    },
+    [notifications]
+  )
 
   const markAllAsRead = useCallback(async (): Promise<void> => {
-    logger.debug("Marking all notifications as read")
-    
-    // Store previous state for potential revert
+    const hasUnread = notifications.some((notification) => !notification.read)
+    if (!hasUnread) {
+      return
+    }
+
     const previousNotifications = notifications
 
-    // Optimistically update UI
-    setNotifications((prev) =>
-      prev.map((notification) => ({ ...notification, read: true }))
+    setNotifications((currentNotifications) =>
+      currentNotifications.map((notification) => ({ ...notification, read: true }))
     )
+    setUnreadCount(0)
 
-    // Sync with database
     try {
       const result = await markAllNotificationsAsRead()
-      logger.debug("markAllNotificationsAsRead result", { result })
-      
-      if (!result.success) {
-        logger.error("Failed to mark all notifications as read", { error: result.error })
-        // Revert on failure
-        setNotifications(previousNotifications)
-        toast.error(result.error || 'Failed to mark all as read')
-      } else {
-        // Force a refresh to ensure sync
-        setTimeout(() => {
-          setLastRefresh(Date.now())
-        }, 100)
+      if (result.success) {
+        return
+      }
+
+      if (result.error) {
+        logger.error('Failed to mark all notifications as read', { error: result.error })
       }
     } catch (error) {
-      logger.error("Failed to mark all notifications as read", { error })
-      // Revert on error
-      setNotifications(previousNotifications)
-      toast.error('Failed to mark all as read')
+      logger.error('Failed to mark all notifications as read', { error })
     }
+
+    setNotifications(previousNotifications)
+    setUnreadCount(previousNotifications.filter((notification) => !notification.read).length)
+    toast.error('Failed to mark all as read')
   }, [notifications])
 
-  const removeNotification = useCallback(async (id: string): Promise<void> => {
-    // Store notification for potential revert
-    const notificationToRemove = notifications.find(n => n.id === id)
-
-    // Optimistically update UI
-    setNotifications((prev) => prev.filter((notification) => notification.id !== id))
-
-    // Sync with database
-    try {
-      const result = await deleteNotification(id)
-      if (!result.success) {
-        // Revert on failure
-        if (notificationToRemove) {
-          setNotifications((prev) => [notificationToRemove, ...prev].sort(
-            (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-          ))
-        }
-        toast.error(result.error || 'Failed to delete notification')
-      } else {
-        // Force a refresh to ensure sync
-        setTimeout(() => {
-          setLastRefresh(Date.now())
-        }, 100)
+  const removeNotification = useCallback(
+    async (id: string): Promise<void> => {
+      const notificationToRemove = notifications.find((notification) => notification.id === id)
+      if (!notificationToRemove) {
+        return
       }
-    } catch (error) {
-      logger.error("Failed to delete notification", { id, error })
-      // Revert on error
-      if (notificationToRemove) {
-        setNotifications((prev) => [notificationToRemove, ...prev].sort(
-          (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-        ))
+
+      setNotifications((currentNotifications) =>
+        currentNotifications.filter((notification) => notification.id !== id)
+      )
+      if (!notificationToRemove.read) {
+        setUnreadCount((currentUnreadCount) => Math.max(0, currentUnreadCount - 1))
+      }
+
+      try {
+        const result = await deleteNotification(id)
+        if (result.success) {
+          return
+        }
+
+        if (result.error) {
+          logger.error('Failed to delete notification', { id, error: result.error })
+        }
+      } catch (error) {
+        logger.error('Failed to delete notification', { id, error })
+      }
+
+      setNotifications((currentNotifications) =>
+        [notificationToRemove, ...currentNotifications].sort(
+          (left, right) => right.createdAt.getTime() - left.createdAt.getTime()
+        )
+      )
+      if (!notificationToRemove.read) {
+        setUnreadCount((currentUnreadCount) => currentUnreadCount + 1)
       }
       toast.error('Failed to delete notification')
-    }
-  }, [notifications])
-
-  // Poll for new notifications every 30 seconds
-  useEffect(() => {
-    // Clear any existing interval
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current)
-    }
-
-    pollingRef.current = setInterval(() => {
-      void pollNotifications()
-    }, 30000) // 30 seconds
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current)
-      }
-    }
-  }, [pollNotifications])
+    },
+    [notifications]
+  )
 
   const value = useMemo<NotificationContextValue>(
     () => ({
       notifications,
       unreadCount,
+      hasLoaded,
       isLoading,
       addNotification,
+      ensureLoaded,
+      refreshNotifications: () => refreshNotifications(false),
       markAsRead,
       markAllAsRead,
       removeNotification,
     }),
-    [notifications, unreadCount, isLoading, addNotification, markAsRead, markAllAsRead, removeNotification]
+    [
+      notifications,
+      unreadCount,
+      hasLoaded,
+      isLoading,
+      addNotification,
+      ensureLoaded,
+      refreshNotifications,
+      markAsRead,
+      markAllAsRead,
+      removeNotification,
+    ]
   )
 
   return (

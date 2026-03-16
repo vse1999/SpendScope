@@ -1,7 +1,8 @@
-import { getUserNotifications } from "@/app/actions/notifications";
+import { getUnreadNotificationCount, getUserNotifications } from "@/app/actions/notifications";
 
 const mockAuth = jest.fn();
 const mockNotificationFindMany = jest.fn();
+const mockNotificationCount = jest.fn();
 const mockUserFindMany = jest.fn();
 
 jest.mock("@/auth", () => ({
@@ -12,6 +13,7 @@ jest.mock("@/lib/prisma", () => ({
   prisma: {
     notification: {
       findMany: (...args: unknown[]) => mockNotificationFindMany(...args),
+      count: (...args: unknown[]) => mockNotificationCount(...args),
     },
     user: {
       findMany: (...args: unknown[]) => mockUserFindMany(...args),
@@ -22,6 +24,26 @@ jest.mock("@/lib/prisma", () => ({
 describe("getUserNotifications role-audit message formatting", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it("returns the unread notification count for the current user", async (): Promise<void> => {
+    mockAuth.mockResolvedValue({
+      user: { id: "user-1" },
+    });
+    mockNotificationCount.mockResolvedValue(3);
+
+    const result = await getUnreadNotificationCount();
+
+    expect(result).toEqual({
+      success: true,
+      unreadCount: 3,
+    });
+    expect(mockNotificationCount).toHaveBeenCalledWith({
+      where: {
+        userId: "user-1",
+        read: false,
+      },
+    });
   });
 
   it("formats role-audit message for the actor as a human-readable message", async (): Promise<void> => {

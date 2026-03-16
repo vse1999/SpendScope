@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import React, { useState, useEffect, useCallback } from "react"
 import { UserRole } from "@prisma/client"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -35,19 +34,15 @@ import {
   BarChart3,
   ChevronRight,
   Search,
-  Bell,
   Users,
   Settings,
   CreditCard,
   LayoutDashboard,
   LogOut,
-  Check,
-  Inbox,
-  X,
   Loader2,
 } from "lucide-react"
-import { useNotifications } from "@/hooks/use-notifications"
 import { getDashboardRouteLabel } from "@/components/dashboard/navigation-config"
+import { NotificationsMenu } from "@/components/notifications/notifications-menu"
 
 // ============================================================================
 // Types & Interfaces
@@ -307,197 +302,6 @@ function SearchButton(): React.JSX.Element {
   )
 }
 
-function NotificationsButton(): React.JSX.Element {
-  const { unreadCount } = useNotifications()
-  const [open, setOpen] = React.useState(false)
-
-  return (
-    <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <DropdownMenuTrigger asChild id="dashboard-header-notifications-trigger">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-8 w-8 text-muted-foreground/60 hover:text-foreground hover:bg-accent/50"
-          aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
-        >
-          <Bell className="size-4" />
-          {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 flex size-2 rounded-full bg-primary" />
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <NotificationsPanel />
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-function NotificationsPanel(): React.JSX.Element {
-  const {
-    notifications,
-    unreadCount,
-    isLoading,
-    markAsRead,
-    markAllAsRead,
-    removeNotification,
-  } = useNotifications()
-  const [isMarkingAll, setIsMarkingAll] = React.useState(false)
-
-  const handleMarkAllAsRead = async (): Promise<void> => {
-    if (isMarkingAll) return
-    setIsMarkingAll(true)
-    try {
-      await markAllAsRead()
-    } finally {
-      setIsMarkingAll(false)
-    }
-  }
-
-  const sortedNotifications = React.useMemo(() => {
-    return [...notifications].sort((a, b) => {
-      if (a.read !== b.read) {
-        return a.read ? 1 : -1
-      }
-      return b.createdAt.getTime() - a.createdAt.getTime()
-    })
-  }, [notifications])
-
-  return (
-    <>
-      <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-xs font-medium">
-          Notifications {unreadCount > 0 && `(${unreadCount})`}
-        </span>
-        {unreadCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-auto px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
-            onClick={handleMarkAllAsRead}
-            disabled={isMarkingAll}
-          >
-            {isMarkingAll ? (
-              <Loader2 className="mr-1 size-3 animate-spin" />
-            ) : (
-              <Check className="mr-1 size-3" />
-            )}
-            Mark all read
-          </Button>
-        )}
-      </div>
-      <DropdownMenuSeparator />
-      <div className="max-h-[300px] overflow-y-auto">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Loader2 className="size-6 animate-spin text-muted-foreground" />
-            <p className="mt-3 text-sm text-muted-foreground">Loading...</p>
-          </div>
-        ) : sortedNotifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-3 py-8 text-center">
-            <Inbox className="mb-3 size-10 text-muted-foreground/40" />
-            <p className="text-sm font-medium">No notifications</p>
-            <p className="text-xs text-muted-foreground">You&apos;re all caught up!</p>
-          </div>
-        ) : (
-          sortedNotifications.map((notification) => (
-            <NotificationItem
-              key={notification.id}
-              notification={notification}
-              onMarkAsRead={markAsRead}
-              onRemove={removeNotification}
-            />
-          ))
-        )}
-      </div>
-    </>
-  )
-}
-
-function NotificationItem({
-  notification,
-  onMarkAsRead,
-  onRemove,
-}: {
-  notification: { id: string; title: string; message: string; read: boolean; createdAt: Date; type: 'info' | 'success' | 'warning' | 'error' }
-  onMarkAsRead: (id: string) => Promise<void>
-  onRemove: (id: string) => Promise<void>
-}): React.JSX.Element {
-  const [isMarking, setIsMarking] = React.useState(false)
-  const [isRemoving, setIsRemoving] = React.useState(false)
-
-  const handleClick = async (): Promise<void> => {
-    if (!notification.read && !isMarking) {
-      setIsMarking(true)
-      try {
-        await onMarkAsRead(notification.id)
-      } finally {
-        setIsMarking(false)
-      }
-    }
-  }
-
-  const handleRemove = async (e: React.MouseEvent): Promise<void> => {
-    e.stopPropagation()
-    if (isRemoving) return
-    setIsRemoving(true)
-    try {
-      await onRemove(notification.id)
-    } finally {
-      setIsRemoving(false)
-    }
-  }
-
-  const formatRelativeTime = (date: Date): string => {
-    const now = new Date()
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-
-    if (diffInSeconds < 60) return 'Just now'
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-
-  return (
-    <DropdownMenuItem
-      className={cn(
-        'group flex cursor-pointer items-start gap-3 px-3 py-3',
-        !notification.read && 'bg-accent/30'
-      )}
-      onClick={handleClick}
-    >
-      <div
-        className={cn(
-          'mt-1.5 size-1.5 rounded-full shrink-0',
-          !notification.read ? 'bg-primary' : 'bg-transparent'
-        )}
-      />
-      <div className="flex-1 space-y-1 min-w-0">
-        <p className={cn('text-sm leading-tight truncate', !notification.read ? 'font-medium' : 'text-muted-foreground')}>
-          {notification.title}
-        </p>
-        <p className="text-xs text-muted-foreground leading-tight line-clamp-2">
-          {notification.message}
-        </p>
-        <p className="text-[11px] text-muted-foreground/50">
-          {formatRelativeTime(notification.createdAt)}
-        </p>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-6 w-6 shrink-0 opacity-70 transition-opacity hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-        onClick={handleRemove}
-        disabled={isRemoving}
-        aria-label={`Remove notification: ${notification.title}`}
-      >
-        {isRemoving ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
-      </Button>
-    </DropdownMenuItem>
-  )
-}
-
 function UserMenu({ user }: { user: DashboardHeaderProps["user"] }): React.JSX.Element {
   const initials = getInitials(user.name)
   const displayName = user.name || user.email || "User"
@@ -654,7 +458,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps): React.JSX.Eleme
         <Separator orientation="vertical" className="mx-1.5 h-4 hidden sm:block" />
 
         {/* Notifications */}
-        <NotificationsButton />
+        <NotificationsMenu />
 
         {/* Theme Toggle */}
         <div className="hidden sm:block">

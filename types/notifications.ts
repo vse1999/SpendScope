@@ -13,8 +13,11 @@ export interface Notification {
 export interface NotificationContextValue {
   notifications: Notification[]
   unreadCount: number
+  hasLoaded: boolean
   isLoading: boolean
   addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => Promise<void>
+  ensureLoaded: () => Promise<void>
+  refreshNotifications: () => Promise<void>
   markAsRead: (id: string) => Promise<void>
   markAllAsRead: () => Promise<void>
   removeNotification: (id: string) => Promise<void>

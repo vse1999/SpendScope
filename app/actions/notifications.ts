@@ -32,6 +32,28 @@ interface DisplayUser {
   email: string;
 }
 
+export async function getUnreadNotificationCount(): Promise<{
+  success: boolean;
+  unreadCount?: number;
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const unreadCount = await prisma.notification.count({
+      where: { userId: session.user.id, read: false },
+    });
+
+    return { success: true, unreadCount };
+  } catch (error) {
+    logger.error("Failed to fetch unread notification count", { error });
+    return { success: false, error: "Failed to fetch unread notification count" };
+  }
+}
+
 function formatRoleLabel(role: "ADMIN" | "MEMBER"): string {
   return role === "ADMIN" ? "Admin" : "Member";
 }
