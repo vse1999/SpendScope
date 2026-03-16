@@ -1,19 +1,23 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
-const contentSecurityPolicyReportOnly = [
+const isDevelopment = process.env.NODE_ENV !== "production";
+
+const contentSecurityPolicyDirectives = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://lh3.googleusercontent.com https://avatars.githubusercontent.com",
   "connect-src 'self' https://*.ingest.sentry.io https://vitals.vercel-insights.com",
   "font-src 'self' data:",
   "worker-src 'self' blob:",
-].join("; ");
+];
+
+const contentSecurityPolicy = contentSecurityPolicyDirectives.join("; ");
 
 const securityHeaders: Array<{ key: string; value: string }> = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -21,7 +25,7 @@ const securityHeaders: Array<{ key: string; value: string }> = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
-  { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicyReportOnly },
+  { key: "Content-Security-Policy", value: contentSecurityPolicy },
 ];
 
 const allowedDevOrigins: string[] = process.env.ALLOWED_DEV_ORIGINS
