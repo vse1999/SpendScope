@@ -109,7 +109,7 @@ export function PricingSection({ plans }: PricingSectionProps): ReactElement {
           Choose your plan
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-          Start free and upgrade when you need more power.
+          Create a workspace, invite your team, and upgrade only when you need deeper controls.
         </p>
       </div>
 
@@ -125,7 +125,7 @@ export function PricingSection({ plans }: PricingSectionProps): ReactElement {
           <span>Secure OAuth authentication</span>
         </div>
         <p className="text-xs">
-          No credit card required for Free tier. Cancel anytime.
+          No credit card required for Free tier. Start with OAuth, then finish setup in onboarding.
         </p>
       </div>
     </section>

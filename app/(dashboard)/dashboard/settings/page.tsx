@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,10 +17,21 @@ interface SettingsPageProps {
     }>
 }
 
+function parseLinkTarget(value: string | undefined): "github" | "google" | undefined {
+    if (value === "github" || value === "google") {
+        return value
+    }
+
+    return undefined
+}
+
 export default async function SettingsPage({ searchParams }: SettingsPageProps): Promise<React.JSX.Element> {
-    // session.user is guaranteed by (dashboard)/layout.tsx auth guard
     const session = await auth()
-    const user = session!.user!
+    if (!session?.user?.id) {
+        redirect("/login")
+    }
+
+    const user = session.user
     const params = await searchParams
 
     const [accounts, userWithCompany] = await Promise.all([
@@ -50,7 +63,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
     // Handle different states
     const showLinkedSuccess = params.linked === "true"
     const stepUpVerified = params.stepUp === "true"
-    const linkTarget = params.linkTarget as "github" | "google" | undefined
+    const linkTarget = parseLinkTarget(params.linkTarget)
     const error = params.error
 
     return (

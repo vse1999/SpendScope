@@ -70,7 +70,7 @@ export function HeroSection({ trustItems, previewData }: HeroSectionProps): Reac
             className="w-fit border-indigo-200/70 bg-indigo-50/80 text-indigo-700 backdrop-blur-sm dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300"
           >
             <span className="mr-2 inline-block size-2 rounded-full bg-indigo-500" />
-            Built for modern finance operations
+            Built for finance and ops teams that own spend
           </Badge>
 
           <h1
@@ -79,15 +79,13 @@ export function HeroSection({ trustItems, previewData }: HeroSectionProps): Reac
               "max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl"
             )}
           >
-            <span className="text-gradient">Expense control</span> for teams that
-            need speed, clarity, and confidence
+            Keep team spend visible before month-end turns into a surprise
           </h1>
 
           <p className="max-w-2xl text-lg text-muted-foreground">
-            SpendScope delivers expense control for modern teams with
-            streamlined workflows, policy guidance, and analytics visibility.
-            Teams gain speed, clarity, and confidence from raw spending data
-            through final decisions.
+            SpendScope helps finance leads and operations owners capture team
+            spend in one workspace, flag policy issues before close, and keep
+            billing and role access aligned as the company grows.
           </p>
 
           <div className="flex flex-wrap gap-3">
@@ -110,7 +108,7 @@ export function HeroSection({ trustItems, previewData }: HeroSectionProps): Reac
           </div>
 
           <p className="text-sm text-muted-foreground">
-            No credit card required for Free tier.
+            Start with Google or GitHub, then finish workspace setup in onboarding.
           </p>
 
           <div className="grid gap-2 sm:grid-cols-2">

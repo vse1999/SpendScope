@@ -35,8 +35,8 @@ export function TourSection({ tourSteps }: TourSectionProps): ReactElement {
           Three-step <span className="text-gradient">operating flow</span>
         </h2>
         <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-          Clear sequence from capture to control to review. Each stage keeps
-          teams moving from raw expense data to accountable decisions.
+          A clear workflow for getting expense data out of scattered tools and
+          into one reviewable system with ownership, policy context, and team controls.
         </p>
       </div>
 

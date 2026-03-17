@@ -14,13 +14,20 @@ export default async function TeamPage(): Promise<React.JSX.Element> {
     getTeamRoleAuditLog(),
   ]);
 
-  // Extract data or use defaults
+  const membersError = membersResult.success ? null : membersResult.error;
   const members = membersResult.success ? membersResult.members : [];
   const isAdmin = membersResult.success ? membersResult.isAdmin : false;
   const currentUserId = membersResult.success ? membersResult.currentUserId : "";
   const billingEnabled = isBillingEnabled();
-  
+  const pendingInvitationsError =
+    invitationsResult.success || invitationsResult.code === "UNAUTHORIZED"
+      ? null
+      : invitationsResult.error;
   const pendingInvitations = invitationsResult.success ? invitationsResult.invitations : [];
+  const roleAuditError =
+    roleAuditResult.success || roleAuditResult.code === "UNAUTHORIZED"
+      ? null
+      : roleAuditResult.error;
   const roleAuditEvents = roleAuditResult.success ? roleAuditResult.audits : [];
 
   return (
@@ -36,10 +43,13 @@ export default async function TeamPage(): Promise<React.JSX.Element> {
 
       <TeamClient
         members={members}
+        membersError={membersError}
         pendingInvitations={pendingInvitations}
+        pendingInvitationsError={pendingInvitationsError}
         isAdmin={isAdmin}
         billingEnabled={billingEnabled}
         currentUserId={currentUserId}
+        roleAuditError={roleAuditError}
         roleAuditEvents={roleAuditEvents}
       />
     </div>

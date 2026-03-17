@@ -12,9 +12,9 @@ export function CompanyWelcome({ userName }: CompanyWelcomeProps) {
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
         <Building2 className="w-8 h-8 text-primary" />
       </div>
-      <h1 className="text-4xl font-bold tracking-tight">Welcome to SpendScope!</h1>
+      <h1 className="text-4xl font-bold tracking-tight">Set up your spend workspace</h1>
       <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-        Hi {firstName}! To get started with expense tracking, you need to join or create a company workspace.
+        Hi {firstName}! Join the workspace your team already uses, or create one for finance and operations to manage expenses, access, and billing in one place.
       </p>
     </section>
   )

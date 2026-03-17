@@ -25,8 +25,11 @@ import { resolveRoleTarget } from "./team-client-types";
 
 interface TeamClientProps {
   members: TeamMember[];
+  membersError?: string | null;
   pendingInvitations: Invitation[];
+  pendingInvitationsError?: string | null;
   roleAuditEvents: TeamRoleAuditEntry[];
+  roleAuditError?: string | null;
   isAdmin: boolean;
   billingEnabled: boolean;
   currentUserId: string;
@@ -34,8 +37,11 @@ interface TeamClientProps {
 
 export function TeamClient({
   members,
+  membersError,
   pendingInvitations,
+  pendingInvitationsError,
   roleAuditEvents,
+  roleAuditError,
   isAdmin,
   billingEnabled,
   currentUserId,
@@ -211,6 +217,10 @@ export function TeamClient({
         isAdmin={isAdmin}
         currentUserId={currentUserId}
         adminCount={adminCount}
+        loadError={membersError}
+        onRetry={() => {
+          router.refresh();
+        }}
         isInviteDialogOpen={isInviteDialogOpen}
         isInviting={isInviting}
         inviteEmail={inviteEmail}
@@ -223,7 +233,15 @@ export function TeamClient({
         onMemberAction={openMemberActionDialog}
       />
 
-      {isAdmin && <RoleAuditCard roleAuditEvents={roleAuditEvents} />}
+      {(Boolean(roleAuditError) || isAdmin) && (
+        <RoleAuditCard
+          roleAuditEvents={roleAuditEvents}
+          loadError={roleAuditError}
+          onRetry={() => {
+            router.refresh();
+          }}
+        />
+      )}
 
       <MemberActionDialog
         pendingAction={pendingMemberAction}
@@ -236,11 +254,15 @@ export function TeamClient({
         onConfirm={runPendingMemberAction}
       />
 
-      {isAdmin && pendingInvitations.length > 0 && (
+      {(Boolean(pendingInvitationsError) || (isAdmin && pendingInvitations.length > 0)) && (
         <PendingInvitationsCard
           pendingInvitations={pendingInvitations}
           isCancelling={isCancelling}
+          loadError={pendingInvitationsError}
           isResending={isResending}
+          onRetry={() => {
+            router.refresh();
+          }}
           onCancelInvitation={handleCancelInvitation}
           onResendInvitation={handleResendInvitation}
         />

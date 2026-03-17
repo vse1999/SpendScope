@@ -14,10 +14,10 @@ import { MARKETING_ANALYTICS_DATA } from "@/lib/marketing/demo-data";
 import { PRICING_PLANS } from "@/lib/marketing/pricing-plans";
 
 const trustItems = [
-  { title: "Role-based access controls", iconName: "ShieldCheck" },
-  { title: "Audit history for key changes", iconName: "Layers3" },
-  { title: "Secure OAuth authentication", iconName: "LockKeyhole" },
-  { title: "Team invitations and admin workflows", iconName: "Users" },
+  { title: "Role-based access for finance and team leads", iconName: "ShieldCheck" },
+  { title: "Audit visibility for key billing and role changes", iconName: "Layers3" },
+  { title: "Secure OAuth sign-in for managed workspaces", iconName: "LockKeyhole" },
+  { title: "Team onboarding with admin-controlled invites", iconName: "Users" },
 ] as const;
 
 const technologies = [
@@ -47,22 +47,22 @@ const technologies = [
 
 const tourSteps = [
   {
-    title: "Capture expenses fast",
+    title: "Capture team spend in one place",
     description:
-      "Submit spending records with categories and context in a workflow teams can adopt immediately.",
-    detail: "From first entry to organized ledger in minutes.",
+      "Create a shared ledger with expense owner, category, and date context instead of piecing together receipts from multiple tools.",
+    detail: "Give finance and ops one source of truth for team spend.",
   },
   {
-    title: "Apply policy guidance and risk checks",
+    title: "Review policy risk before close",
     description:
-      "Use expense monitor alerts and budget-aware policies to spot risk patterns before they grow into surprises.",
-    detail: "Prevent drift with explainable decision support.",
+      "Use policy-aware alerts, budget checks, and trend visibility to catch drift before it becomes a month-end surprise.",
+    detail: "Turn raw transactions into reviewable exceptions.",
   },
   {
-    title: "Review trends and act with team controls",
+    title: "Keep access and billing aligned",
     description:
-      "Monitor analytics, manage member roles, and keep operations aligned with clear ownership.",
-    detail: "Move from raw spend data to actionable priorities.",
+      "Manage member roles, invitations, analytics visibility, and subscription changes in the same workspace.",
+    detail: "Give ownership, billing, and spend controls one home.",
   },
 ] as const;
 
@@ -70,7 +70,7 @@ const faqItems = [
   {
     question: "Who is SpendScope for?",
     answer:
-      "SpendScope is designed for startups, growing companies, and enterprise teams that need clear expense visibility and stronger spending control.",
+      "SpendScope is designed for startup finance leads, operations owners, and team admins who need a reliable way to review spend, control access, and keep billing clean as the team grows.",
   },
   {
     question: "Can I start without payment details?",
@@ -80,7 +80,7 @@ const faqItems = [
   {
     question: "How does team access work?",
     answer:
-      "You can invite team members, assign roles, and manage admin permissions to keep ownership and approvals structured.",
+      "You can create a workspace, invite teammates, assign roles, and keep admin-level ownership separate from day-to-day expense entry.",
   },
   {
     question: "Does SpendScope support policy-aware controls?",

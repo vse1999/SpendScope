@@ -11,7 +11,7 @@ describe("LandingPage", () => {
   it("renders key marketing content into the server html", () => {
     const html = renderToStaticMarkup(createElement(LandingPage));
 
-    expect(html).toContain("Expense control");
+    expect(html).toContain("Keep team spend visible before month-end turns into a surprise");
     expect(html).toContain("Create Free Workspace");
     expect(html).toContain("Choose your plan");
     expect(html).toContain("Frequently asked");

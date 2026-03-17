@@ -73,7 +73,7 @@ export function LandingNavbar(): ReactElement {
               className="h-11 bg-gradient-brand px-5 text-white shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30"
             >
               <Link href="/signup">
-                Start Free Plan
+                Create Workspace
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -118,7 +118,7 @@ export function LandingNavbar(): ReactElement {
                     <SheetClose asChild>
                       <Button asChild className="w-full bg-gradient-brand text-white shadow-md shadow-indigo-500/20">
                         <Link href="/signup">
-                          Open Free Workspace
+                          Create Workspace
                           <ArrowRight className="size-4" />
                         </Link>
                       </Button>

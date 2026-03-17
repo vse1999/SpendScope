@@ -5,8 +5,11 @@ import { UserRole } from "@prisma/client";
 import type { TeamRoleAuditEntry } from "@/lib/invitations/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TeamSectionErrorState } from "./team-section-error-state";
 
 interface RoleAuditCardProps {
+  loadError?: string | null;
+  onRetry?: () => void;
   roleAuditEvents: TeamRoleAuditEntry[];
 }
 
@@ -22,7 +25,11 @@ function getRoleBadgeVariant(role: UserRole): "default" | "secondary" | "outline
   return "outline";
 }
 
-export function RoleAuditCard({ roleAuditEvents }: RoleAuditCardProps): React.JSX.Element {
+export function RoleAuditCard({
+  loadError,
+  onRetry,
+  roleAuditEvents,
+}: RoleAuditCardProps): React.JSX.Element {
   return (
     <Card>
       <CardHeader>
@@ -33,7 +40,13 @@ export function RoleAuditCard({ roleAuditEvents }: RoleAuditCardProps): React.JS
         <CardDescription>Most recent role changes for your company team.</CardDescription>
       </CardHeader>
       <CardContent>
-        {roleAuditEvents.length === 0 ? (
+        {loadError ? (
+          <TeamSectionErrorState
+            title="Role audit log is temporarily unavailable"
+            description={loadError}
+            onRetry={onRetry}
+          />
+        ) : roleAuditEvents.length === 0 ? (
           <p className="text-sm text-muted-foreground">No role changes recorded yet.</p>
         ) : (
           <div className="space-y-3">

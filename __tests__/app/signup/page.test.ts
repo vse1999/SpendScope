@@ -1,39 +1,39 @@
-import SignupPage from "@/app/signup/page"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
 
-const mockRedirect = jest.fn()
-
-jest.mock("next/navigation", () => ({
-  redirect: (...args: unknown[]) => mockRedirect(...args),
+jest.mock("@/components/blocks/auth/oauth-buttons", () => ({
+  GoogleSignInButton: () => createElement("button", { type: "button" }, "Continue with Google"),
+  GitHubSignInButton: () => createElement("button", { type: "button" }, "Continue with GitHub"),
 }))
 
-describe("SignupPage", () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
+import SignupPage from "@/app/signup/page"
 
-  it("forwards pricing intent and redirect target to login", async () => {
-    await SignupPage({
+describe("SignupPage", () => {
+  it("renders a workspace creation screen that continues into onboarding", async () => {
+    const element = await SignupPage({
       searchParams: Promise.resolve({
         plan: "pro",
         redirectTo: "/onboarding?redirectTo=%2Fdashboard%2Fbilling&plan=pro",
       }),
     })
+    const html = renderToStaticMarkup(element)
 
-    expect(mockRedirect).toHaveBeenCalledWith(
-      "/login?intent=signup&plan=pro&redirectTo=%2Fonboarding%3FredirectTo%3D%252Fdashboard%252Fbilling%26plan%3Dpro"
-    )
+    expect(html).toContain("Create a workspace for finance, ops, and team spend review")
+    expect(html).toContain("Continue with Google")
+    expect(html).toContain("Continue with GitHub")
+    expect(html).toContain("Pro workspace setup")
   })
 
-  it("falls back to dashboard when redirect target is unsafe", async () => {
-    await SignupPage({
+  it("uses a safe fallback when redirect target is unsafe", async () => {
+    const element = await SignupPage({
       searchParams: Promise.resolve({
         plan: "free",
         redirectTo: "https://malicious.example",
       }),
     })
+    const html = renderToStaticMarkup(element)
 
-    expect(mockRedirect).toHaveBeenCalledWith(
-      "/login?intent=signup&plan=free&redirectTo=%2Fdashboard"
-    )
+    expect(html).toContain("/login?redirectTo=%2Fdashboard")
+    expect(html).toContain("Free workspace setup")
   })
 })

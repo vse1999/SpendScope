@@ -1,5 +1,4 @@
 import { GoogleSignInButton, GitHubSignInButton } from "./oauth-buttons"
-import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 interface LoginFormProps {
@@ -18,12 +17,12 @@ export function LoginForm({
           <span className="app-page-title-gradient">SpendScope</span>
         </h1>
         <p className="text-base text-muted-foreground">
-          Enterprise Expense Analytics Platform
+          Sign in to the workspace your team uses to review spend, policy risk, and billing access
         </p>
       </div>
 
       <p className="text-sm text-center text-muted-foreground">
-        Sign in to access your expense dashboard
+        For returning finance leads, ops owners, and teammates who already have workspace access
       </p>
 
       <div className="space-y-3">
@@ -41,18 +40,6 @@ export function LoginForm({
           </span>
         </div>
       </div>
-
-      <p className="text-xs text-center text-muted-foreground">
-        By continuing, you agree to our{" "}
-        <Link href="/terms" className="underline underline-offset-4 hover:text-foreground">
-          Terms of Service
-        </Link>{" "}
-        and{" "}
-        <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
-          Privacy Policy
-        </Link>
-        .
-      </p>
     </div>
   )
 }

@@ -7,6 +7,7 @@ import {
   getExpensesSummary,
 } from "@/app/actions/expenses";
 import { parseMultiSort, type MultiSortConfig } from "@/lib/expense-sorting";
+import { ExpenseInitialLoadErrorState } from "./components/expense-initial-load-error-state";
 import { ExpenseReviewSection } from "./expenses-copilot-section";
 import { ExpensesClient } from "./expenses-client";
 
@@ -62,6 +63,50 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps):
     getCategories(),
     getExpensesSummary(filters),
   ]);
+
+  const expensesError = "error" in expensesResult ? expensesResult.error : undefined;
+  const categoriesError = "error" in categoriesResult ? categoriesResult.error : undefined;
+  const summaryError = "error" in summaryResult ? summaryResult.error : undefined;
+  const loadIssues = [
+    expensesError ? { label: "Expense list", message: expensesError } : null,
+    categoriesError ? { label: "Categories", message: categoriesError } : null,
+    summaryError ? { label: "Summary totals", message: summaryError } : null,
+  ].filter((issue): issue is { label: string; message: string } => issue !== null);
+
+  if (loadIssues.length > 0) {
+    const retrySearchParams = new URLSearchParams();
+
+    if (params.cursor) {
+      retrySearchParams.set("cursor", params.cursor);
+    }
+    if (params.from) {
+      retrySearchParams.set("from", params.from);
+    }
+    if (params.to) {
+      retrySearchParams.set("to", params.to);
+    }
+    if (params.category) {
+      retrySearchParams.set("category", params.category);
+    }
+    if (params.minAmount) {
+      retrySearchParams.set("minAmount", params.minAmount);
+    }
+    if (params.maxAmount) {
+      retrySearchParams.set("maxAmount", params.maxAmount);
+    }
+    if (params.search) {
+      retrySearchParams.set("search", params.search);
+    }
+    if (params.sort) {
+      retrySearchParams.set("sort", params.sort);
+    }
+
+    const retryHref = retrySearchParams.size > 0
+      ? `/dashboard/expenses?${retrySearchParams.toString()}`
+      : "/dashboard/expenses";
+
+    return <ExpenseInitialLoadErrorState issues={loadIssues} retryHref={retryHref} />;
+  }
 
   const expenses = "error" in expensesResult ? { items: [], pageInfo: { endCursor: null } } : expensesResult;
   const categories = "error" in categoriesResult ? [] : categoriesResult;

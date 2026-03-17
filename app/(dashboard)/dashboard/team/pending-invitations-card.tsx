@@ -25,11 +25,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TeamSectionErrorState } from "./team-section-error-state";
 
 interface PendingInvitationsCardProps {
   pendingInvitations: Invitation[];
   isCancelling: string | null;
+  loadError?: string | null;
   isResending: string | null;
+  onRetry?: () => void;
   onCancelInvitation: (invitationId: string) => Promise<void>;
   onResendInvitation: (invitationId: string) => Promise<void>;
 }
@@ -49,7 +52,9 @@ function getRoleBadgeVariant(role: UserRole): "default" | "secondary" | "outline
 export function PendingInvitationsCard({
   pendingInvitations,
   isCancelling,
+  loadError,
   isResending,
+  onRetry,
   onCancelInvitation,
   onResendInvitation,
 }: PendingInvitationsCardProps): React.JSX.Element {
@@ -68,7 +73,14 @@ export function PendingInvitationsCard({
         </div>
       </CardHeader>
       <CardContent>
-        <>
+        {loadError ? (
+          <TeamSectionErrorState
+            title="Pending invitations could not be loaded"
+            description={loadError}
+            onRetry={onRetry}
+          />
+        ) : (
+          <>
           <div className="space-y-3 md:hidden">
             {pendingInvitations.map((invitation) => {
               const isExpired = new Date(invitation.expiresAt) < new Date();
@@ -277,7 +289,8 @@ export function PendingInvitationsCard({
               </TableBody>
             </Table>
           </div>
-        </>
+          </>
+        )}
       </CardContent>
     </Card>
   );

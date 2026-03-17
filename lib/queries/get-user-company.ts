@@ -5,6 +5,22 @@ import { UserRole } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
+type CompanyWithMemberCount = NonNullable<
+    Awaited<ReturnType<typeof prisma.company.findUnique>>
+>;
+
+interface CachedUserCompanyMissing {
+    hasCompany: false;
+}
+
+interface CachedUserCompanyReady {
+    company: CompanyWithMemberCount;
+    hasCompany: true;
+    userRole: UserRole;
+}
+
+export type CachedUserCompany = CachedUserCompanyMissing | CachedUserCompanyReady;
+
 function isDynamicServerUsageError(error: unknown): boolean {
     if (!error || typeof error !== "object") {
         return false;
@@ -23,7 +39,7 @@ function isDynamicServerUsageError(error: unknown): boolean {
  * CRITICAL: Always queries database for fresh data, bypassing session cache.
  * This prevents redirect loops after onboarding when JWT token is stale.
  */
-export const getCachedUserCompany = cache(async () => {
+export const getCachedUserCompany = cache(async (): Promise<CachedUserCompany> => {
     try {
         const session = await auth();
 
@@ -54,7 +70,7 @@ export const getCachedUserCompany = cache(async () => {
             return { hasCompany: false as const };
         }
 
-        return { hasCompany: true as const, company, userRole: user.role as UserRole };
+        return { hasCompany: true as const, company, userRole: user.role };
     } catch (error) {
         if (isDynamicServerUsageError(error)) {
             throw error;

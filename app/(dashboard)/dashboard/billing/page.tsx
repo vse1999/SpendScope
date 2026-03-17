@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+
 import { getUsageStats } from "@/lib/stripe/subscription"
 import { isBillingEnabled } from "@/lib/stripe/config"
 import { getCachedUserCompany } from "@/lib/queries/get-user-company"
@@ -5,8 +7,12 @@ import { BillingClient } from "./billing-client"
 
 export default async function BillingPage() {
   const userCompany = await getCachedUserCompany()
-  const companyId = userCompany.company!.id
-  const isAdmin = userCompany.hasCompany ? userCompany.userRole === "ADMIN" : false
+  if (!userCompany.hasCompany) {
+    redirect("/onboarding")
+  }
+
+  const companyId = userCompany.company.id
+  const isAdmin = userCompany.userRole === "ADMIN"
 
   // Get usage stats
   const usage = await getUsageStats(companyId)

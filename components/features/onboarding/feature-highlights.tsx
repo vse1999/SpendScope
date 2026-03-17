@@ -2,16 +2,16 @@ import { Card, CardContent } from "@/components/ui/card"
 
 const features = [
   {
-    title: "Track",
-    description: "Log and categorize all company expenses",
+    title: "Capture",
+    description: "Centralize team expenses in one workspace instead of scattered spreadsheets and chat",
   },
   {
-    title: "Analyze",
-    description: "View spending insights and reports",
+    title: "Review",
+    description: "Spot policy issues, budget pressure, and owner-level spend before close",
   },
   {
-    title: "Collaborate",
-    description: "Work together with your team",
+    title: "Control",
+    description: "Manage roles, invites, and billing access with clear ownership",
   },
 ] as const
 

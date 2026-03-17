@@ -40,7 +40,7 @@ export function CompanySelector({ companies, redirectTo }: CompanySelectorProps)
               Join an Existing Company
             </CardTitle>
             <CardDescription>
-              Select a company from the list below to join their workspace.
+              Join the workspace your company already uses for expense review, team access, and billing visibility.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -57,7 +57,7 @@ export function CompanySelector({ companies, redirectTo }: CompanySelectorProps)
               Create a New Company
             </CardTitle>
             <CardDescription>
-              Set up a new company workspace. You&apos;ll be the admin and can invite team members later.
+              Create the workspace your finance or ops team will use to capture expenses, invite members, and manage access.
             </CardDescription>
           </CardHeader>
           <CardContent>

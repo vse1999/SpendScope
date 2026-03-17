@@ -24,11 +24,12 @@ export function FeaturesSection({ analyticsData }: FeaturesSectionProps): ReactE
             "text-3xl font-semibold tracking-tight sm:text-4xl"
           )}
         >
-          Analytics that drive <span className="text-gradient">better decisions</span>
+          See where spend is drifting before it becomes a month-end surprise
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-          Real-time insights into spending patterns, team behavior, and budget
-          performance. Visualize trends and take action with confidence.
+          Give finance and ops a shared view of category mix, owner-level spend,
+          and budget pressure so the team can review issues while they are still
+          actionable.
         </p>
       </div>
 

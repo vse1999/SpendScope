@@ -48,6 +48,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TeamSectionErrorState } from "./team-section-error-state";
 import type { MemberActionType } from "./team-client-types";
 
 interface TeamMembersCardProps {
@@ -55,6 +56,8 @@ interface TeamMembersCardProps {
   isAdmin: boolean;
   currentUserId: string;
   adminCount: number;
+  loadError?: string | null;
+  onRetry?: () => void;
   isInviteDialogOpen: boolean;
   isInviting: boolean;
   inviteEmail: string;
@@ -97,6 +100,8 @@ export function TeamMembersCard({
   isAdmin,
   currentUserId,
   adminCount,
+  loadError,
+  onRetry,
   isInviteDialogOpen,
   isInviting,
   inviteEmail,
@@ -203,7 +208,13 @@ export function TeamMembersCard({
         )}
       </CardHeader>
       <CardContent>
-        {members.length === 0 ? (
+        {loadError ? (
+          <TeamSectionErrorState
+            title="Team members are temporarily unavailable"
+            description={loadError}
+            onRetry={onRetry}
+          />
+        ) : members.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
             No team members found
           </div>
