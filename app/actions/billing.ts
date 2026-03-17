@@ -136,7 +136,6 @@ export async function syncSubscriptionAfterCheckout() {
           type: "SUCCESS",
           title: "Upgraded to Pro",
           message: `${upgraderName} upgraded your team to the Pro plan. Enjoy unlimited features!`,
-          actionUrl: "/dashboard/billing",
         });
       }
     } catch (notifyError) {

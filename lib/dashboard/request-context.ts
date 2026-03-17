@@ -146,7 +146,6 @@ const getCachedDashboardAccessResult = cache(async (): Promise<DashboardAccessRe
       error: error instanceof Error ? error.message : "Unknown error",
       userId: session.user.id,
     })
-    console.error("Failed to resolve dashboard request context:", error);
     return { state: "missing-company" };
   }
 });

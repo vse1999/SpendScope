@@ -13,6 +13,7 @@ import {
   type FeatureCheckResult
 } from "@/lib/subscription/feature-gate-service";
 import { FeatureGateError } from "@/lib/errors";
+import { createLogger } from "@/lib/monitoring/logger";
 import { createNotification } from "@/app/actions/notifications";
 import { evaluateBudgetPolicyForExpenseChange } from "@/lib/budget/service";
 import { serializeExpense } from "@/lib/expenses/action-helpers";
@@ -21,6 +22,7 @@ import type { CreateExpenseResult } from "./expenses-types";
 
 const LIMIT_CHECK_UNAVAILABLE_MESSAGE =
   "Unable to verify plan limits right now. Please try again.";
+const logger = createLogger("expenses-create-action");
 
 /**
  * Create a new expense with feature limit enforcement and rate limiting
@@ -107,7 +109,7 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
       limitCheck = await checkFeatureLimit(companyId, "expense", 1);
     } catch (error) {
       const checkedError = error instanceof Error ? error : new Error(String(error));
-      console.error("entitlement_check_failed", {
+      logger.error("entitlement_check_failed", {
         event: "entitlement_check_failed",
         action: "createExpense",
         companyId,
@@ -157,7 +159,7 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
       }
 
       const consumeError = error instanceof Error ? error : new Error(String(error));
-      console.error("entitlement_consume_failed", {
+      logger.error("entitlement_consume_failed", {
         event: "entitlement_consume_failed",
         action: "createExpense",
         companyId,
@@ -196,19 +198,18 @@ export async function createExpense(formData: FormData): Promise<CreateExpenseRe
             type: "INFO",
             title: "New Expense Added",
             message: `${creatorName} added ${amountFormatted} for "${validated.description}"`,
-            actionUrl: "/dashboard/expenses",
           });
         }
       }
     } catch (notifyError) {
-      console.error("Failed to send notifications:", notifyError);
+      logger.error("Failed to send expense notifications", { companyId, error: notifyError });
       // Don't fail the expense creation if notifications fail
     }
 
     // Return serialized expense (Decimal -> string)
     return { success: true, expense: serializeExpense(expense) };
   } catch (error) {
-    console.error("Failed to create expense:", error);
+    logger.error("Failed to create expense", { error });
 
     if (error instanceof FeatureGateError) {
       return {

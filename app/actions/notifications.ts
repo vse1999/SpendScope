@@ -13,7 +13,6 @@ export interface NotificationInput {
   type: NotificationType;
   title: string;
   message: string;
-  actionUrl?: string;
 }
 
 export interface NotificationResult {
@@ -22,7 +21,6 @@ export interface NotificationResult {
   title: string;
   message: string;
   read: boolean;
-  actionUrl: string | null;
   createdAt: Date;
 }
 
@@ -305,7 +303,6 @@ export async function createNotification(
         type: input.type,
         title: input.title,
         message: input.message,
-        actionUrl: input.actionUrl,
       },
     });
 

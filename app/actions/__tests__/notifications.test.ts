@@ -58,7 +58,6 @@ describe("getUserNotifications role-audit message formatting", () => {
         title: "Team Role Changed",
         message: "ROLE_AUDIT_V1|admin-1|member-1|MEMBER|ADMIN",
         read: false,
-        actionUrl: "/dashboard/team",
         createdAt: now,
       },
     ]);
@@ -98,7 +97,6 @@ describe("getUserNotifications role-audit message formatting", () => {
         title: "Role Updated",
         message: "ROLE_AUDIT_V1|admin-1|member-1|MEMBER|ADMIN",
         read: false,
-        actionUrl: "/dashboard/team",
         createdAt: now,
       },
     ]);
@@ -138,7 +136,6 @@ describe("getUserNotifications role-audit message formatting", () => {
         title: "Budget Alert",
         message: "Budget threshold exceeded by 12%.",
         read: false,
-        actionUrl: "/dashboard/expenses",
         createdAt: now,
       },
     ]);

@@ -160,14 +160,12 @@ describe("joinCompany", () => {
           type: NotificationType.INFO,
           title: "New Team Member",
           message: 'Taylor Doe joined "Acme Inc"',
-          actionUrl: "/dashboard/team",
         },
         {
           userId: "user-1",
           type: NotificationType.SUCCESS,
           title: "Welcome to the Team!",
           message: 'You\'ve successfully joined "Acme Inc"',
-          actionUrl: "/dashboard",
         },
       ],
     })

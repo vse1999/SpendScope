@@ -183,7 +183,6 @@ export async function updateExpense(id: string, formData: FormData) {
           type: "WARNING",
           title: "Expense Updated by Admin",
           message: `${userName} updated your expense "${validated.description}" to ${amountFormatted}`,
-          actionUrl: "/dashboard/expenses",
         });
       } catch (notifyError) {
         logger.error("Failed to send notification", { error: notifyError });

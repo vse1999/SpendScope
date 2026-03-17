@@ -4,6 +4,7 @@ import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { FeatureGateError } from "@/lib/errors";
 import { createNotification } from "@/app/actions/notifications";
 import { sendTeamInvitationEmail } from "@/lib/email/invitations";
+import { createLogger } from "@/lib/monitoring/logger";
 import {
   getDisplayName,
   getInvitationAcceptUrl,
@@ -25,6 +26,7 @@ import type {
 
 const ROLE_AUDIT_TITLE = "Team Role Changed";
 const ROLE_AUDIT_PREFIX = getRoleAuditPrefix();
+const logger = createLogger("invitations-service");
 
 async function expireOverdueInvitations(companyId: string): Promise<void> {
   await prisma.invitation.updateMany({
@@ -161,10 +163,9 @@ export async function updateCompanyMemberRole(
       type: "INFO",
       title: "Role Updated",
       message: `${actorDisplayName} changed your role from ${targetMember.role} to ${nextRole}.`,
-      actionUrl: "/dashboard/team",
     });
   } catch (error) {
-    console.error("Failed to create target role-change notification:", error);
+    logger.error("Failed to create target role-change notification", { error });
   }
 
   try {
@@ -172,10 +173,9 @@ export async function updateCompanyMemberRole(
       type: "SUCCESS",
       title: ROLE_AUDIT_TITLE,
       message: `${ROLE_AUDIT_PREFIX}${currentUser.id}|${targetMember.id}|${targetMember.role}|${nextRole}`,
-      actionUrl: "/dashboard/team",
     });
   } catch (error) {
-    console.error("Failed to create actor role-change audit notification:", error);
+    logger.error("Failed to create actor role-change audit notification", { error });
   }
 
   return {
@@ -686,10 +686,9 @@ export async function acceptInvitationByToken(
       type: "SUCCESS",
       title: "Invitation Accepted",
       message: `${getDisplayName(currentUser)} joined "${invitation.company.name}"`,
-      actionUrl: "/dashboard/team",
     });
   } catch (error) {
-    console.error("Failed to create invitation accepted notification:", error);
+    logger.error("Failed to create invitation accepted notification", { error });
   }
 
   return { ok: true, companySlug: invitation.company.slug };

@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { invalidateCompanyCategoryReadModels } from "@/lib/cache/company-read-model-cache";
 import { getNumericLimits } from "@/lib/subscription/config";
 import { FeatureGateError, ValidationError } from "@/lib/errors";
+import { createLogger } from "@/lib/monitoring/logger";
 import {
   InvitationStatus,
   NotificationType,
@@ -14,6 +15,8 @@ import {
   SubscriptionPlan,
   UserRole,
 } from "@prisma/client";
+
+const logger = createLogger("companies-actions");
 
 /**
  * Get all companies the user can join.
@@ -52,7 +55,7 @@ export async function getAllCompanies() {
 
     return invitations.map((invitation) => invitation.company);
   } catch (error) {
-    console.error("Failed to fetch companies:", error);
+    logger.error("Failed to fetch companies", { error });
     return {
       error: error instanceof Error ? error.message : "Failed to fetch companies",
     };
@@ -303,7 +306,7 @@ export async function createCompany(formData: FormData): Promise<CreateCompanyRe
       };
     }
 
-    console.error("Failed to create company:", error);
+    logger.error("Failed to create company", { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to create company",
@@ -498,14 +501,12 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
             type: NotificationType.INFO,
             title: "New Team Member",
             message: `${joinerName} joined "${joinResult.company.name}"`,
-            actionUrl: "/dashboard/team",
           })),
           {
             userId: authenticatedUserId,
             type: NotificationType.SUCCESS,
             title: "Welcome to the Team!",
             message: `You've successfully joined "${joinResult.company.name}"`,
-            actionUrl: "/dashboard",
           },
         ];
 
@@ -513,7 +514,7 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
           data: notificationRows,
         });
       } catch (notifyError) {
-        console.error("Failed to send notifications:", notifyError);
+        logger.error("Failed to send join notifications", { companyId, error: notifyError });
       }
     }
 
@@ -549,7 +550,7 @@ export async function joinCompany(companyId: string): Promise<JoinCompanyResult>
       };
     }
 
-    console.error("Failed to join company:", error);
+    logger.error("Failed to join company", { error, userId });
 
     if (error instanceof FeatureGateError) {
       return {
@@ -606,7 +607,7 @@ export async function getUserCompany() {
 
     return { hasCompany: true, company };
   } catch (error) {
-    console.error("Failed to get user company:", error);
+    logger.error("Failed to get user company", { error });
     return {
       error: error instanceof Error ? error.message : "Failed to get company info",
     };

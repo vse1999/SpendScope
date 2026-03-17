@@ -28,7 +28,6 @@ function mapNotification(notification: {
   message: string
   read: boolean
   createdAt: Date | string
-  actionUrl: string | null
 }): Notification {
   return {
     id: notification.id,
@@ -37,7 +36,6 @@ function mapNotification(notification: {
     message: notification.message,
     read: notification.read,
     createdAt: new Date(notification.createdAt),
-    actionUrl: notification.actionUrl ?? undefined,
   }
 }
 
@@ -101,7 +99,6 @@ export function NotificationProvider({ children }: NotificationProviderProps): R
           type: notification.type.toUpperCase() as 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR',
           title: notification.title,
           message: notification.message,
-          actionUrl: notification.actionUrl,
         })
 
         if (result.success && result.notification) {

@@ -6,6 +6,7 @@ import {
   getDashboardCategoryBreakdownForCompany,
   getDashboardCriticalReadModelForCompany,
 } from "@/lib/dashboard/read-model"
+import { createLogger } from "@/lib/monitoring/logger"
 
 export type {
   DashboardBudgetStateResult,
@@ -18,12 +19,14 @@ export type {
   DashboardStatsResult,
 } from "@/lib/dashboard/read-model"
 
+const logger = createLogger("dashboard-queries")
+
 export async function getCategoriesForCompany(companyId: string): Promise<DashboardCategoriesResult> {
   try {
     const readModel = await getDashboardCriticalReadModelForCompany(companyId)
     return readModel.categories
   } catch (error) {
-    console.error("Failed to fetch categories:", error)
+    logger.error("Failed to fetch categories", { companyId, error })
     return {
       error: error instanceof Error ? error.message : "Failed to fetch categories",
     }
@@ -63,7 +66,7 @@ export async function getDashboardStatsForCompany(companyId: string): Promise<Da
 
     return { data }
   } catch (error) {
-    console.error("Failed to fetch dashboard stats:", error)
+    logger.error("Failed to fetch dashboard stats", { companyId, error })
     return {
       error: error instanceof Error ? error.message : "Failed to fetch dashboard stats",
     }

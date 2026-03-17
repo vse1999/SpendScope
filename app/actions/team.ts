@@ -16,10 +16,12 @@ import {
   updateCompanyMemberRole,
 } from "@/lib/invitations/service";
 import type { Invitation, InvitationPreview, TeamMember, TeamRoleAuditEntry } from "@/lib/invitations/types";
+import { createLogger } from "@/lib/monitoring/logger";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/app/actions/notifications";
 
 type UnauthorizedCode = "UNAUTHORIZED";
+const logger = createLogger("team-actions");
 
 export type GetTeamMembersResult =
   | { success: true; members: TeamMember[]; isAdmin: boolean; currentUserId: string }
@@ -173,7 +175,7 @@ export async function getTeamMembers(): Promise<GetTeamMembersResult> {
       currentUserId: currentUser.id,
     };
   } catch (error) {
-    console.error("Failed to fetch team members:", error);
+    logger.error("Failed to fetch team members", { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to fetch team members",
@@ -203,7 +205,7 @@ export async function inviteTeamMember(formData: FormData): Promise<InviteTeamMe
     revalidatePath("/dashboard/team");
     return { success: true, message: result.message };
   } catch (error) {
-    console.error("Failed to invite team member:", error);
+    logger.error("Failed to invite team member", { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to invite team member",
@@ -266,12 +268,12 @@ export async function removeTeamMember(userId: string): Promise<RemoveTeamMember
         message: `${currentUser.name ?? currentUser.email} removed you from "${company?.name ?? "the company"}"`,
       });
     } catch (notificationError) {
-      console.error("Failed to create removal notification:", notificationError);
+      logger.error("Failed to create removal notification", { error: notificationError, userId });
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to remove team member:", error);
+    logger.error("Failed to remove team member", { error, userId });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to remove team member",
@@ -297,7 +299,7 @@ export async function updateTeamMemberRole(
     revalidatePath("/dashboard/team");
     return { success: true, message: result.message };
   } catch (error) {
-    console.error("Failed to update team member role:", error);
+    logger.error("Failed to update team member role", { error, role, userId });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update team member role",
@@ -319,7 +321,7 @@ export async function getTeamRoleAuditLog(): Promise<GetTeamRoleAuditResult> {
     const audits = await getRecentTeamRoleAudits(currentUserResult.user);
     return { success: true, audits };
   } catch (error) {
-    console.error("Failed to fetch team role audit log:", error);
+    logger.error("Failed to fetch team role audit log", { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to fetch team role audit log",
@@ -346,7 +348,7 @@ export async function getPendingInvitations(): Promise<GetPendingInvitationsResu
       isAdmin: currentUser.role === UserRole.ADMIN,
     };
   } catch (error) {
-    console.error("Failed to fetch pending invitations:", error);
+    logger.error("Failed to fetch pending invitations", { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to fetch pending invitations",
@@ -369,7 +371,7 @@ export async function cancelInvitation(invitationId: string): Promise<CancelInvi
     revalidatePath("/dashboard/team");
     return { success: true };
   } catch (error) {
-    console.error("Failed to cancel invitation:", error);
+    logger.error("Failed to cancel invitation", { error, invitationId });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to cancel invitation",
@@ -392,7 +394,7 @@ export async function resendInvitation(invitationId: string): Promise<ResendInvi
     revalidatePath("/dashboard/team");
     return { success: true, message: result.message };
   } catch (error) {
-    console.error("Failed to resend invitation:", error);
+    logger.error("Failed to resend invitation", { error, invitationId });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to resend invitation",
@@ -414,7 +416,7 @@ export async function getInvitationByToken(token: string): Promise<GetInvitation
 
     return { success: true, invitation: result.invitation };
   } catch (error) {
-    console.error("Failed to fetch invitation by token:", error);
+    logger.error("Failed to fetch invitation by token", { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to fetch invitation",
@@ -440,7 +442,7 @@ export async function acceptInvitation(token: string): Promise<AcceptInvitationR
 
     return { success: true, companySlug: result.companySlug };
   } catch (error) {
-    console.error("Failed to accept invitation:", error);
+    logger.error("Failed to accept invitation", { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to accept invitation",

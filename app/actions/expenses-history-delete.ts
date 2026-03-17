@@ -5,9 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createNotification } from "@/app/actions/notifications";
 import { invalidateCompanyExpenseReadModels } from "@/lib/cache/company-read-model-cache";
+import { createLogger } from "@/lib/monitoring/logger";
 import { decrementResource } from "@/lib/subscription/feature-gate-service";
 import type { ExpenseChangeValues } from "@/types/expense-history";
 import { getCurrentUserCompanyId } from "./expenses-shared";
+
+const logger = createLogger("expenses-history-delete-action");
 
 /**
  * Get audit history for an expense
@@ -62,7 +65,7 @@ export async function getExpenseHistory(id: string) {
 
     return { success: true, history: parsedHistory };
   } catch (error) {
-    console.error("Failed to get expense history:", error);
+    logger.error("Failed to get expense history", { error, expenseId: id });
     return {
       error: error instanceof Error ? error.message : "Failed to get history",
     };
@@ -117,7 +120,11 @@ export async function deleteExpense(id: string) {
     try {
       await decrementResource(expense.companyId, 1);
     } catch (usageError) {
-      console.error("Failed to decrement usage after expense deletion:", usageError);
+      logger.error("Failed to decrement usage after expense deletion", {
+        companyId: expense.companyId,
+        error: usageError,
+        expenseId: id,
+      });
     }
 
     revalidatePath("/dashboard");
@@ -131,16 +138,19 @@ export async function deleteExpense(id: string) {
           type: "ERROR",
           title: "Expense Deleted by Admin",
           message: `${userName} deleted your expense "${expense.description}" (${expenseAmount})`,
-          actionUrl: "/dashboard/expenses",
         });
       } catch (notifyError) {
-        console.error("Failed to send notification:", notifyError);
+        logger.error("Failed to send expense deletion notification", {
+          error: notifyError,
+          expenseId: id,
+          targetUserId: expense.userId,
+        });
       }
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete expense:", error);
+    logger.error("Failed to delete expense", { error, expenseId: id });
     return {
       error: error instanceof Error ? error.message : "Failed to delete expense",
     };

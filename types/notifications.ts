@@ -7,7 +7,6 @@ export interface Notification {
   message: string
   read: boolean
   createdAt: Date
-  actionUrl?: string
 }
 
 export interface NotificationContextValue {
