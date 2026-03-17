@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { ArrowRight, Menu } from "lucide-react"
-import { useEffect, useState, type ReactElement } from "react"
+import type { ReactElement } from "react"
 
 import { MarketingScrollLink } from "@/components/marketing/marketing-scroll-link"
 import {
@@ -23,8 +23,6 @@ const navigationItems = [
   { label: "FAQ", href: "#faq" },
 ] as const
 
-const SCROLLED_THRESHOLD_PX = 16
-
 function BrandWordmark({ className }: { className?: string }): ReactElement {
   return (
     <span
@@ -41,59 +39,17 @@ function BrandWordmark({ className }: { className?: string }): ReactElement {
   )
 }
 
-function useScrolledNavbar(): boolean {
-  const [isScrolled, setIsScrolled] = useState(false)
-
-  useEffect(() => {
-    const handleScroll = (): void => {
-      const nextIsScrolled = window.scrollY > SCROLLED_THRESHOLD_PX
-      setIsScrolled((currentIsScrolled) =>
-        currentIsScrolled === nextIsScrolled
-          ? currentIsScrolled
-          : nextIsScrolled
-      )
-    }
-
-    handleScroll()
-    window.addEventListener("scroll", handleScroll, { passive: true })
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll)
-    }
-  }, [])
-
-  return isScrolled
-}
-
 export function LandingNavbar(): ReactElement {
-  const isScrolled = useScrolledNavbar()
-
   return (
-    <div className="fixed inset-x-0 top-0 z-50 px-3 transition-all duration-300 sm:px-4">
+    <div className="fixed inset-x-0 top-0 z-50">
       <header
-        data-scrolled={isScrolled ? "true" : "false"}
         className={cn(
-          "mx-auto max-w-7xl transition-all duration-300",
-          isScrolled
-            ? "mt-3 rounded-2xl border border-indigo-100/80 bg-background/92 shadow-[0_20px_50px_-28px_rgba(15,23,42,0.4)] backdrop-blur-xl dark:border-indigo-900/60"
-            : "mt-0 rounded-none border-b border-indigo-100/80 bg-background/82 backdrop-blur-md dark:border-indigo-900/40"
+          "border-b border-indigo-100/80 bg-background/90 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-indigo-900/40"
         )}
       >
-        <div
-          className={cn(
-            "mx-auto flex w-full max-w-7xl items-center justify-between px-4 transition-all duration-300 sm:px-6",
-            isScrolled ? "py-3" : "py-4"
-          )}
-        >
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" className="inline-flex items-center">
-            <BrandWordmark
-              className={cn(
-                "transition-all duration-300",
-                isScrolled
-                  ? "text-[1.55rem] sm:text-[1.75rem]"
-                  : "text-[1.65rem] sm:text-[1.85rem]"
-              )}
-            />
+            <BrandWordmark className="text-[1.65rem] sm:text-[1.85rem]" />
           </Link>
 
           <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
@@ -114,10 +70,7 @@ export function LandingNavbar(): ReactElement {
             </Button>
             <Button
               asChild
-              className={cn(
-                "bg-gradient-brand text-white shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30",
-                isScrolled ? "h-10 px-4" : "h-11 px-5"
-              )}
+              className="h-11 bg-gradient-brand px-5 text-white shadow-md shadow-indigo-500/20 transition-all hover:shadow-lg hover:shadow-indigo-500/30"
             >
               <Link href="/signup">
                 Start Free Plan

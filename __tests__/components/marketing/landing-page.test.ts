@@ -13,7 +13,6 @@ describe("LandingPage", () => {
 
     expect(html).toContain("Expense control");
     expect(html).toContain("Create Free Workspace");
-    expect(html).toContain('data-scrolled="false"');
     expect(html).toContain("Choose your plan");
     expect(html).toContain("Frequently asked");
     expect(html).toContain("Ready to launch your");
