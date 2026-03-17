@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
@@ -64,31 +63,31 @@ function formatRelativeTime(date: Date): string {
 
 interface NotificationListItemProps {
   notification: Notification
-  onOpen: (notification: Notification) => Promise<void>
+  onRead: (notification: Notification) => Promise<void>
   onRemove: (id: string) => Promise<void>
 }
 
 function NotificationListItem({
   notification,
-  onOpen,
+  onRead,
   onRemove,
 }: NotificationListItemProps): React.JSX.Element {
   const Icon = notificationIcons[notification.type]
-  const [isOpening, setIsOpening] = useState(false)
+  const [isMarkingRead, setIsMarkingRead] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
 
-  const handleOpen = useCallback(async (): Promise<void> => {
-    if (isOpening) {
+  const handleRead = useCallback(async (): Promise<void> => {
+    if (isMarkingRead || notification.read) {
       return
     }
 
-    setIsOpening(true)
+    setIsMarkingRead(true)
     try {
-      await onOpen(notification)
+      await onRead(notification)
     } finally {
-      setIsOpening(false)
+      setIsMarkingRead(false)
     }
-  }, [isOpening, notification, onOpen])
+  }, [isMarkingRead, notification, onRead])
 
   const handleRemove = useCallback(async (): Promise<void> => {
     if (isRemoving) {
@@ -117,16 +116,16 @@ function NotificationListItem({
           notificationStyles[notification.type]
         )}
       >
-        {isOpening ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}
+        {isMarkingRead ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}
       </div>
 
       <div className="min-w-0 flex-1">
         <button
           type="button"
-          onClick={() => void handleOpen()}
+          onClick={() => void handleRead()}
           className={cn(
             'w-full rounded-md px-0 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            'hover:text-foreground',
+            !notification.read && 'hover:text-foreground',
             !notification.read ? 'text-foreground' : 'text-muted-foreground'
           )}
         >
@@ -148,11 +147,6 @@ function NotificationListItem({
           </div>
           <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground/70">
             <span>{formatRelativeTime(notification.createdAt)}</span>
-            {notification.actionUrl && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
-                Open
-              </span>
-            )}
           </div>
         </button>
       </div>
@@ -173,7 +167,6 @@ function NotificationListItem({
 }
 
 export function NotificationsMenu(): React.JSX.Element {
-  const router = useRouter()
   const {
     notifications,
     unreadCount,
@@ -237,19 +230,13 @@ export function NotificationsMenu(): React.JSX.Element {
     }
   }, [isMarkingAll, markAllAsRead])
 
-  const handleOpenNotification = useCallback(
+  const handleReadNotification = useCallback(
     async (notification: Notification): Promise<void> => {
       if (!notification.read) {
         await markAsRead(notification.id)
       }
-
-      setOpen(false)
-
-      if (notification.actionUrl) {
-        router.push(notification.actionUrl)
-      }
     },
-    [markAsRead, router]
+    [markAsRead]
   )
 
   return (
@@ -325,7 +312,7 @@ export function NotificationsMenu(): React.JSX.Element {
                 <NotificationListItem
                   key={notification.id}
                   notification={notification}
-                  onOpen={handleOpenNotification}
+                  onRead={handleReadNotification}
                   onRemove={removeNotification}
                 />
               ))}
