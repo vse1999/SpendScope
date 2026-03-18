@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import type { AnalyticsData } from "@/types/analytics";
 import { buildMonthlyTrend, normalizeAnalyticsDays } from "@/lib/analytics/monthly-trend";
 import { getDashboardStatsForCompany } from "@/lib/dashboard/queries";
+import { createLogger } from "@/lib/monitoring/logger";
 import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { getCurrentUserCompanyId } from "./expenses-shared";
 
@@ -37,6 +38,7 @@ interface GetAnalyticsDataResult {
   data?: AnalyticsData;
   error?: string;
 }
+const logger = createLogger("expenses-analytics-action");
 
 function toNumericValue(
   value: Prisma.Decimal | number | string | bigint | null | undefined
@@ -119,7 +121,7 @@ export async function getExpenseStats() {
       byCategory,
     };
   } catch (error) {
-    console.error("Failed to fetch expense stats:", error);
+    logger.error("Failed to fetch expense stats", { error });
     return {
       error: error instanceof Error ? error.message : "Failed to fetch expense stats",
     };
@@ -139,7 +141,7 @@ export async function getDashboardStats() {
     }
     return getDashboardStatsForCompany(companyId);
   } catch (error) {
-    console.error("Failed to fetch dashboard stats:", error);
+    logger.error("Failed to fetch dashboard stats", { error });
     return {
       error: error instanceof Error ? error.message : "Failed to fetch dashboard stats",
     };
@@ -309,7 +311,7 @@ export async function getAnalyticsData(days: number = 90): Promise<GetAnalyticsD
       data,
     };
   } catch (error) {
-    console.error("Failed to fetch analytics data:", error);
+    logger.error("Failed to fetch analytics data", { error, days });
     return {
       error: error instanceof Error ? error.message : "Failed to fetch analytics data",
     };

@@ -30,6 +30,7 @@ import {
   getExpensesWithFilters as getExpensesWithFiltersAction,
 } from "./expenses-filtering";
 import { bulkDeleteExpenses as bulkDeleteExpensesAction, bulkUpdateCategory as bulkUpdateCategoryAction } from "./expenses-bulk";
+import { createLogger } from "@/lib/monitoring/logger";
 import type {
   ExpenseFilters,
 } from "./expenses-types";
@@ -59,6 +60,7 @@ type ExportExpensesCsvResult = Awaited<ReturnType<typeof exportExpensesCSVAction
 
 type CursorPaginationParams = { cursor?: string | null; limit?: number };
 type ExportExpensesCsvFilters = Omit<ExpenseFilters, "sort">;
+const logger = createLogger("expenses-actions");
 
 async function executeExpenseAction<TResult>(
   actionName: string,
@@ -67,7 +69,7 @@ async function executeExpenseAction<TResult>(
   try {
     return await action();
   } catch (error) {
-    console.error(`[expenses.actions] ${actionName} failed`, error);
+    logger.error("Expense action failed", { actionName, error });
     throw error;
   }
 }

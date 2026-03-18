@@ -3,11 +3,13 @@
 import { prisma } from "@/lib/prisma";
 import { resolveCursorId, serializeExpense } from "@/lib/expenses/action-helpers";
 import { getCategoriesForCompany } from "@/lib/dashboard/queries";
+import { createLogger } from "@/lib/monitoring/logger";
 import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, getCurrentUserCompanyId } from "./expenses-shared";
 import type {
   GetExpensesResult,
   GetPaginatedExpensesResult,
 } from "./expenses-types";
+const logger = createLogger("expenses-core-queries");
 
 /**
  * Get all expenses for the current user's company
@@ -40,7 +42,7 @@ export async function getExpensesByCompany(): Promise<GetExpensesResult> {
 
     return serializedExpenses;
   } catch (error) {
-    console.error("Failed to fetch expenses:", error);
+    logger.error("Failed to fetch expenses by company", { error });
     return {
       error: error instanceof Error ? error.message : "Failed to fetch expenses",
     };
@@ -117,7 +119,7 @@ export async function getPaginatedExpenses(
       },
     };
   } catch (error) {
-    console.error("Failed to fetch expenses:", error);
+    logger.error("Failed to fetch paginated expenses", { error, params });
     return {
       error: error instanceof Error ? error.message : "Failed to fetch expenses",
     };
@@ -136,7 +138,7 @@ export async function getCategories() {
     }
     return getCategoriesForCompany(companyId);
   } catch (error) {
-    console.error("Failed to fetch categories:", error);
+    logger.error("Failed to fetch categories", { error });
     return {
       error: error instanceof Error ? error.message : "Failed to fetch categories",
     };

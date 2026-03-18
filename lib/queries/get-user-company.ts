@@ -3,6 +3,7 @@
 import { cache } from "react";
 import { UserRole } from "@prisma/client";
 import { auth } from "@/auth";
+import { createLogger } from "@/lib/monitoring/logger";
 import { prisma } from "@/lib/prisma";
 
 type CompanyWithMemberCount = NonNullable<
@@ -20,6 +21,7 @@ interface CachedUserCompanyReady {
 }
 
 export type CachedUserCompany = CachedUserCompanyMissing | CachedUserCompanyReady;
+const logger = createLogger("get-user-company");
 
 function isDynamicServerUsageError(error: unknown): boolean {
     if (!error || typeof error !== "object") {
@@ -76,7 +78,7 @@ export const getCachedUserCompany = cache(async (): Promise<CachedUserCompany> =
             throw error;
         }
 
-        console.error("Failed to get user company:", error);
+        logger.error("Failed to get user company", { error });
         return { hasCompany: false as const };
     }
 });

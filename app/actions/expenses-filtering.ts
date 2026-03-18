@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { buildMultiOrderBy, parseOffsetCursor, serializeExpense } from "@/lib/expenses/action-helpers";
+import { createLogger } from "@/lib/monitoring/logger";
 import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, getCurrentUserCompanyId } from "./expenses-shared";
 import type {
@@ -13,6 +14,7 @@ import type {
 type ExportExpenseFilters = Omit<ExpenseFilters, "sort">;
 
 const CSV_FORMULA_PREFIX = /^[=+\-@]/;
+const logger = createLogger("expenses-filtering-action");
 
 function encodeCsvCell(value: string): string {
   const neutralizedValue = CSV_FORMULA_PREFIX.test(value.trimStart())
@@ -139,7 +141,7 @@ export async function getExpensesWithFilters(
       },
     };
   } catch (error) {
-    console.error("Failed to fetch expenses with filters:", error);
+    logger.error("Failed to fetch expenses with filters", { error, filters, params });
     return {
       error: error instanceof Error ? error.message : "Failed to fetch expenses",
     };
@@ -176,7 +178,7 @@ export async function getExpensesSummary(filters: ExpenseFilters = {}): Promise<
       totalAmount: Number(aggregateResult._sum.amount ?? 0),
     };
   } catch (error) {
-    console.error("Failed to get expenses summary:", error);
+    logger.error("Failed to get expenses summary", { error, filters });
     return {
       error: error instanceof Error ? error.message : "Failed to get expenses summary",
     };
@@ -246,7 +248,7 @@ export async function exportExpensesCSV(filters: ExportExpenseFilters): Promise<
 
     return { csvContent, filename };
   } catch (error) {
-    console.error("Failed to export expenses:", error);
+    logger.error("Failed to export expenses", { error, filters });
     return {
       error: error instanceof Error ? error.message : "Failed to export expenses",
     };

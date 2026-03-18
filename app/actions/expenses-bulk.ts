@@ -5,7 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { invalidateCompanyExpenseReadModels } from "@/lib/cache/company-read-model-cache";
+import { createLogger } from "@/lib/monitoring/logger";
 import { decrementResource } from "@/lib/subscription/feature-gate-service";
+const logger = createLogger("expenses-bulk-action");
 
 interface ExpenseBulkActor {
   userId: string;
@@ -100,7 +102,11 @@ export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
       try {
         await decrementResource(companyId, result.count);
       } catch (usageError) {
-        console.error("Failed to decrement usage after bulk deletion:", usageError);
+        logger.error("Failed to decrement usage after bulk deletion", {
+          companyId,
+          deletedCount: result.count,
+          error: usageError,
+        });
       }
     }
 
@@ -109,7 +115,7 @@ export async function bulkDeleteExpenses(expenseIds: string[]): Promise<
 
     return { success: true, deletedCount: result.count, deletedIds: deletableIds, skippedIds };
   } catch (error) {
-    console.error("Failed to bulk delete expenses:", error);
+    logger.error("Failed to bulk delete expenses", { error, expenseIds });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete expenses",
@@ -189,7 +195,7 @@ export async function bulkUpdateCategory(
 
     return { success: true, updatedCount: updatableIds.length, updatedIds: updatableIds, skippedIds };
   } catch (error) {
-    console.error("Failed to bulk update category:", error);
+    logger.error("Failed to bulk update category", { categoryId, error, expenseIds });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update expenses",

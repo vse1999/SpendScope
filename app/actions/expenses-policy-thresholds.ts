@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
+import { createLogger } from "@/lib/monitoring/logger";
 import { prisma } from "@/lib/prisma";
 import {
   deleteCategoryExpensePolicyRule,
@@ -21,6 +22,7 @@ interface AdminActorContext {
   id: string;
   companyId: string;
 }
+const logger = createLogger("expenses-policy-thresholds-action");
 
 async function getAdminActorContext(): Promise<AdminActorContext | null> {
   const session = await auth();
@@ -81,7 +83,7 @@ export async function getExpensePolicyConfigForCompany(): Promise<GetExpensePoli
       })),
     };
   } catch (error) {
-    console.error("Failed to get expense policy config:", error);
+    logger.error("Failed to get expense policy config", { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to get expense policy config",
@@ -112,7 +114,7 @@ export async function updateGlobalExpensePolicyThreshold(
     revalidatePath("/dashboard/expenses");
     return { success: true };
   } catch (error) {
-    console.error("Failed to update global expense policy threshold:", error);
+    logger.error("Failed to update global expense policy threshold", { error, thresholdUsd });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update global threshold",
@@ -162,7 +164,11 @@ export async function upsertCategoryExpensePolicyThreshold(
     revalidatePath("/dashboard/expenses");
     return { success: true };
   } catch (error) {
-    console.error("Failed to upsert category expense policy threshold:", error);
+    logger.error("Failed to upsert category expense policy threshold", {
+      categoryId,
+      error,
+      thresholdUsd,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to update category threshold",
@@ -188,7 +194,7 @@ export async function deleteCategoryExpensePolicyThreshold(
     revalidatePath("/dashboard/expenses");
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete category expense policy threshold:", error);
+    logger.error("Failed to delete category expense policy threshold", { categoryId, error });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete category threshold",
