@@ -2,6 +2,25 @@
 
 SpendScope is a product-minded expense operations platform for finance and ops teams that need to see where team spend is going, keep billing flows reliable, and avoid policy drift as companies grow. It was built as a production-grade portfolio project, not a landing-page-only SaaS mockup.
 
+## Live Product
+
+- Live demo: [https://v0-spend-scope.vercel.app/](https://v0-spend-scope.vercel.app/)
+- Portfolio case study: [docs/portfolio/case-study.md](docs/portfolio/case-study.md)
+- Portfolio copy pack: [docs/portfolio/project-copy.md](docs/portfolio/project-copy.md)
+
+The deployed product is the primary proof surface for this project. This repository is the implementation deep dive for architecture, quality gates, and engineering decisions.
+
+## Review This Project
+
+Recommended evaluator path on the live deployment:
+
+1. Open [https://v0-spend-scope.vercel.app/signup](https://v0-spend-scope.vercel.app/signup) and authenticate with Google or GitHub.
+2. Complete workspace onboarding or enter the seeded review workspace if the deployed environment is already prepared for demos.
+3. Review `/dashboard` for top-level spend visibility and summary cards.
+4. Review `/dashboard/expenses` for filters, table interactions, CSV export, and expense monitoring.
+5. Review `/dashboard/analytics` for trend and category insight quality.
+6. Review `/dashboard/team` and `/dashboard/billing` for role-aware management and billing behavior.
+
 ## What This Project Demonstrates
 
 - Multi-tenant company isolation with server-side tenant resolution
@@ -37,7 +56,7 @@ SpendScope focuses on that operational surface area instead of trying to be a ge
 
 ## Reviewer Flow
 
-Use deterministic demo data before reviewing or recording walkthroughs:
+For local review or recorded walkthroughs, use deterministic demo data:
 
 ```bash
 npm run seed:demo:reset
@@ -181,6 +200,8 @@ What I would do next at larger scale:
 - [docs/benchmarks/dashboard.md](docs/benchmarks/dashboard.md)
 - [docs/deployment/test-mode-checklist.md](docs/deployment/test-mode-checklist.md)
 - [docs/deployment/manual-regression-checklist.md](docs/deployment/manual-regression-checklist.md)
+- [docs/portfolio/case-study.md](docs/portfolio/case-study.md)
+- [docs/portfolio/project-copy.md](docs/portfolio/project-copy.md)
 - [docs/deployment/rollback-runbook.md](docs/deployment/rollback-runbook.md)
 - [SECURITY.md](SECURITY.md)
 
