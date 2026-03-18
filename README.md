@@ -1,25 +1,18 @@
 # SpendScope
 
-SpendScope is a product-minded expense operations platform for finance and ops teams that need to see where team spend is going, keep billing flows reliable, and avoid policy drift as companies grow. It was built as a production-grade portfolio project, not a landing-page-only SaaS mockup.
+[![CI](https://github.com/vse1999/SpendScope/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/vse1999/SpendScope/actions/workflows/ci.yml)
 
-## Live Product
+SpendScope is an expense operations platform for finance and ops teams that need to see where team spend is going, keep billing flows reliable, and avoid policy drift as companies grow.
 
-- Live demo: [https://v0-spend-scope.vercel.app/](https://v0-spend-scope.vercel.app/)
-- Portfolio case study: [docs/portfolio/case-study.md](docs/portfolio/case-study.md)
-- Portfolio copy pack: [docs/portfolio/project-copy.md](docs/portfolio/project-copy.md)
+## Live Demo
 
-The deployed product is the primary proof surface for this project. This repository is the implementation deep dive for architecture, quality gates, and engineering decisions.
+**[https://v0-spend-scope.vercel.app](https://v0-spend-scope.vercel.app)**
 
-## Review This Project
+Sign in with GitHub or Google OAuth — no password required. The demo workspace is pre-seeded with realistic data.
 
-Recommended evaluator path on the live deployment:
+> First load may take 3–5 seconds on a cold server instance. Warm load median is 271ms — see [benchmark notes](docs/benchmarks/dashboard.md).
 
-1. Open [https://v0-spend-scope.vercel.app/signup](https://v0-spend-scope.vercel.app/signup) and authenticate with Google or GitHub.
-2. Complete workspace onboarding or enter the seeded review workspace if the deployed environment is already prepared for demos.
-3. Review `/dashboard` for top-level spend visibility and summary cards.
-4. Review `/dashboard/expenses` for filters, table interactions, CSV export, and expense monitoring.
-5. Review `/dashboard/analytics` for trend and category insight quality.
-6. Review `/dashboard/team` and `/dashboard/billing` for role-aware management and billing behavior.
+This repository is the implementation deep dive for architecture, quality gates, and engineering decisions. The deployed product is the primary proof surface.
 
 ## What This Project Demonstrates
 
@@ -29,7 +22,46 @@ Recommended evaluator path on the live deployment:
 - Stripe checkout, billing portal, and webhook synchronization with idempotency controls
 - Deterministic demo seeding, Jest coverage, Playwright flows, and strict TypeScript quality gates
 
-## Product Story
+## Screenshots
+
+### Dashboard
+
+![Dashboard overview](public/screenshots/dashboard-overview.png)
+
+### Expenses
+
+![Expenses table](public/screenshots/expenses-table.png)
+
+### Analytics
+
+![Analytics overview](public/screenshots/analytics-overview.png)
+
+## Reviewing The Product
+
+Suggested path through the live deployment:
+
+1. Land on `/dashboard` for the top-level spend summary and category cards.
+2. Open `/dashboard/expenses` to review filters, table interactions, CSV export, and expense monitoring.
+3. Open `/dashboard/analytics` to inspect trend and category breakdowns.
+4. Open `/dashboard/team` and `/dashboard/billing` to verify role-aware management and billing behavior.
+
+To reproduce the seeded state locally:
+
+```bash
+npm run seed:demo:reset
+npm run seed:demo -- --seed=20260309 --reference-date=2026-03-01
+```
+
+Expected seeded state:
+
+- Company: `SpendScope E2E`
+- Authenticated account: `E2E Member` in the seeded `SpendScope E2E` workspace
+- Team size: 2 seeded members
+- Categories: 3 active categories across seeded data
+- Expenses: 60 deterministic expenses across a fixed multi-month window
+- Subscription state: billing surfaces enabled
+
+## Product Context
 
 The core use case is a small team that has outgrown ad hoc expense tracking. Finance and ops leads need one place to:
 
@@ -38,60 +70,22 @@ The core use case is a small team that has outgrown ad hoc expense tracking. Fin
 - control who can manage billing
 - keep dashboard data and billing state trustworthy after mutations
 
-SpendScope focuses on that operational surface area instead of trying to be a generic accounting suite.
-
-## Visual Walkthrough
-
-### Dashboard overview
-
-![Dashboard overview](public/screenshots/dashboard-overview.png)
-
-### Expense operations
-
-![Expenses table](public/screenshots/expenses-table.png)
-
-### Analytics surface
-
-![Analytics overview](public/screenshots/analytics-overview.png)
-
-## Reviewer Flow
-
-For local review or recorded walkthroughs, use deterministic demo data:
-
-```bash
-npm run seed:demo:reset
-npm run seed:demo -- --seed=20260309 --reference-date=2026-03-01
-```
-
-Suggested review path:
-
-1. Sign in and land on `/dashboard` for the top-level spend summary.
-2. Open `/dashboard/expenses` to review filters, table interactions, and expense monitoring.
-3. Open `/dashboard/analytics` to inspect trend and category breakdowns.
-4. Open `/dashboard/team` and `/dashboard/billing` to verify role-aware management behavior.
-
-Expected seeded state:
-
-- Company: `SpendScope E2E`
-- Authenticated review account: `E2E Member` in the seeded `SpendScope E2E` workspace
-- Team size: 2 seeded members in the shared demo company
-- Categories: 3 active categories represented across seeded data
-- Expenses: 60 deterministic expenses across a fixed multi-month window
-- Subscription state: billing surfaces enabled in the seeded review environment
+SpendScope focuses on that operational surface area rather than trying to be a generic accounting suite.
 
 ## Architecture Highlights
 
-### Auth and tenant safety
+### Auth and tenant isolation
 
 - NextAuth v5 handles authentication with Prisma persistence.
 - Tenant context is resolved on the server from database state, not from stale token assumptions alone.
 - Privileged actions enforce membership and role checks server-side.
+- `proxy.ts` is the middleware layer that enforces auth gating and separates public from protected traffic before requests reach route handlers.
 
 ### Data consistency
 
 - Dashboard and analytics reads are cache-tagged by tenant scope.
 - Expense and category mutations explicitly invalidate affected dashboard and analytics tags.
-- Team and expenses routes now surface explicit failure states instead of silently degrading into empty data.
+- Routes surface explicit failure states instead of silently degrading into empty data.
 
 ### Billing hardening
 
@@ -103,33 +97,35 @@ System context diagram: [`public/architecture/system-context.svg`](public/archit
 
 ## Performance And Quality Evidence
 
-Latest captured dashboard benchmark on the deterministic seeded workspace:
+Dashboard benchmark against the deterministic seeded workspace, captured from a local production build (`npm run build && npm run start`). These numbers reflect application-layer latency.
 
-- First dashboard load median: `360ms`
-- Warm dashboard load median: `271ms`
-- Largest dashboard data request median: `49ms` first load / `50ms` warm
+- First load median: `360ms`
+- Warm load median: `271ms`
+- Largest data request median: `49ms` first load / `50ms` warm
 
-These numbers were captured from the authenticated seeded `SpendScope E2E` review workspace documented above. Full protocol, raw run notes, and the local host caveat: [`docs/benchmarks/dashboard.md`](docs/benchmarks/dashboard.md)
+Full protocol, raw runs, and environment contract: [`docs/benchmarks/dashboard.md`](docs/benchmarks/dashboard.md)
 
-Merge-readiness checks used in this repo:
+Merge-readiness checks enforced in CI:
 
 - `npx tsc --noEmit`
 - `npm run lint`
-- `npm test -- --runInBand`
+- `npm run check:any`
+- `npm run audit:prod`
+- `npm run test:ci`
 - `npm run build`
 
 ## Tech Stack
 
-- Next.js 16 App Router
-- React 19
-- TypeScript with `strict: true`
-- Prisma + PostgreSQL
-- NextAuth v5
-- Tailwind CSS 4 + shadcn/ui
-- Jest + ts-jest
-- Playwright
-- Stripe
-- Sentry and Upstash Redis as optional production integrations
+- **Next.js 16 App Router** — server components and server actions for clean server/client boundaries
+- **React 19**
+- **TypeScript** with `strict: true`
+- **Prisma + PostgreSQL** — typed query layer with explicit migration history
+- **NextAuth v5** — App Router-native session handling with Prisma adapter persistence
+- **Tailwind CSS 4 + shadcn/ui**
+- **Jest + ts-jest** — unit and integration coverage with a coverage gate in CI
+- **Playwright** — E2E flows against the seeded workspace
+- **Stripe** — checkout, billing portal, webhook signature verification, and idempotent event processing
+- **Sentry + Upstash Redis** — optional production integrations for observability and rate limiting
 
 ## Run Locally
 
@@ -169,7 +165,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Environment Notes
 
-Use `.env.example` as the source of truth. The most important local variables are:
+Use `.env.example` as the source of truth. Required local variables:
 
 - `DATABASE_URL`
 - `NEXTAUTH_SECRET`
@@ -177,31 +173,29 @@ Use `.env.example` as the source of truth. The most important local variables ar
 - `APP_URL`
 - OAuth provider credentials for Google and GitHub
 
-If billing is enabled, also configure the Stripe variables listed in `.env.example`.
+If billing is enabled, configure the Stripe variables listed in `.env.example`.
 
 ## Tradeoffs And Next Steps
 
-What I optimized for here:
+What this build optimized for:
 
-- correctness and role-aware server boundaries over client-only convenience
-- deterministic demo and test flows over purely cosmetic mock data
-- practical production concerns such as cache invalidation, webhook idempotency, and error-state honesty
+- Correctness and role-aware server boundaries over client-only convenience
+- Deterministic demo and test flows over purely cosmetic mock data
+- Practical production concerns: cache invalidation, webhook idempotency, and error-state honesty
 
-What I would do next at larger scale:
+What comes next at larger scale:
 
-- move selected dashboard aggregates behind scheduled materialized views
-- add queue-backed webhook fanout and retry orchestration
-- instrument p95 latency and error budgets for dashboard and billing routes
-- add a stronger spend-policy exception and approval workflow as the next differentiating product feature
+- Move selected dashboard aggregates behind scheduled materialized views
+- Add queue-backed webhook fanout and retry orchestration
+- Instrument p95 latency and error budgets for dashboard and billing routes
+- Add a spend-policy exception and approval workflow as the next differentiating product feature
 
-## Project Docs
+## Docs
 
 - [ARCHITECTURE.md](ARCHITECTURE.md)
 - [docs/benchmarks/dashboard.md](docs/benchmarks/dashboard.md)
 - [docs/deployment/test-mode-checklist.md](docs/deployment/test-mode-checklist.md)
 - [docs/deployment/manual-regression-checklist.md](docs/deployment/manual-regression-checklist.md)
-- [docs/portfolio/case-study.md](docs/portfolio/case-study.md)
-- [docs/portfolio/project-copy.md](docs/portfolio/project-copy.md)
 - [docs/deployment/rollback-runbook.md](docs/deployment/rollback-runbook.md)
 - [SECURITY.md](SECURITY.md)
 
