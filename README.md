@@ -1,25 +1,14 @@
 # SpendScope
 
-SpendScope is a product-minded expense operations platform for finance and ops teams that need to see where team spend is going, keep billing flows reliable, and avoid policy drift as companies grow. It was built as a production-grade portfolio project, not a landing-page-only SaaS mockup.
+[![CI](https://github.com/vse1999/SpendScope/actions/workflows/ci.yml/badge.svg)](https://github.com/vse1999/SpendScope/actions/workflows/ci.yml)
+
+SpendScope is a product-minded expense operations platform for finance and ops teams that need to see where team spend is going, keep billing flows reliable, and avoid policy drift as companies grow.
 
 ## Live Product
 
 - Live demo: [https://v0-spend-scope.vercel.app/](https://v0-spend-scope.vercel.app/)
-- Portfolio case study: [docs/portfolio/case-study.md](docs/portfolio/case-study.md)
-- Portfolio copy pack: [docs/portfolio/project-copy.md](docs/portfolio/project-copy.md)
 
 The deployed product is the primary proof surface for this project. This repository is the implementation deep dive for architecture, quality gates, and engineering decisions.
-
-## Review This Project
-
-Recommended evaluator path on the live deployment:
-
-1. Open [https://v0-spend-scope.vercel.app/signup](https://v0-spend-scope.vercel.app/signup) and authenticate with Google or GitHub.
-2. Complete workspace onboarding or enter the seeded review workspace if the deployed environment is already prepared for demos.
-3. Review `/dashboard` for top-level spend visibility and summary cards.
-4. Review `/dashboard/expenses` for filters, table interactions, CSV export, and expense monitoring.
-5. Review `/dashboard/analytics` for trend and category insight quality.
-6. Review `/dashboard/team` and `/dashboard/billing` for role-aware management and billing behavior.
 
 ## What This Project Demonstrates
 
@@ -28,17 +17,6 @@ Recommended evaluator path on the live deployment:
 - Policy-conscious expense management with filtering, sorting, CSV export, and optimistic updates
 - Stripe checkout, billing portal, and webhook synchronization with idempotency controls
 - Deterministic demo seeding, Jest coverage, Playwright flows, and strict TypeScript quality gates
-
-## Product Story
-
-The core use case is a small team that has outgrown ad hoc expense tracking. Finance and ops leads need one place to:
-
-- understand current spend quickly
-- review category trends and team activity
-- control who can manage billing
-- keep dashboard data and billing state trustworthy after mutations
-
-SpendScope focuses on that operational surface area instead of trying to be a generic accounting suite.
 
 ## Visual Walkthrough
 
@@ -54,21 +32,23 @@ SpendScope focuses on that operational surface area instead of trying to be a ge
 
 ![Analytics overview](public/screenshots/analytics-overview.png)
 
-## Reviewer Flow
+## Reviewing The Product
 
-For local review or recorded walkthroughs, use deterministic demo data:
+Sign in with GitHub or Google OAuth at [https://v0-spend-scope.vercel.app/signup](https://v0-spend-scope.vercel.app/signup) — no password required. The demo workspace is pre-seeded.
+
+Suggested path:
+
+1. Land on `/dashboard` for the top-level spend summary and category cards.
+2. Open `/dashboard/expenses` to review filters, table interactions, CSV export, and expense monitoring.
+3. Open `/dashboard/analytics` to inspect trend and category breakdowns.
+4. Open `/dashboard/team` and `/dashboard/billing` to verify role-aware management and billing behavior.
+
+To reproduce the seeded state locally:
 
 ```bash
 npm run seed:demo:reset
 npm run seed:demo -- --seed=20260309 --reference-date=2026-03-01
 ```
-
-Suggested review path:
-
-1. Sign in and land on `/dashboard` for the top-level spend summary.
-2. Open `/dashboard/expenses` to review filters, table interactions, and expense monitoring.
-3. Open `/dashboard/analytics` to inspect trend and category breakdowns.
-4. Open `/dashboard/team` and `/dashboard/billing` to verify role-aware management behavior.
 
 Expected seeded state:
 
@@ -78,6 +58,19 @@ Expected seeded state:
 - Categories: 3 active categories represented across seeded data
 - Expenses: 60 deterministic expenses across a fixed multi-month window
 - Subscription state: billing surfaces enabled in the seeded review environment
+
+> Note: first load may take 3–5 seconds on a cold Vercel instance. Warm load median is 271ms. See [benchmark protocol](docs/benchmarks/dashboard.md) for methodology.
+
+## Product Story
+
+The core use case is a small team that has outgrown ad hoc expense tracking. Finance and ops leads need one place to:
+
+- understand current spend quickly
+- review category trends and team activity
+- control who can manage billing
+- keep dashboard data and billing state trustworthy after mutations
+
+SpendScope focuses on that operational surface area instead of trying to be a generic accounting suite.
 
 ## Architecture Highlights
 
@@ -101,6 +94,8 @@ Expected seeded state:
 
 System context diagram: [`public/architecture/system-context.svg`](public/architecture/system-context.svg)
 
+Route boundary: `proxy.ts` is the Next.js middleware layer that enforces auth gating and separates public from protected traffic before requests reach route handlers.
+
 ## Performance And Quality Evidence
 
 Latest captured dashboard benchmark on the deterministic seeded workspace:
@@ -109,7 +104,7 @@ Latest captured dashboard benchmark on the deterministic seeded workspace:
 - Warm dashboard load median: `271ms`
 - Largest dashboard data request median: `49ms` first load / `50ms` warm
 
-These numbers were captured from the authenticated seeded `SpendScope E2E` review workspace documented above. Full protocol, raw run notes, and the local host caveat: [`docs/benchmarks/dashboard.md`](docs/benchmarks/dashboard.md)
+These numbers were captured from a local production build (`npm run build && npm run start`) against the deterministic seeded workspace. They reflect application-layer latency, not deployed cold-start time. Full protocol, raw run notes, and the local host caveat: [`docs/benchmarks/dashboard.md`](docs/benchmarks/dashboard.md)
 
 Merge-readiness checks used in this repo:
 
@@ -120,16 +115,16 @@ Merge-readiness checks used in this repo:
 
 ## Tech Stack
 
-- Next.js 16 App Router
-- React 19
-- TypeScript with `strict: true`
-- Prisma + PostgreSQL
-- NextAuth v5
-- Tailwind CSS 4 + shadcn/ui
-- Jest + ts-jest
-- Playwright
-- Stripe
-- Sentry and Upstash Redis as optional production integrations
+- **Next.js 15 App Router** — server components and server actions for clean server/client boundaries
+- **React 19**
+- **TypeScript** with `strict: true`
+- **Prisma + PostgreSQL** — typed query layer with explicit migration history
+- **NextAuth v5** — App Router-native session handling with Prisma adapter persistence
+- **Tailwind CSS 4 + shadcn/ui**
+- **Jest + ts-jest** — unit and integration coverage with a coverage gate in CI
+- **Playwright** — E2E flows against the seeded workspace
+- **Stripe** — checkout, billing portal, webhook signature verification, and idempotent event processing
+- **Sentry + Upstash Redis** — optional production integrations for observability and rate limiting
 
 ## Run Locally
 
@@ -200,8 +195,6 @@ What I would do next at larger scale:
 - [docs/benchmarks/dashboard.md](docs/benchmarks/dashboard.md)
 - [docs/deployment/test-mode-checklist.md](docs/deployment/test-mode-checklist.md)
 - [docs/deployment/manual-regression-checklist.md](docs/deployment/manual-regression-checklist.md)
-- [docs/portfolio/case-study.md](docs/portfolio/case-study.md)
-- [docs/portfolio/project-copy.md](docs/portfolio/project-copy.md)
 - [docs/deployment/rollback-runbook.md](docs/deployment/rollback-runbook.md)
 - [SECURITY.md](SECURITY.md)
 
