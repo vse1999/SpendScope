@@ -1,3 +1,4 @@
+export { GuestDemoLoginButton } from "./demo-login-button"
 export { LoginForm } from "./login-form"
 export { GoogleSignInButton, GitHubSignInButton } from "./oauth-buttons"
 export { AccountLinking } from "./account-linking"

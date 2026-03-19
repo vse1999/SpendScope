@@ -1,4 +1,8 @@
 import type { AnalyticsData } from "@/types/analytics";
+import { DEMO_USERS } from "@/lib/demo/config";
+
+const [demoAdmin, demoMemberSarah, demoMemberMichael, demoMemberEmily, demoMemberJames] =
+  DEMO_USERS;
 
 export const MARKETING_ANALYTICS_DATA: AnalyticsData = {
   summary: {
@@ -25,32 +29,32 @@ export const MARKETING_ANALYTICS_DATA: AnalyticsData = {
   ],
   userSpending: [
     {
-      name: "Alex Johnson",
-      email: "alex.johnson@democorp.com",
+      name: demoAdmin.name,
+      email: demoAdmin.email,
       amount: 14_690.94,
       count: 34,
     },
     {
-      name: "Sarah Chen",
-      email: "sarah.chen@democorp.com",
+      name: demoMemberSarah.name,
+      email: demoMemberSarah.email,
       amount: 3_703.06,
       count: 6,
     },
     {
-      name: "Michael Brown",
-      email: "michael.brown@democorp.com",
+      name: demoMemberMichael.name,
+      email: demoMemberMichael.email,
       amount: 3_510.16,
       count: 9,
     },
     {
-      name: "James Wilson",
-      email: "james.wilson@democorp.com",
+      name: demoMemberJames.name,
+      email: demoMemberJames.email,
       amount: 3_168.92,
       count: 6,
     },
     {
-      name: "Emily Davis",
-      email: "emily.davis@democorp.com",
+      name: demoMemberEmily.name,
+      email: demoMemberEmily.email,
       amount: 2_661.7,
       count: 5,
     },

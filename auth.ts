@@ -2,9 +2,12 @@ import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from "@/lib/monitoring/logger"
+import { authorizeDemoCredentials, isDemoProvider } from "@/lib/demo/auth"
+import { isDemoEnabled, isDemoGuestEmail, DEMO_LOGIN_PROVIDER_ID } from "@/lib/demo/config"
 import { authConfig } from "./auth.config"
 import Google from "next-auth/providers/google"
 import GitHub from "next-auth/providers/github"
+import Credentials from "next-auth/providers/credentials"
 import { UserRole } from "@prisma/client"
 
 const logger = createLogger("auth")
@@ -36,12 +39,48 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 },
             },
         }),
+        Credentials({
+            id: DEMO_LOGIN_PROVIDER_ID,
+            name: "Demo Guest",
+            credentials: {
+                email: {
+                    label: "Demo Email",
+                    type: "email",
+                },
+            },
+            async authorize(credentials) {
+                return authorizeDemoCredentials(credentials)
+            },
+        }),
     ],
     adapter: PrismaAdapter(prisma),
     session: { strategy: "jwt" },
     callbacks: {
         // Handle sign-in and account linking
         async signIn({ user, account, profile }) {
+            if (isDemoProvider(account?.provider)) {
+                if (!isDemoEnabled()) {
+                    logger.warn("demo_sign_in_blocked", {
+                        provider: account?.provider,
+                        reason: "demo_disabled",
+                    })
+                    return "/login?error=DemoDisabled"
+                }
+
+                if (!user.email || !isDemoGuestEmail(user.email)) {
+                    logger.warn("demo_sign_in_blocked", {
+                        provider: account?.provider,
+                        reason: "invalid_demo_user",
+                    })
+                    return "/login?error=DemoUnavailable"
+                }
+
+                logger.info("demo_sign_in_allowed", {
+                    provider: account?.provider,
+                })
+                return true
+            }
+
             // SECURITY: Email verification check
             // For a $1M enterprise app, we must ensure emails are verified before linking
              

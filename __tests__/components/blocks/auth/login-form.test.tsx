@@ -5,6 +5,10 @@ jest.mock("@/components/blocks/auth/oauth-buttons", () => ({
   GitHubSignInButton: () => null,
 }))
 
+jest.mock("@/components/blocks/auth/demo-login-button", () => ({
+  GuestDemoLoginButton: () => null,
+}))
+
 import { LoginForm } from "@/components/blocks/auth/login-form"
 
 describe("LoginForm", () => {

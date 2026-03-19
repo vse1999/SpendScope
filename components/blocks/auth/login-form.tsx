@@ -1,3 +1,4 @@
+import { GuestDemoLoginButton } from "./demo-login-button"
 import { GoogleSignInButton, GitHubSignInButton } from "./oauth-buttons"
 import { cn } from "@/lib/utils"
 
@@ -28,6 +29,7 @@ export function LoginForm({
       <div className="space-y-3">
         <GoogleSignInButton redirectTo={redirectTo} />
         <GitHubSignInButton redirectTo={redirectTo} />
+        <GuestDemoLoginButton redirectTo={redirectTo} />
       </div>
 
       <div className="relative">

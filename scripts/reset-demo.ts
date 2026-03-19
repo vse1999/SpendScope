@@ -1,13 +1,5 @@
+import { DEMO_COMPANY_SLUG, DEMO_USER_EMAILS } from "../lib/demo/config";
 import { prisma } from "../lib/prisma-scripts";
-
-const DEMO_COMPANY_SLUG = "democorp";
-const DEMO_USER_EMAILS = [
-  "alex.johnson@democorp.com",
-  "sarah.chen@democorp.com",
-  "michael.brown@democorp.com",
-  "emily.davis@democorp.com",
-  "james.wilson@democorp.com",
-] as const;
 
 async function resetDemo(): Promise<void> {
   console.log("Starting demo data cleanup...\n");

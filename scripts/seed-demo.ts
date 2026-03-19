@@ -1,9 +1,14 @@
-import { SubscriptionPlan, SubscriptionStatus, UserRole } from "@prisma/client";
+import { SubscriptionPlan, SubscriptionStatus } from "@prisma/client";
+import {
+  DEMO_COMPANY_NAME,
+  DEMO_COMPANY_SLUG,
+  DEMO_USERS,
+} from "../lib/demo/config";
 import { prisma } from "../lib/prisma-scripts";
 
 const DEMO_COMPANY = {
-  name: "DemoCorp",
-  slug: "democorp",
+  name: DEMO_COMPANY_NAME,
+  slug: DEMO_COMPANY_SLUG,
 } as const;
 
 const DEMO_MONTHLY_BUDGET = 20_000;
@@ -11,34 +16,6 @@ const DEFAULT_SEED = 20_260_309;
 const DEFAULT_REFERENCE_DATE = "2026-03-01";
 const MONTH_BUCKETS = 6;
 const EXPENSES_PER_MONTH = 10;
-
-const DEMO_USERS = [
-  {
-    name: "Alex Johnson",
-    email: "alex.johnson@democorp.com",
-    role: UserRole.ADMIN,
-  },
-  {
-    name: "Sarah Chen",
-    email: "sarah.chen@democorp.com",
-    role: UserRole.MEMBER,
-  },
-  {
-    name: "Michael Brown",
-    email: "michael.brown@democorp.com",
-    role: UserRole.MEMBER,
-  },
-  {
-    name: "Emily Davis",
-    email: "emily.davis@democorp.com",
-    role: UserRole.MEMBER,
-  },
-  {
-    name: "James Wilson",
-    email: "james.wilson@democorp.com",
-    role: UserRole.MEMBER,
-  },
-] as const;
 
 const DEMO_CATEGORIES = [
   { name: "Travel", color: "#10b981", icon: "Plane" },
@@ -426,7 +403,7 @@ async function seedUsers(companyId: string): Promise<readonly SeedUser[]> {
       },
     });
 
-    const roleLabel = user.role === UserRole.ADMIN ? "ADMIN" : "MEMBER";
+    const roleLabel = user.role === "ADMIN" ? "ADMIN" : "MEMBER";
     console.log(`  OK ${record.name ?? user.name} (${record.email}) - ${roleLabel}`);
 
     users.push({

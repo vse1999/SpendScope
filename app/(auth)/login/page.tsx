@@ -30,10 +30,25 @@ function getErrorMessage(error: string): { title: string; message: string } {
                 title: "Sign In Error",
                 message: "There was a problem with the OAuth sign in. Please try again.",
             }
+        case "CredentialsSignin":
+            return {
+                title: "Demo Access Unavailable",
+                message: "The demo workspace could not be opened right now. Please try again shortly.",
+            }
         case "OAuthCallback":
             return {
                 title: "Callback Error",
                 message: "There was a problem with the OAuth callback. Please try again.",
+            }
+        case "DemoDisabled":
+            return {
+                title: "Demo Access Disabled",
+                message: "Guest demo access is currently turned off for this deployment.",
+            }
+        case "DemoUnavailable":
+            return {
+                title: "Demo Workspace Unavailable",
+                message: "The demo account is not ready yet. Please reseed the demo data or try again later.",
             }
         case "AccessDenied":
             return {
