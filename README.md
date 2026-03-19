@@ -1,12 +1,14 @@
 # SpendScope
 
 [![CI](https://github.com/vse1999/SpendScope/actions/workflows/ci.yml/badge.svg)](https://github.com/vse1999/SpendScope/actions/workflows/ci.yml)
+[![E2E (Playwright)](https://github.com/vse1999/SpendScope/actions/workflows/e2e.yml/badge.svg)](https://github.com/vse1999/SpendScope/actions/workflows/e2e.yml)
+[![Deploy Smoke Checks](https://github.com/vse1999/SpendScope/actions/workflows/deploy-smoke.yml/badge.svg)](https://github.com/vse1999/SpendScope/actions/workflows/deploy-smoke.yml)
 
 SpendScope is a product-minded expense operations platform for finance and ops teams that need to see where team spend is going, keep billing flows reliable, and avoid policy drift as companies grow.
 
 ## Live Product
 
-- Live demo: [https://v0-spend-scope.vercel.app/](https://v0-spend-scope.vercel.app/)
+Live demo: [v0-spend-scope.vercel.app](https://v0-spend-scope.vercel.app/)
 
 The deployed product is the primary proof surface for this project. This repository is the implementation deep dive for architecture, quality gates, and engineering decisions.
 
@@ -16,6 +18,7 @@ The deployed product is the primary proof surface for this project. This reposit
 - Role-aware workflows across dashboard, expenses, analytics, team, and billing
 - Policy-conscious expense management with filtering, sorting, CSV export, and optimistic updates
 - Stripe checkout, billing portal, and webhook synchronization with idempotency controls
+- One-click demo guest access into a seeded review workspace with locked auth controls
 - Deterministic demo seeding, Jest coverage, Playwright flows, and strict TypeScript quality gates
 
 ## Visual Walkthrough
@@ -34,7 +37,7 @@ The deployed product is the primary proof surface for this project. This reposit
 
 ## Reviewing The Product
 
-Sign in with GitHub or Google OAuth at [https://v0-spend-scope.vercel.app/signup](https://v0-spend-scope.vercel.app/signup) — no password required. The demo workspace is pre-seeded.
+Open [https://v0-spend-scope.vercel.app/login](https://v0-spend-scope.vercel.app/login) and click `Explore Demo Workspace`. The seeded reviewer path does not require a password, GitHub account, or Google account.
 
 Suggested path:
 
@@ -43,21 +46,15 @@ Suggested path:
 3. Open `/dashboard/analytics` to inspect trend and category breakdowns.
 4. Open `/dashboard/team` and `/dashboard/billing` to verify role-aware management and billing behavior.
 
-To reproduce the seeded state locally:
-
-```bash
-npm run seed:demo:reset
-npm run seed:demo -- --seed=20260309 --reference-date=2026-03-01
-```
-
 Expected seeded state:
 
-- Company: `SpendScope E2E`
-- Authenticated review account: `E2E Member` in the seeded `SpendScope E2E` workspace
-- Team size: 2 seeded members in the shared demo company
-- Categories: 3 active categories represented across seeded data
-- Expenses: 60 deterministic expenses across a fixed multi-month window
-- Subscription state: billing surfaces enabled in the seeded review environment
+- Company: `DemoCorp`
+- Review account: `Alex Johnson` (`alex.johnson@democorp.com`) with `ADMIN` access
+- Team size: 5 seeded members in the shared demo company
+- Categories: 5 active categories represented across seeded data
+- Expenses: 60 deterministic expenses across a fixed 6-month window
+- Subscription state: `PRO`
+- Monthly budget: `$20,000`
 
 > Note: first load may take 3–5 seconds on a cold Vercel instance. Warm load median is 271ms. See [benchmark protocol](docs/benchmarks/dashboard.md) for methodology.
 
@@ -106,16 +103,26 @@ Latest captured dashboard benchmark on the deterministic seeded workspace:
 
 These numbers were captured from a local production build (`npm run build && npm run start`) against the deterministic seeded workspace. They reflect application-layer latency, not deployed cold-start time. Full protocol, raw run notes, and the local host caveat: [`docs/benchmarks/dashboard.md`](docs/benchmarks/dashboard.md)
 
-Merge-readiness checks used in this repo:
+Repository verification covered in GitHub Actions:
 
+- `npm run deploy:check`
+- `npm run docs:check`
 - `npx tsc --noEmit`
 - `npm run lint`
-- `npm test -- --runInBand`
+- `npm run audit:prod`
+- `npm run check:any`
+- `npm run test:ci`
 - `npm run build`
+
+Related workflows:
+
+- `CI` runs deployment policy, docs verification, strict type/lint checks, production dependency audit, explicit `any` regression checks, coverage-gated tests, and the production build.
+- `E2E (Playwright)` runs the end-to-end reviewer flows.
+- `Deploy Smoke Checks` runs post-deploy health checks against a provided deployment URL.
 
 ## Tech Stack
 
-- **Next.js 15 App Router** — server components and server actions for clean server/client boundaries
+- **Next.js 16 App Router** — server components and server actions for clean server/client boundaries
 - **React 19**
 - **TypeScript** with `strict: true`
 - **Prisma + PostgreSQL** — typed query layer with explicit migration history

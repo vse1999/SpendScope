@@ -23,9 +23,9 @@ I intentionally did not build a generic personal budgeting app. The goal was a c
 
 If you are reviewing the deployed product, use this path:
 
-1. Open [https://v0-spend-scope.vercel.app/signup](https://v0-spend-scope.vercel.app/signup)
-2. Authenticate with Google or GitHub
-3. Complete onboarding or use the prepared demo workspace
+1. Open [https://v0-spend-scope.vercel.app/login](https://v0-spend-scope.vercel.app/login)
+2. Click `Explore Demo Workspace`
+3. Enter the seeded `DemoCorp` workspace as `Alex Johnson`
 4. Review `/dashboard`
 5. Review `/dashboard/expenses`
 6. Review `/dashboard/analytics`
