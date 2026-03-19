@@ -1,0 +1,52 @@
+# One-time workflow: closes the outdated PR #6
+# ("docs: restructure README, consolidate reviewer path, add profile README")
+# and deletes its associated branch so it is no longer visible.
+# This workflow is safe to re-run — all steps are idempotent.
+name: Close Outdated PR
+
+on:
+  push:
+    branches:
+      - copilot/remove-outdated-pr
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  close-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close PR #6 and delete its branch
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // Close PR #6 (hardcoded — this is a targeted one-time cleanup operation)
+            try {
+              await github.rest.pulls.update({
+                owner,
+                repo,
+                pull_number: 6,
+                state: 'closed'
+              });
+              console.log('Successfully closed PR #6');
+            } catch (error) {
+              console.log('Failed to close PR #6 (may already be closed):', error.message);
+            }
+
+            // Delete the branch associated with PR #6
+            try {
+              await github.rest.git.deleteRef({
+                owner,
+                repo,
+                ref: 'heads/copilot/rewrite-readme-and-create-profile'
+              });
+              console.log('Successfully deleted branch copilot/rewrite-readme-and-create-profile');
+            } catch (error) {
+              console.log('Failed to delete branch (may already be deleted):', error.message);
+            }
