@@ -1,14 +1,19 @@
 "use server"
 
 import { auth } from "@/auth"
+import { isDemoGuestEmail } from "@/lib/demo/config"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
-export async function unlinkProvider(provider: string) {
+export async function unlinkProvider(provider: string): Promise<{ success: true } | { error: string }> {
     const session = await auth()
 
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !session.user.email) {
         return { error: "Not authenticated" }
+    }
+
+    if (isDemoGuestEmail(session.user.email)) {
+        return { error: "Demo access cannot connect or remove authentication providers." }
     }
 
     // SECURITY: Prevent unlinking the last provider (would lock user out)

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
+import { isDemoGuestEmail } from "@/lib/demo/config"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AccountLinking } from "@/components/blocks/auth/account-linking"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -59,6 +60,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
     const linkedProviders = accounts.map(a => a.provider)
     const companyName = userWithCompany?.company?.name ?? "No company assigned"
     const userRole = userWithCompany?.role ?? user.role
+    const isDemoUser = typeof user.email === "string" && isDemoGuestEmail(user.email)
 
     // Handle different states
     const showLinkedSuccess = params.linked === "true"
@@ -141,26 +143,50 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps):
                 </CardContent>
             </Card>
 
-            <Card className="app-card">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Shield className="h-5 w-5 text-primary" />
-                        Connected Accounts
-                    </CardTitle>
-                    <CardDescription>
-                        Link multiple sign-in methods for continuity and account recovery.
-                        Security verification is required when adding a new method.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <AccountLinking 
-                        linkedProviders={linkedProviders}
-                        currentEmail={user.email || ""}
-                        stepUpVerified={stepUpVerified}
-                        linkTarget={linkTarget}
-                    />
-                </CardContent>
-            </Card>
+            {isDemoUser ? (
+                <Card className="app-card">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Shield className="h-5 w-5 text-primary" />
+                            Connected Accounts
+                        </CardTitle>
+                        <CardDescription>
+                            Demo workspaces use a locked authentication profile.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Alert>
+                            <Shield className="h-4 w-4" />
+                            <AlertTitle>Demo sign-in is read-only</AlertTitle>
+                            <AlertDescription>
+                                Google and GitHub account linking is disabled for the demo guest so
+                                reviewers can explore the seeded workspace without changing its access setup.
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card className="app-card">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Shield className="h-5 w-5 text-primary" />
+                            Connected Accounts
+                        </CardTitle>
+                        <CardDescription>
+                            Link multiple sign-in methods for continuity and account recovery.
+                            Security verification is required when adding a new method.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <AccountLinking 
+                            linkedProviders={linkedProviders}
+                            currentEmail={user.email || ""}
+                            stepUpVerified={stepUpVerified}
+                            linkTarget={linkTarget}
+                        />
+                    </CardContent>
+                </Card>
+            )}
         </div>
     )
 }

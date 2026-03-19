@@ -85,7 +85,7 @@ export function AccountLinking({
         
         const result = await unlinkProvider(providerId)
         
-        if (result.error) {
+        if ("error" in result) {
             setError(result.error)
         }
         
