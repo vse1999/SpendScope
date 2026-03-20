@@ -375,15 +375,14 @@ async function checkNumericLimitWithLock(
     };
   }
 
-  // Get current usage
-  const usage = await getOrInitializeUsage(companyId, plan);
-
   // Calculate current usage based on limit type
   let currentUsage: number;
   switch (limitKey) {
-    case "maxMonthlyExpenses":
+    case "maxMonthlyExpenses": {
+      const usage = await getOrInitializeUsage(companyId, plan);
       currentUsage = usage.monthlyExpenses;
       break;
+    }
     case "maxUsers":
       currentUsage = company._count.users;
       break;

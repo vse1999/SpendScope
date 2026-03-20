@@ -212,6 +212,36 @@ describe("FeatureGateService", () => {
         expect(result.allowed).toBe(true);
         expect(result.remaining).toBe(0);
       });
+
+      it("should not query usage for user limits", async (): Promise<void> => {
+        const company = createMockCompany({
+          _count: { users: 1, categories: 2 },
+        });
+        mockPrismaCompanyFindUnique.mockResolvedValue(company);
+
+        const result: FeatureCheckResult = await checkFeatureLimit("company-1", "user", 1);
+
+        expect(result.allowed).toBe(true);
+        expect(result.remaining).toBe(1);
+        expect(mockPrismaCompanyUsageFindUnique).not.toHaveBeenCalled();
+        expect(mockPrismaCompanyUsageCreate).not.toHaveBeenCalled();
+        expect(mockPrismaCompanyUsageUpdate).not.toHaveBeenCalled();
+      });
+
+      it("should not query usage for category limits", async (): Promise<void> => {
+        const company = createMockCompany({
+          _count: { users: 1, categories: 2 },
+        });
+        mockPrismaCompanyFindUnique.mockResolvedValue(company);
+
+        const result: FeatureCheckResult = await checkFeatureLimit("company-1", "category", 1);
+
+        expect(result.allowed).toBe(true);
+        expect(result.remaining).toBe(2);
+        expect(mockPrismaCompanyUsageFindUnique).not.toHaveBeenCalled();
+        expect(mockPrismaCompanyUsageCreate).not.toHaveBeenCalled();
+        expect(mockPrismaCompanyUsageUpdate).not.toHaveBeenCalled();
+      });
     });
 
     describe("PRO plan", () => {
