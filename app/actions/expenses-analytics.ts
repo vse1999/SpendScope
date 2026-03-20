@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import type { AnalyticsData } from "@/types/analytics";
 import { buildMonthlyTrend, normalizeAnalyticsDays } from "@/lib/analytics/monthly-trend";
 import { getDashboardStatsForCompany } from "@/lib/dashboard/queries";
+import { getDashboardCategoryBreakdownForCompany } from "@/lib/dashboard/read-model";
 import { createLogger } from "@/lib/monitoring/logger";
 import { checkFeatureLimit } from "@/lib/subscription/feature-gate-service";
 import { getCurrentUserCompanyId } from "./expenses-shared";
@@ -58,11 +59,22 @@ function toNumericValue(
   return Number(value);
 }
 
+interface GetExpenseStatsResult {
+  byCategory?: {
+    amount: number;
+    color: string;
+    name: string;
+  }[];
+  error?: string;
+  thisMonth?: number;
+  totalExpenses?: number;
+}
+
 /**
- * Get expense statistics for the current user's company
- * Returns total expenses, this month's expenses, and breakdown by category
+ * Get expense statistics for the current user's company.
+ * Uses the dashboard read model instead of aggregating all expenses in Node.js.
  */
-export async function getExpenseStats() {
+export async function getExpenseStats(): Promise<GetExpenseStatsResult> {
   try {
     const companyId = await getCurrentUserCompanyId();
 
@@ -70,55 +82,21 @@ export async function getExpenseStats() {
       return { error: "User not assigned to company" };
     }
 
-    // Get start of current month
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const [dashboardStats, categoryBreakdown] = await Promise.all([
+      getDashboardStatsForCompany(companyId),
+      getDashboardCategoryBreakdownForCompany(companyId),
+    ]);
 
-    // Fetch all expenses for the company
-    const expenses = await prisma.expense.findMany({
-      where: { companyId },
-      include: {
-        category: true,
-      },
-    });
-
-    // Calculate total expenses
-    const totalExpenses = expenses.reduce(
-      (sum, expense) => sum + Number(expense.amount),
-      0
-    );
-
-    // Calculate this month's expenses
-    const thisMonth = expenses
-      .filter((expense) => expense.date >= startOfMonth)
-      .reduce((sum, expense) => sum + Number(expense.amount), 0);
-
-    // Group by category
-    const byCategoryMap = new Map<
-      string,
-      { name: string; color: string; amount: number }
-    >();
-
-    for (const expense of expenses) {
-      const categoryName = expense.category.name;
-      const categoryColor = expense.category.color;
-      const current = byCategoryMap.get(categoryName) || {
-        name: categoryName,
-        color: categoryColor,
-        amount: 0,
+    if ("error" in dashboardStats) {
+      return {
+        error: dashboardStats.error,
       };
-      current.amount += Number(expense.amount);
-      byCategoryMap.set(categoryName, current);
     }
 
-    const byCategory = Array.from(byCategoryMap.values()).sort(
-      (a, b) => b.amount - a.amount
-    );
-
     return {
-      totalExpenses,
-      thisMonth,
-      byCategory,
+      byCategory: categoryBreakdown.byCategory,
+      thisMonth: dashboardStats.data.thisMonth,
+      totalExpenses: dashboardStats.data.totalExpenses,
     };
   } catch (error) {
     logger.error("Failed to fetch expense stats", { error });

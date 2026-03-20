@@ -9,6 +9,8 @@ import type {
   GetExpensesResult,
   GetPaginatedExpensesResult,
 } from "./expenses-types";
+
+const LEGACY_EXPENSES_FETCH_LIMIT = 500;
 const logger = createLogger("expenses-core-queries");
 
 /**
@@ -35,6 +37,7 @@ export async function getExpensesByCompany(): Promise<GetExpensesResult> {
         },
       },
       orderBy: { date: "desc" },
+      take: LEGACY_EXPENSES_FETCH_LIMIT,
     });
 
     // Serialize expenses to convert Decimal to plain strings

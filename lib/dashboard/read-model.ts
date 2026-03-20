@@ -326,7 +326,6 @@ async function readDashboardCategoryBreakdownFromDatabase(
       color: row.color ?? "#888888",
       name: row.name ?? "Uncategorized",
     }))
-    .sort((left, right) => right.amount - left.amount)
 
   logger.info("dashboard_category_breakdown_refreshed", {
     categoryCount: byCategory.length,
@@ -431,4 +430,3 @@ export async function getDashboardCategoryBreakdownForCompany(
 ): Promise<DashboardCategoryBreakdownData> {
   return getDashboardCategoryBreakdownMemoized(companyId)
 }
-

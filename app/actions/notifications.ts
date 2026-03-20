@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { NotificationType } from "@prisma/client";
 import { getDisplayName, parseAuditRoleChangeMessage } from "@/lib/invitations/utils";
 import { createLogger } from "@/lib/monitoring/logger";
-import { revalidatePath } from "next/cache";
 
 const logger = createLogger("notifications-action");
 
@@ -181,24 +180,10 @@ export async function markNotificationAsRead(notificationId: string): Promise<{
       return { success: false, error: "Not authenticated" };
     }
 
-    // Verify the notification belongs to the current user
-    const notification = await prisma.notification.findFirst({
-      where: { id: notificationId, userId: session.user.id },
-    });
-
-    if (!notification) {
-      logger.warn("Notification not found for mark-as-read", {
-        notificationId,
-        userId: session.user.id,
-      });
-      return { success: false, error: "Notification not found" };
-    }
-
-    // Update the notification - using updateMany for better reliability
     const result = await prisma.notification.updateMany({
       where: {
         id: notificationId,
-        userId: session.user.id
+        userId: session.user.id,
       },
       data: {
         read: true,
@@ -207,13 +192,14 @@ export async function markNotificationAsRead(notificationId: string): Promise<{
     });
 
     if (result.count === 0) {
-      logger.error("No rows updated while marking notification as read", { notificationId });
-      return { success: false, error: "Failed to update notification" };
+      logger.warn("Notification not found for mark-as-read", {
+        notificationId,
+        userId: session.user.id,
+      });
+      return { success: false, error: "Notification not found" };
     }
 
     logger.info("Marked notification as read", { notificationId });
-
-    revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
     logger.error("markNotificationAsRead failed", { error });
@@ -247,7 +233,6 @@ export async function markAllNotificationsAsRead(): Promise<{
       userId: session.user.id,
     });
 
-    revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
     logger.error("markAllNotificationsAsRead failed", { error });
@@ -268,20 +253,14 @@ export async function deleteNotification(notificationId: string): Promise<{
       return { success: false, error: "Not authenticated" };
     }
 
-    // Verify the notification belongs to the current user
-    const notification = await prisma.notification.findFirst({
+    const result = await prisma.notification.deleteMany({
       where: { id: notificationId, userId: session.user.id },
     });
 
-    if (!notification) {
+    if (result.count === 0) {
       return { success: false, error: "Notification not found" };
     }
 
-    await prisma.notification.delete({
-      where: { id: notificationId },
-    });
-
-    revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
     logger.error("Failed to delete notification", { error, notificationId });
