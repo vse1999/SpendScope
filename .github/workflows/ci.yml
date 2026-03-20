@@ -78,4 +78,6 @@ jobs:
           if-no-files-found: ignore
 
       - name: Build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: npm run build
