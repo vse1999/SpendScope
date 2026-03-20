@@ -9,7 +9,7 @@ test("landing page renders primary marketing shell", async ({ page }) => {
 
   await expect(
     page.getByRole("heading", {
-      name: /Expense control for teams that need speed, clarity, and confidence/i,
+      name: /Keep team spend visible before month-end turns into a surprise/i,
     })
   ).toBeVisible();
 
@@ -34,12 +34,16 @@ test("landing page renders primary marketing shell", async ({ page }) => {
 
   await expect(page).toHaveURL(/#product$/);
   await expect(
-    page.getByRole("heading", { name: /Analytics that drive better decisions/i })
+    page.getByRole("heading", {
+      name: /See where spend is drifting before it becomes a month-end surprise/i,
+    })
   ).toBeInViewport();
 
   await page.getByRole("link", { name: "Explore Product" }).click();
   await expect(
-    page.getByRole("heading", { name: /Analytics that drive better decisions/i })
+    page.getByRole("heading", {
+      name: /See where spend is drifting before it becomes a month-end surprise/i,
+    })
   ).toBeInViewport();
 
   const pricingSection = page.locator("#pricing");
